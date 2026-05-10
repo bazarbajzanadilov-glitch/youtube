@@ -6,36 +6,13 @@
   color: var(--studio-text-muted);
 }
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   position: relative;
   background: #5891b0;
   flex-shrink: 0;
-  box-shadow: 0 0 0 0 rgba(88, 145, 176, 0.7);
 }
-.on .dot {
-  animation: pulseDot 1.4s ease-out infinite;
-}
-.on .dot::after {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  background: rgba(88, 145, 176, 0.55);
-  animation: pulseHalo 1.4s ease-out infinite;
-  pointer-events: none;
-}
-.off .dot { background: var(--studio-text-disabled); animation: none; box-shadow: none; }
+.off .dot { background: var(--studio-text-disabled); }
 
 .label { letter-spacing: 0.01em; }
-
-@keyframes pulseHalo {
-  0%   { transform: scale(0.5); opacity: 0.9; }
-  70%  { transform: scale(2.4); opacity: 0.05; }
-  100% { transform: scale(2.6); opacity: 0; }
-}
-@keyframes pulseDot {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(88, 145, 176, 0.7); }
-  50%      { transform: scale(1.25); box-shadow: 0 0 0 6px rgba(88, 145, 176, 0); }
-}
