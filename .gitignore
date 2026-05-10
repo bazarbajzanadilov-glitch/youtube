@@ -27,3 +27,4 @@ dist-ssr
 dev.log
 reference/
 *.pdf
+.claude/worktrees/
