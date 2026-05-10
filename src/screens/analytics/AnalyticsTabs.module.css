@@ -31,24 +31,25 @@
 .heroPdfTitle {
   margin: 0 0 24px;
   text-align: center;
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 1.45;
-  color: var(--studio-text);
-  letter-spacing: -0.005em;
-}
-.heroPdfTitle strong {
-  display: block;
   font-size: 32px;
   font-weight: 600;
-  margin-top: 4px;
+  line-height: 1.25;
+  color: var(--studio-text);
   letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
 }
+.heroPdfTitle strong {
+  display: block;
+  font-size: inherit;
+  font-weight: inherit;
+  margin-top: 4px;
+  letter-spacing: inherit;
+  font-variant-numeric: tabular-nums;
+}
 .heroPdfTitleUnit {
-  font-size: 24px;
-  font-weight: 400;
-  color: var(--studio-text-muted);
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
   margin-left: 4px;
 }
 
@@ -1022,8 +1023,7 @@
   .inlineKpiBordered::before { display: none; }
   .inlineKpi { border-top: 1px solid var(--studio-border); }
   .inlineKpi:first-child { border-top: none; }
-  .heroPdfTitle { font-size: 17px; }
-  .heroPdfTitle strong { font-size: 26px; }
+  .heroPdfTitle { font-size: 26px; }
   .overviewSide { flex-direction: column; }
   .overviewSide > * { flex: 1 1 auto; }
 }

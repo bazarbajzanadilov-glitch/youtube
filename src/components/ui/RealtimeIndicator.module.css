@@ -10,7 +10,7 @@
   height: 8px;
   border-radius: 50%;
   position: relative;
-  background: #ff4d4f;
+  background: #5891b0;
   flex-shrink: 0;
 }
 .on .dot::after {
@@ -18,7 +18,7 @@
   position: absolute;
   inset: -4px;
   border-radius: 50%;
-  background: rgba(255, 77, 79, 0.45);
+  background: rgba(88, 145, 176, 0.55);
   animation: pulse 1.4s ease-out infinite;
 }
 .off .dot { background: var(--studio-text-disabled); }
@@ -26,8 +26,9 @@
 .label { letter-spacing: 0.01em; }
 
 @keyframes pulse {
-  0% { transform: scale(0.6); opacity: 0.6; }
-  100% { transform: scale(1.6); opacity: 0; }
+  0%   { transform: scale(0.5); opacity: 0.85; }
+  70%  { transform: scale(2.2); opacity: 0.05; }
+  100% { transform: scale(2.4); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .on .dot::after { animation: none; opacity: 0; }
