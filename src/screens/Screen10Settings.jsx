@@ -1,0 +1,217 @@
+import { useState, useContext, useId } from 'react'
+import s from './Screen10Settings.module.css'
+import TopBar from './TopBar.jsx'
+import Sidebar from './Sidebar.jsx'
+import { NavContext } from './NavContext.js'
+import { HelpIcon, ChevronDown } from './icons.jsx'
+import { useChannel } from '../storage/useChannel.js'
+
+const MENU = ['Общие', 'Канал', 'Загрузка видео', 'Разрешения', 'Модерация сообщества', 'Соглашения']
+
+const Toggle = ({ on, onClick, label }) => (
+  <div className={s.toggleRow}>
+    <span className={s.toggleLabel}>{label}</span>
+    <button
+      type="button"
+      className={`${s.toggle} ${on ? s.toggleOn : ''}`}
+      onClick={onClick}
+      aria-pressed={on}
+    >
+      <span className={s.toggleThumb}/>
+    </button>
+  </div>
+)
+
+const Field = ({ label, hint, children }) => (
+  <div className={s.field}>
+    <div className={s.fieldLabel}>{label}</div>
+    {children}
+    {hint ? <div className={s.fieldHint}>{hint}</div> : null}
+  </div>
+)
+
+const Select = ({ label, value }) => (
+  <button type="button" className={s.selectField}>
+    <span className={s.selectLabel}>{label}</span>
+    <span className={s.selectValue}>
+      {value}
+      <span className={s.selectChev}><ChevronDown size={20}/></span>
+    </span>
+  </button>
+)
+
+function PaneGeneral({ showToast }) {
+  return (
+    <>
+      <div className={s.fieldLabel}>
+        Единицы измерения по умолчанию{' '}
+        <button type="button" className={s.helpIconBtn} onClick={() => showToast('Справка')} aria-label="Справка">
+          <HelpIcon size={14}/>
+        </button>
+      </div>
+      <Select label="Валюта" value="доллар США (USD)"/>
+    </>
+  )
+}
+
+function PaneChannel({ showToast, channelName, setChannelName }) {
+  return (
+    <>
+      <Field label="Название канала">
+        <input
+          type="text"
+          className={s.input}
+          value={channelName}
+          onChange={(e) => setChannelName(e.target.value)}
+        />
+      </Field>
+      <Field label="Страна проживания" hint="Выберите страну, в которой вы зарегистрированы как пользователь.">
+        <Select label="Страна" value="Казахстан"/>
+      </Field>
+      <Field label="Ключевые слова" hint="Через запятую укажите слова, которые описывают содержание канала.">
+        <input type="text" className={s.input} placeholder="Например, музыка, обзор, обучение" defaultValue="anime, ost, jujutsu kaisen"/>
+      </Field>
+    </>
+  )
+}
+
+function PaneUpload({ showToast, settings, setSettings }) {
+  return (
+    <>
+      <Field label="Описание по умолчанию" hint="Шаблон описания, который будет применяться к новым видео.">
+        <textarea className={s.textarea} rows="3" defaultValue="Подпишитесь на канал, чтобы не пропускать новые видео!"/>
+      </Field>
+      <Field label="Видимость" hint="Этот параметр будет применяться по умолчанию.">
+        <Select label="Доступ" value="Доступ по ссылке"/>
+      </Field>
+      <Toggle on={settings.allowComments} onClick={() => setSettings({ ...settings, allowComments: !settings.allowComments })} label="Разрешить комментарии"/>
+      <Toggle on={settings.notifySubscribers} onClick={() => setSettings({ ...settings, notifySubscribers: !settings.notifySubscribers })} label="Уведомлять подписчиков"/>
+    </>
+  )
+}
+
+function PanePermissions({ showToast, channelName }) {
+  return (
+    <>
+      <div className={s.note}>
+        Управляйте тем, кто может работать с вашим каналом. Чтобы пригласить пользователя, добавьте его как менеджера в Brand Account.
+      </div>
+      <Field label="Текущие пользователи">
+        <div className={s.userRow}>
+          <div className={s.userAvatar}/>
+          <div className={s.userInfo}>
+            <div className={s.userName}>{channelName}</div>
+            <div className={s.userEmail}>reli.sheets1@gmail.com</div>
+          </div>
+          <span className={s.userRole}>Владелец</span>
+        </div>
+      </Field>
+      <button type="button" className={s.linkBtn}>Управлять разрешениями</button>
+    </>
+  )
+}
+
+function PaneModeration({ showToast, settings, setSettings }) {
+  return (
+    <>
+      <Toggle on={settings.holdForReview} onClick={() => setSettings({ ...settings, holdForReview: !settings.holdForReview })} label="Удерживать потенциально неуместные комментарии для проверки"/>
+      <Toggle on={settings.holdLinks} onClick={() => setSettings({ ...settings, holdLinks: !settings.holdLinks })} label="Удерживать комментарии со ссылками"/>
+      <Field label="Заблокированные слова" hint="Через запятую укажите слова или фразы, которые будут блокироваться.">
+        <textarea className={s.textarea} rows="2" placeholder="спам, реклама"/>
+      </Field>
+    </>
+  )
+}
+
+function PaneAgreements({ showToast }) {
+  return (
+    <>
+      <div className={s.note}>
+        Здесь хранятся ваши соглашения с YouTube — Условия использования, Политика конфиденциальности и партнёрское соглашение.
+      </div>
+      <div className={s.agrRow}>
+        <span>Условия использования YouTube</span>
+        <button type="button" className={s.linkBtn}>Открыть</button>
+      </div>
+      <div className={s.agrRow}>
+        <span>Партнёрская программа YouTube</span>
+        <button type="button" className={s.linkBtn}>Открыть</button>
+      </div>
+      <div className={s.agrRow}>
+        <span>Политика конфиденциальности</span>
+        <button type="button" className={s.linkBtn}>Открыть</button>
+      </div>
+    </>
+  )
+}
+
+export default function Screen10Settings() {
+  const { showToast, go } = useContext(NavContext)
+  const { channel, update: updateChannel } = useChannel()
+  const [menuIdx, setMenuIdx] = useState(0)
+  const channelName = channel.channelName
+  const setChannelName = (name) => updateChannel({ channelName: name })
+  const [settings, setSettings] = useState({
+    allowComments: true,
+    notifySubscribers: true,
+    holdForReview: true,
+    holdLinks: false,
+  })
+  const modalTitleId = useId()
+  const closeModal = () => go('copyright')
+
+  return (
+    <div className={s.page}>
+      <TopBar/>
+      <Sidebar active="copyright"/>
+      <div className={s.main}>
+        <h1 className={s.title}>Обнаружение контента</h1>
+        <div className={s.tabs}>
+          <div className={`${s.tab} ${s.tabActive}`}>Авторские права</div>
+        </div>
+        <div className={s.barRow}>
+          <button type="button" className={s.requestPill} onClick={() => showToast('Запросы на удаление')}>Запросы на удаление</button>
+          <button type="button" className={s.removePill} onClick={() => showToast('Запросить удаление')}>Запросить удаление</button>
+        </div>
+      </div>
+
+      <div className={s.scrim} role="presentation" onClick={(e) => e.target === e.currentTarget && closeModal()}>
+        <div
+          className={s.modal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={modalTitleId}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className={s.modalHeader} id={modalTitleId}>Настройки</div>
+          <div className={s.modalBody}>
+            <div className={s.modalLeft}>
+              {MENU.map((m, i) => (
+                <button
+                  key={m}
+                  type="button"
+                  className={`${s.menuItem} ${i === menuIdx ? s.menuItemActive : ''}`}
+                  onClick={() => setMenuIdx(i)}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            <div className={s.modalRight}>
+              {menuIdx === 0 && <PaneGeneral showToast={showToast}/>}
+              {menuIdx === 1 && <PaneChannel showToast={showToast} channelName={channelName} setChannelName={setChannelName}/>}
+              {menuIdx === 2 && <PaneUpload showToast={showToast} settings={settings} setSettings={setSettings}/>}
+              {menuIdx === 3 && <PanePermissions showToast={showToast} channelName={channelName}/>}
+              {menuIdx === 4 && <PaneModeration showToast={showToast} settings={settings} setSettings={setSettings}/>}
+              {menuIdx === 5 && <PaneAgreements showToast={showToast}/>}
+            </div>
+          </div>
+          <div className={s.modalFooter}>
+            <button type="button" className={s.btnGhost} onClick={closeModal}>Закрыть</button>
+            <button type="button" className={s.btnSave} onClick={() => showToast('Сохранено')}>Сохранить</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

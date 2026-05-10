@@ -1,0 +1,17 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.chip svg { display: block; flex-shrink: 0; }
+
+.positive { color: #67e08c; background: rgba(43, 166, 64, 0.18); }
+.negative { color: #ff8a8a; background: rgba(255, 87, 87, 0.18); }
+.neutral { color: var(--studio-text-muted); background: rgba(255,255,255,0.06); }

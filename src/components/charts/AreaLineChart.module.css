@@ -1,0 +1,7 @@
+.wrap {
+  width: 100%;
+  position: relative;
+  font-variant-numeric: tabular-nums;
+}
+.wrap :global(.recharts-tooltip-wrapper) { z-index: 4; }
+.wrap :global(.recharts-cartesian-grid line) { stroke-opacity: 1; }

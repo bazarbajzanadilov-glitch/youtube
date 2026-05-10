@@ -1,0 +1,542 @@
+/**
+ * Канал-уровневый агрегатор. Принимает videos[] + channel + range,
+ * возвращает структуру со всеми сериями для экранов аналитики/монетизации.
+ *
+ * Подход: каждое видео получает свою дневную форму (engine.generateDailyShape)
+ * на интервале от publishDate до today, нормированную в video.views. Серии
+ * суммируются по календарным дням → канальная серия. Это даёт «живое»
+ * поведение: правка views в админке немедленно меняет график; новое видео
+ * — естественный всплеск в дате публикации.
+ */
+
+import {
+  hashSeed, isoDay, addDays, daysBetween, startOfDay,
+  generateDailyShape, normalizeToTotal, inferProfile, movingAverage,
+  generateRetention, generateHourlyHeatmap, generateRealtimeMinute,
+  generateTrafficShares, generateDeviceShares, generateGeoShares,
+  generateAgeGender, generateLanguageShares, generateReturningSeries,
+} from './analyticsEngine.js'
+
+/* === range resolver === */
+
+export const RANGE_OPTIONS = [
+  { kind: '7d', label: 'Последние 7 дней', days: 7 },
+  { kind: '28d', label: 'Последние 28 дней', days: 28 },
+  { kind: '90d', label: 'Последние 90 дней', days: 90 },
+  { kind: '365d', label: 'Последний год', days: 365 },
+  { kind: 'lifetime', label: 'За всё время', days: null },
+  { kind: 'custom', label: 'Свой диапазон', days: null },
+]
+
+export function resolveRange(range, videos, today = new Date()) {
+  const todayD = startOfDay(today)
+  if (range?.kind === 'custom' && range.from && range.to) {
+    const from = startOfDay(new Date(range.from))
+    const to = startOfDay(new Date(range.to))
+    const days = Math.max(1, daysBetween(from, to) + 1)
+    return { from, to, days, kind: 'custom', label: 'Свой диапазон' }
+  }
+  if (range?.kind === 'lifetime') {
+    let earliest = todayD
+    for (const v of videos) {
+      if (v.date) {
+        const d = startOfDay(new Date(v.date))
+        if (d < earliest) earliest = d
+      }
+    }
+    /* Гарантируем минимум 7 дней (даже если все видео опубликованы сегодня).
+       from смещаем назад от today чтобы dailyMap не уходил в будущее. */
+    const ageDays = Math.max(0, daysBetween(earliest, todayD)) + 1
+    const days = Math.max(7, ageDays)
+    const from = startOfDay(addDays(todayD, -(days - 1)))
+    return { from, to: todayD, days, kind: 'lifetime', label: 'За всё время' }
+  }
+  const opt = RANGE_OPTIONS.find((r) => r.kind === range?.kind) || RANGE_OPTIONS[1]
+  const days = opt.days || 28
+  const from = addDays(todayD, -(days - 1))
+  return { from: startOfDay(from), to: todayD, days, kind: opt.kind, label: opt.label }
+}
+
+/* === per-day series builder === */
+
+function buildDailyMap(from, days) {
+  const dates = []
+  const map = new Map()
+  for (let i = 0; i < days; i += 1) {
+    const d = addDays(from, i)
+    const key = isoDay(d)
+    dates.push({ date: key, weekday: d.getDay() })
+    map.set(key, { date: key, views: 0, watchTime: 0, revenue: 0, likes: 0, comments: 0, weekday: d.getDay() })
+  }
+  return { dates, map }
+}
+
+/**
+ * Эффективный доход за видео: либо явно проставленный video.revenue, либо вычисляется
+ * из суммарных просмотров и channel.rpm. Гарантия: если на канале есть просмотры
+ * и RPM, монетизация не покажет ноль.
+ */
+export function effectiveRevenue(video, channel) {
+  const explicit = Math.max(0, Number(video.revenue) || 0)
+  if (explicit > 0) return explicit
+  const views = Math.max(0, Number(video.views) || 0)
+  const rpm = Math.max(0, Number(channel?.rpm) || 0)
+  if (views > 0 && rpm > 0) return Math.round((views / 1000) * rpm * 100) / 100
+  return 0
+}
+
+/** Производное количество комментариев на основе просмотров. */
+export function effectiveComments(video) {
+  const views = Math.max(0, Number(video.views) || 0)
+  if (views <= 0) return 0
+  const rate = 0.006 + ((hashSeed(video.id, 'cm') % 100) / 100) * 0.012
+  return Math.round(views * rate)
+}
+
+function attachVideoContribution({ video, channel, range, dayMap }) {
+  if (!video || !video.date) return
+  const today = range.to
+  const publish = startOfDay(new Date(video.date))
+  if (publish > today) return
+  const ageDays = Math.max(1, daysBetween(publish, today) + 1)
+  const profile = inferProfile(video, today)
+  const seed = hashSeed(channel.channelName, video.id, profile, video.views || 0)
+  const shape = generateDailyShape({
+    seed,
+    days: ageDays,
+    profile,
+    startWeekday: publish.getDay(),
+  })
+  const totalViews = Math.max(0, Number(video.views) || 0)
+  const scaled = normalizeToTotal(shape, totalViews)
+  const totalRevenue = effectiveRevenue(video, channel)
+  const revenueScaled = totalViews > 0 && totalRevenue > 0
+    ? scaled.map((x) => (x / totalViews) * totalRevenue)
+    : new Array(scaled.length).fill(0)
+  const totalLikes = Math.max(0, Number(video.likes) || 0)
+  const likesScaled = totalViews > 0 && totalLikes > 0
+    ? scaled.map((x) => (x / totalViews) * totalLikes)
+    : new Array(scaled.length).fill(0)
+  const totalComments = effectiveComments(video)
+  const commentsScaled = totalViews > 0 && totalComments > 0
+    ? scaled.map((x) => (x / totalViews) * totalComments)
+    : new Array(scaled.length).fill(0)
+  const durationSec = parseDuration(video.duration)
+  const watchEachSec = scaled.map((views) => views * durationSec * 0.45)
+  for (let i = 0; i < ageDays; i += 1) {
+    const day = addDays(publish, i)
+    const key = isoDay(day)
+    const slot = dayMap.get(key)
+    if (slot) {
+      slot.views += scaled[i]
+      slot.revenue += revenueScaled[i]
+      slot.watchTime += watchEachSec[i]
+      slot.likes += likesScaled[i]
+      slot.comments += commentsScaled[i]
+    }
+  }
+}
+
+function parseDuration(d) {
+  if (!d) return 60
+  const parts = String(d).split(':').map((x) => parseInt(x, 10) || 0)
+  if (parts.length === 2) return parts[0] * 60 + parts[1]
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
+  return parseInt(d, 10) || 60
+}
+
+/* === KPI delta vs previous period === */
+
+function buildPrevSeries(videos, channel, range) {
+  const prevTo = addDays(range.from, -1)
+  const prevFrom = addDays(prevTo, -(range.days - 1))
+  const { map } = buildDailyMap(prevFrom, range.days)
+  videos.forEach((v) => attachVideoContribution({
+    video: v,
+    channel,
+    range: { from: prevFrom, to: prevTo, days: range.days },
+    dayMap: map,
+  }))
+  let views = 0
+  let watch = 0
+  let revenue = 0
+  let likes = 0
+  let comments = 0
+  for (const x of map.values()) {
+    views += x.views
+    watch += x.watchTime
+    revenue += x.revenue
+    likes += x.likes
+    comments += x.comments
+  }
+  return { views, watch, revenue, likes, comments }
+}
+
+function pctDelta(curr, prev) {
+  if (!prev) return curr > 0 ? 100 : 0
+  const raw = ((curr - prev) / prev) * 100
+  /* Всегда показываем рост: отрицательную дельту инвертируем в положительную,
+     так у пользователя в KPI-чипе всегда «обычное значение» с зелёным «+». */
+  return Math.abs(raw)
+}
+
+function sum(arr) { return arr.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0) }
+function rescaleToSum(arr, target) {
+  const safe = arr.map((x) => (Number.isFinite(x) ? Math.max(0, x) : 0))
+  const total = sum(safe)
+  const safeTarget = Number.isFinite(target) ? Math.max(0, target) : 0
+  if (total <= 0 || safeTarget <= 0) return safe
+  const factor = safeTarget / total
+  return safe.map((x) => x * factor)
+}
+
+function bucketKey(dateIso, granularity) {
+  const d = new Date(dateIso)
+  if (granularity === 'week') {
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Понедельник
+    const w = new Date(d.getFullYear(), d.getMonth(), diff)
+    return isoDay(w)
+  }
+  if (granularity === 'month') {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+  }
+  return dateIso
+}
+
+function downsampleSubscribers(daily, granularity) {
+  if (daily.length === 0) return daily
+  const buckets = new Map()
+  for (const row of daily) {
+    const key = bucketKey(row.date, granularity)
+    /* для подписчиков берём последнее значение бакета — кумулятивная метрика */
+    buckets.set(key, { date: key, subscribers: row.subscribers })
+  }
+  return Array.from(buckets.values()).sort((a, b) => a.date.localeCompare(b.date))
+}
+
+function bucketSeries(series, granularity) {
+  if (granularity === 'day' || series.length === 0) return series
+  const buckets = new Map()
+  for (const row of series) {
+    const key = bucketKey(row.date, granularity)
+    if (!buckets.has(key)) {
+      buckets.set(key, { date: key, weekday: 0, views: 0, watchTime: 0, revenue: 0, likes: 0, comments: 0 })
+    }
+    const b = buckets.get(key)
+    b.views += row.views
+    b.watchTime += row.watchTime
+    b.revenue += row.revenue
+    b.likes += row.likes
+    b.comments += row.comments
+  }
+  return Array.from(buckets.values()).sort((a, b) => a.date.localeCompare(b.date)).map((b) => ({
+    ...b,
+    revenue: +b.revenue.toFixed(2),
+  }))
+}
+
+/**
+ * Lifetime итоги — это «правда» канала. Они должны совпадать с Dashboard
+ * (Screen1Dashboard) — иначе видна десинхронизация. При range='lifetime'
+ * период-серия равна lifetime; для других range — выводятся как hint.
+ */
+function computeLifetime(videos, channel) {
+  let views = 0
+  let likes = 0
+  let revenue = 0
+  let comments = 0
+  let watchSec = 0
+  for (const v of videos) {
+    const vv = Math.max(0, Number(v.views) || 0)
+    views += vv
+    likes += Math.max(0, Number(v.likes) || 0)
+    revenue += effectiveRevenue(v, channel)
+    comments += effectiveComments(v)
+    watchSec += vv * parseDuration(v.duration) * 0.45
+  }
+  return {
+    views,
+    likes,
+    revenue: +revenue.toFixed(2),
+    comments,
+    watchHours: watchSec / 3600,
+    videos: videos.length,
+  }
+}
+
+/* === main builder === */
+
+export function build(videosInput, channelInput, rangeInput, options = {}) {
+  const videos = Array.isArray(videosInput) ? videosInput : []
+  const channel = channelInput || {}
+  const today = options.today || new Date()
+  const range = resolveRange(rangeInput, videos, today)
+  const channelSeed = hashSeed(channel.channelName || 'channel', channel.country || 'RU', range.kind)
+
+  const lifetime = computeLifetime(videos, channel)
+  const { dates, map } = buildDailyMap(range.from, range.days)
+  videos.forEach((v) => attachVideoContribution({ video: v, channel, range, dayMap: map }))
+
+  /* Сырые слоты + 3-дневное скользящее среднее для канальной серии — убирает
+     single-day всплески. Сумма сохраняется через rescale. */
+  const rawViews = dates.map(({ date }) => map.get(date).views)
+  const rawWatch = dates.map(({ date }) => map.get(date).watchTime)
+  const rawRev = dates.map(({ date }) => map.get(date).revenue)
+  const rawLikes = dates.map(({ date }) => map.get(date).likes)
+  const rawComm = dates.map(({ date }) => map.get(date).comments)
+
+  /* Без скользящего среднего: оставляем дневные колебания, чтобы линейный
+     график имел естественные «острые» пики, как в реальном YouTube Studio. */
+  const smoothedViews = rawViews
+  const smoothedWatch = rawWatch
+  const smoothedRev = rawRev
+  const smoothedLikes = rawLikes
+  const smoothedComm = rawComm
+
+  const dailySeries = dates.map(({ date, weekday }, i) => ({
+    date,
+    weekday,
+    views: Math.round(smoothedViews[i]),
+    watchTime: Math.round(smoothedWatch[i]),
+    revenue: +smoothedRev[i].toFixed(2),
+    likes: Math.round(smoothedLikes[i]),
+    comments: Math.round(smoothedComm[i]),
+  }))
+  /* Бакетинг: для длинных диапазонов аггрегируем по неделям/месяцам, чтобы чарт был
+     читаемым (а не плоской линией с одним всплеском в конце). */
+  const granularity = range.days <= 56 ? 'day' : range.days <= 240 ? 'week' : 'month'
+  const series = bucketSeries(dailySeries, granularity)
+
+  // Если range = lifetime — period totals привязываем к lifetime totals (точное совпадение с Dashboard)
+  const isLifetime = range.kind === 'lifetime'
+  const totalViewsRaw = series.reduce((s, x) => s + x.views, 0)
+  const totalLikesRaw = series.reduce((s, x) => s + x.likes, 0)
+  const totalCommentsRaw = series.reduce((s, x) => s + x.comments, 0)
+  const totalWatchSec = series.reduce((s, x) => s + x.watchTime, 0)
+  const totalRevenueRaw = series.reduce((s, x) => s + x.revenue, 0)
+
+  const totalViews = isLifetime ? lifetime.views : totalViewsRaw
+  const totalLikes = isLifetime ? lifetime.likes : totalLikesRaw
+  const totalComments = isLifetime ? lifetime.comments : totalCommentsRaw
+  const totalRevenue = isLifetime ? lifetime.revenue : totalRevenueRaw
+  const totalWatchHours = isLifetime ? lifetime.watchHours : totalWatchSec / 3600
+
+  const allViewsForDuration = videos.reduce((s, v) => s + (v.views || 0), 0)
+  const allWatchSec = videos.reduce((s, v) => s + (v.views || 0) * parseDuration(v.duration) * 0.45, 0)
+  const avgDurationSec = allViewsForDuration > 0 ? allWatchSec / allViewsForDuration : 0
+
+  const prev = buildPrevSeries(videos, channel, range)
+  const prevWatchHours = prev.watch / 3600
+  const subscribersDaily = buildSubscriberSeries(channel, channelSeed, dates)
+  /* Для подписчиков делаем downsampling (последняя точка каждого бакета — это
+     текущее число подписчиков на конец недели/месяца). */
+  const subscribers = granularity === 'day'
+    ? subscribersDaily
+    : downsampleSubscribers(subscribersDaily, granularity)
+  const subscribersDelta = subscribers.length > 0
+    ? subscribers[subscribers.length - 1].subscribers - subscribers[0].subscribers
+    : 0
+
+  const traffic = generateTrafficShares(channelSeed)
+  const devices = generateDeviceShares(channelSeed + 1)
+  const geography = generateGeoShares(channelSeed + 2, channel.country || 'RU')
+  const ageGender = generateAgeGender(channelSeed + 3)
+  const languages = generateLanguageShares(channelSeed + 4)
+  const heatmap = generateHourlyHeatmap(channelSeed + 5)
+  const returningRaw = generateReturningSeries(channelSeed + 6, range.days, range.from.getDay())
+  const newReturning = series.map((d, i) => {
+    const ratio = returningRaw[i]?.newRatio ?? 0.6
+    const newV = Math.round(d.views * ratio)
+    return { date: d.date, new: newV, returning: Math.max(0, d.views - newV) }
+  })
+
+  const ctr = 0.082 + ((channelSeed % 1000) / 1000) * 0.06
+  const impressions = Math.round(totalViews / Math.max(0.04, ctr))
+
+  const retentionVideos = videos.slice(0, 6).map((v) => ({
+    videoId: v.id,
+    title: v.title,
+    curve: generateRetention(hashSeed(v.id, 'retention')),
+  }))
+  const channelRetention = generateRetention(channelSeed + 7)
+
+  /* realtime: 48h, частица в час, последний бар = текущий */
+  const realtime = buildRealtime(channelSeed + 8, totalViews, range.days)
+
+  /* monetization split */
+  const monetization = buildMonetization({
+    channel, channelSeed, series, totalRevenue, totalViews, range, prev,
+  })
+
+  const kpis = {
+    overview: {
+      views: {
+        value: totalViews, delta: pctDelta(totalViews, prev.views), lifetime: lifetime.views,
+      },
+      watchTime: {
+        value: totalWatchHours, delta: pctDelta(totalWatchHours, prevWatchHours), lifetime: lifetime.watchHours,
+      },
+      subscribers: { value: subscribersDelta, absolute: channel.subscriberCount || 0 },
+      likes: {
+        value: totalLikes, delta: pctDelta(totalLikes, prev.likes), lifetime: lifetime.likes,
+      },
+      comments: {
+        value: totalComments, delta: pctDelta(totalComments, prev.comments), lifetime: lifetime.comments,
+      },
+      avgDuration: { value: avgDurationSec, delta: 0 },
+    },
+    content: {
+      views: { value: totalViews, delta: pctDelta(totalViews, prev.views), lifetime: lifetime.views },
+      impressions: { value: impressions, delta: pctDelta(totalViews, prev.views) },
+      ctr: { value: ctr * 100, delta: 0 },
+      avgDuration: { value: avgDurationSec, delta: 0 },
+    },
+    audience: {
+      subscribers: { value: subscribersDelta, absolute: channel.subscriberCount || 0 },
+      uniqueViewers: { value: Math.round(totalViews * 0.7), delta: 0 },
+      returning: { value: 100 - Math.round((returningRaw[returningRaw.length - 1]?.newRatio ?? 0.6) * 100), delta: 0 },
+      avgViews: { value: videos.length > 0 ? Math.round(totalViews / Math.max(1, videos.length)) : 0, delta: 0 },
+      likes: { value: totalLikes, delta: pctDelta(totalLikes, prev.likes), lifetime: lifetime.likes },
+      comments: { value: totalComments, delta: pctDelta(totalComments, prev.comments), lifetime: lifetime.comments },
+    },
+  }
+
+  const topByViews = [...videos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10)
+  const topByRevenue = [...videos].sort((a, b) => (b.revenue || 0) - (a.revenue || 0)).slice(0, 10)
+  const newest = [...videos].sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null
+
+  return {
+    range,
+    channel,
+    lifetime,
+    overview: {
+      kpis: kpis.overview,
+      series,
+      topVideos: topByViews,
+      newest,
+    },
+    content: {
+      kpis: kpis.content,
+      series,
+      traffic,
+      topVideos: topByViews.slice(0, 5),
+      impressionsTotal: impressions,
+    },
+    audience: {
+      kpis: kpis.audience,
+      subscribers,
+      newReturning,
+      heatmap,
+      ageGender,
+      devices,
+      geography,
+      languages,
+    },
+    retention: {
+      channel: channelRetention,
+      videos: retentionVideos,
+    },
+    realtime,
+    monetization,
+  }
+}
+
+/* === subscribers === */
+function buildSubscriberSeries(channel, channelSeed, dates) {
+  const target = Math.max(0, Number(channel.subscriberCount) || 0)
+  if (target === 0 || dates.length === 0) {
+    return dates.map((d) => ({ date: d.date, subscribers: 0 }))
+  }
+  const startFraction = 0.78 + ((channelSeed % 1000) / 1000) * 0.18
+  const start = Math.round(target * Math.min(0.98, startFraction))
+  const totalDelta = target - start
+  const shape = generateDailyShape({
+    seed: channelSeed,
+    days: dates.length,
+    profile: 'gradualGrowth',
+    startWeekday: 0,
+  })
+  const sumShape = shape.reduce((s, x) => s + x, 0) || 1
+  const cumulative = []
+  let acc = start
+  for (let i = 0; i < dates.length; i += 1) {
+    const inc = (shape[i] / sumShape) * totalDelta
+    acc += inc
+    cumulative.push({ date: dates[i].date, subscribers: Math.round(acc) })
+  }
+  if (cumulative.length > 0) cumulative[cumulative.length - 1].subscribers = target
+  return cumulative
+}
+
+/* === realtime: 48 баров (1 бар = 1 час), последний — «сейчас» === */
+function buildRealtime(seed, totalViews, days) {
+  const bars = 48
+  const rawShape = generateDailyShape({ seed, days: bars, profile: 'seasonal', startWeekday: 0 })
+  const baseDailyViews = totalViews / Math.max(1, days)
+  const hourlyBase = baseDailyViews / 24
+  const last48 = normalizeToTotal(rawShape, hourlyBase * bars).map((x) => Math.max(2, Math.round(x)))
+  const currentViewers = Math.max(3, Math.round(last48[last48.length - 1] / 60 + 8))
+  const totalLastHour = last48[last48.length - 1]
+  return { last48, currentViewers, totalLastHour, hourlyBase, generatorSeed: seed }
+}
+
+/* === monetization === */
+function buildMonetization({ channel, channelSeed, series, totalRevenue, totalViews, range, prev }) {
+  const enabled = channel.monetizationEnabled !== false
+  if (!enabled) {
+    return {
+      enabled: false,
+      kpis: {
+        revenue: { value: 0, delta: 0 },
+        rpm: { value: 0, delta: 0 },
+        cpm: { value: 0, delta: 0 },
+        monetizedPlaybacks: { value: 0, delta: 0 },
+        adImpressions: { value: 0, delta: 0 },
+      },
+      series: series.map((d) => ({ ...d, revenue: 0 })),
+      sources: [],
+      stackedSeries: [],
+    }
+  }
+  const rpm = totalViews > 0 ? (totalRevenue / totalViews) * 1000 : (channel.rpm || 0)
+  const cpm = channel.cpm || rpm * 2.4
+  const monetizedPct = 0.78 + ((channelSeed % 100) / 100) * 0.12
+  const monetizedPlaybacks = Math.round(totalViews * monetizedPct)
+  const adImpressions = Math.round(monetizedPlaybacks * (1.2 + ((channelSeed % 50) / 50) * 0.6))
+
+  const sources = [
+    { key: 'ads', label: 'Реклама', share: 0.78 + ((channelSeed % 50) / 50) * 0.06 },
+    { key: 'premium', label: 'YouTube Premium', share: 0.09 + ((channelSeed % 30) / 30) * 0.04 },
+    { key: 'memberships', label: 'Спонсорства', share: 0.04 + ((channelSeed % 20) / 20) * 0.03 },
+    { key: 'supers', label: 'Supers / Чаты', share: 0.02 + ((channelSeed % 10) / 10) * 0.02 },
+    { key: 'shopping', label: 'Покупки и товары', share: 0.01 + ((channelSeed % 7) / 7) * 0.015 },
+  ]
+  const sumS = sources.reduce((s, x) => s + x.share, 0)
+  sources.forEach((s) => { s.share /= sumS })
+  const sourcesWithAmount = sources.map((s) => ({ ...s, value: +(totalRevenue * s.share).toFixed(2) }))
+
+  const stackedSeries = series.map((d) => {
+    const row = { date: d.date, weekday: d.weekday }
+    for (const src of sourcesWithAmount) {
+      row[src.key] = +(d.revenue * src.share).toFixed(2)
+    }
+    return row
+  })
+
+  return {
+    enabled: true,
+    kpis: {
+      revenue: { value: totalRevenue, delta: pctDelta(totalRevenue, prev.revenue) },
+      rpm: { value: rpm, delta: 0 },
+      cpm: { value: cpm, delta: 0 },
+      monetizedPlaybacks: { value: monetizedPlaybacks, delta: 0 },
+      adImpressions: { value: adImpressions, delta: 0 },
+    },
+    series,
+    sources: sourcesWithAmount,
+    stackedSeries,
+  }
+}
+
+export { parseDuration }

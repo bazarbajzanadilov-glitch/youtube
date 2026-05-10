@@ -1,0 +1,43 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 100%;
+  min-height: 36px;
+}
+.bar {
+  flex: 1;
+  min-width: 1px;
+  min-height: 2px;
+  border-radius: 1px 1px 0 0;
+  display: block;
+  background: var(--studio-chart-stroke);
+  cursor: pointer;
+  transition: filter 0.18s ease;
+  position: relative;
+}
+.bar:hover { filter: brightness(1.4); }
+.barLast { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18); }
+.barLast::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(255,255,255,0.06);
+}
+
+.scaleRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--studio-text-subtle);
+  letter-spacing: 0.02em;
+}

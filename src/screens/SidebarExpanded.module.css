@@ -1,0 +1,119 @@
+.sidebar {
+  position: fixed;
+  top: var(--studio-topbar-height);
+  left: 0;
+  bottom: 0;
+  z-index: 6;
+  width: var(--studio-sidebar-expanded-width);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 8px 12px;
+  background: var(--studio-bg);
+  border-right: 1px solid var(--studio-border);
+  overflow: hidden;
+}
+
+.channel {
+  flex: 0 0 auto;
+  text-align: center;
+  padding-bottom: 16px;
+}
+
+.channelAvatar {
+  width: 112px;
+  height: 112px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--studio-black);
+}
+
+.channelName {
+  color: var(--studio-text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.channelHandle {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  margin-top: 2px;
+}
+
+/* Прокручивается только список — «Настройки»/«Отзыв» закреплены внизу */
+.itemsScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.itemsScroll::-webkit-scrollbar { width: 6px; }
+.itemsScroll::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 3px; }
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border: none;
+  border-radius: 10px;
+  padding: 0 16px;
+  background: transparent;
+  color: var(--studio-text);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.item:hover {
+  background: #1f1f1f;
+}
+.active {
+  background: #1f1f1f;
+}
+.active .itemLabel { font-weight: 500; }
+
+.itemIcon {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--studio-text);
+}
+
+.itemIcon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.itemLabel {
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bottom {
+  flex: 0 0 auto;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--studio-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

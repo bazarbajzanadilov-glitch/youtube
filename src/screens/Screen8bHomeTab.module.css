@@ -1,0 +1,124 @@
+.page {
+  background: var(--studio-canvas);
+  color: var(--studio-text);
+  min-height: 800px;
+  width: 100%;
+  font-family: var(--studio-font);
+  position: relative;
+}
+.main {
+  margin-left: var(--studio-current-sidebar-width, var(--studio-sidebar-expanded-width));
+  padding: var(--studio-main-padding);
+  max-width: 1100px;
+  background: var(--studio-canvas);
+  min-height: var(--studio-main-min-height);
+  box-sizing: border-box;
+}
+
+.headerRow { display: flex; align-items: center; margin-bottom: 16px; }
+.title { font-size: 24px; line-height: 32px; font-weight: 500; margin: 0; }
+
+.actionsRight { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.linkBtn {
+  background: transparent; border: 1px solid var(--studio-border); color: var(--studio-text);
+  padding: 6px 16px; height: 32px; border-radius: 16px; font-size: 13px; cursor: pointer;
+}
+.cancel { color: var(--studio-text); background: transparent; border: none; cursor: pointer; padding: 6px 8px; font-size: 13px; }
+.publish { color: var(--studio-text-subtle); background: transparent; border: none; cursor: not-allowed; padding: 6px 8px; font-size: 13px; }
+
+.tabs { display: flex; gap: 40px; border-bottom: 1px solid var(--studio-border); margin-bottom: 32px; }
+.tab {
+  padding: 12px 0;
+  color: var(--studio-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+}
+.tab:hover { color: var(--studio-text); }
+.tabActive { color: var(--studio-text); }
+.tabActive::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--studio-text);
+}
+
+.toggleSection { display: flex; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--studio-border); }
+.toggleText { flex: 1; }
+.toggleTitle { font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+.toggleSub { color: var(--studio-text-muted); font-size: 13px; }
+
+.toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--studio-link);
+  position: relative;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  flex-shrink: 0;
+}
+.toggleThumb {
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--studio-white);
+}
+
+.layoutHead { display: flex; align-items: center; padding: 24px 0 16px; }
+.layoutTextWrap { flex: 1; }
+.layoutTitle { font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+.layoutSub { color: var(--studio-text-muted); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.addBtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 16px;
+  border-radius: 16px;
+  background: transparent;
+  border: 1px solid var(--studio-border);
+  color: var(--studio-text);
+  font-size: 13px; cursor: pointer;
+}
+
+.sections { display: flex; flex-direction: column; gap: 12px; }
+.section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--studio-card-widget);
+  border-radius: var(--studio-radius-md);
+  padding: 16px;
+}
+.dragHandle { color: var(--studio-text-muted); cursor: grab; }
+.sectionBody { flex: 1; }
+.sectionTitle2 { font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+.sectionDesc { color: var(--studio-text-muted); font-size: 13px; line-height: 18px; }
+.linkInline {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--studio-link);
+  cursor: pointer;
+}
+.linkInline:hover { text-decoration: underline; }
+.thumbsRow { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+.thumbsEmpty { color: var(--studio-text-muted); font-size: 12px; }
+.thumb {
+  width: 96px; height: 54px; border-radius: 4px; overflow: hidden;
+  position: relative; flex-shrink: 0;
+  background: var(--studio-black);
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumbBlank { width: 100%; height: 100%; background: linear-gradient(135deg, #444, #222); }
+.thumbDur {
+  position: absolute; right: 2px; bottom: 2px;
+  background: rgba(0,0,0,0.85); color: #FFF;
+  padding: 1px 4px; border-radius: 2px;
+  font-size: 11px;
+}

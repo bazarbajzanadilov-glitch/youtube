@@ -1,0 +1,14 @@
+.empty {
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--studio-text-muted);
+  border: 1px dashed var(--studio-border);
+  border-radius: var(--studio-radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.title { color: var(--studio-text); font-size: 14px; font-weight: 500; }
+.desc { font-size: 13px; color: var(--studio-text-muted); max-width: 380px; line-height: 1.45; }
+.action { margin-top: 8px; }

@@ -1,0 +1,25 @@
+.app {
+  min-height: 100vh;
+  background: var(--studio-canvas);
+  position: relative;
+  overflow-x: hidden;
+  padding-top: var(--studio-topbar-height);
+}
+
+.toast {
+  position: fixed;
+  bottom: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: min(420px, 92vw);
+  padding: 12px 20px;
+  border-radius: 8px;
+  background: var(--studio-card-widget);
+  color: var(--studio-text);
+  font-size: 14px;
+  line-height: 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--studio-border);
+  pointer-events: none;
+}

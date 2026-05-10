@@ -1,0 +1,87 @@
+.page {
+  background: var(--studio-canvas);
+  color: var(--studio-text);
+  min-height: 800px;
+  width: 100%;
+  font-family: var(--studio-font);
+  position: relative;
+}
+.main {
+  margin-left: var(--studio-current-sidebar-width, var(--studio-sidebar-compact-width));
+  padding: var(--studio-main-padding);
+  background: var(--studio-canvas);
+  min-height: var(--studio-main-min-height);
+  box-sizing: border-box;
+}
+.title { font-size: 24px; font-weight: 500; margin: 0 0 24px; }
+
+.tabs { display: flex; gap: 40px; border-bottom: 1px solid var(--studio-border); margin-bottom: 24px; }
+.tab {
+  padding: 12px 0;
+  color: var(--studio-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: default;
+  position: relative;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+}
+.tabActive { color: var(--studio-text); }
+.tabActive::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--studio-text);
+}
+
+.barRow { display: flex; align-items: center; }
+.requestPill {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: var(--studio-chip-bg);
+  color: var(--studio-text);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--studio-chip-border);
+  cursor: pointer;
+  font-family: inherit;
+}
+.requestPill:hover { background: var(--studio-hover); }
+.removePill {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: transparent;
+  border: 1px solid var(--studio-border);
+  color: var(--studio-text);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.removePill:hover { background: var(--studio-hover); }
+
+.empty {
+  text-align: center;
+  padding: 100px 0 0;
+}
+.illustration { margin: 0 auto 24px; }
+.emptyTitle { font-size: 16px; font-weight: 500; color: var(--studio-text); margin-bottom: 8px; }
+.emptyText { color: var(--studio-text-muted); font-size: 13px; line-height: 18px; }
+.emptyText a { color: var(--studio-link); text-decoration: none; cursor: pointer; }
+.textLink {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--studio-link);
+  cursor: pointer;
+  text-decoration: none;
+}
+.textLink:hover { text-decoration: underline; }

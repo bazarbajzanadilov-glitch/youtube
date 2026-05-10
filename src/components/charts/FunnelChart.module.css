@@ -1,0 +1,52 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0 4px;
+}
+.step { display: flex; flex-direction: column; gap: 6px; }
+.bandRow {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.band {
+  background: linear-gradient(90deg, rgba(88,145,176,0.30), rgba(88,145,176,0.18));
+  border: 1px solid rgba(88,145,176,0.45);
+  border-radius: 6px;
+  padding: 14px 16px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  min-width: 160px;
+}
+.band::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), transparent 50%);
+  pointer-events: none;
+}
+.bandContent { position: relative; display: flex; flex-direction: column; gap: 2px; }
+.bandLabel {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+}
+.bandValue {
+  color: var(--studio-text);
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+.stepNote {
+  text-align: center;
+  font-size: 12px;
+  color: var(--studio-text-muted);
+  padding: 6px 0;
+  border-top: 1px solid var(--studio-row-separator);
+  border-bottom: 1px solid var(--studio-row-separator);
+}
+.step:last-child .stepNote { border-bottom: none; }

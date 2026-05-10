@@ -1,0 +1,34 @@
+.row {
+  display: flex;
+  gap: 28px;
+  align-items: stretch;
+  position: relative;
+}
+.tab {
+  position: relative;
+  background: transparent;
+  border: none;
+  padding: 12px 2px;
+  color: var(--studio-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.16s ease;
+}
+.tab:hover { color: var(--studio-text); }
+.label { position: relative; z-index: 1; }
+.active { color: var(--studio-text); }
+.indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--studio-text);
+  border-radius: 1px;
+}
+@media (max-width: 720px) {
+  .row { gap: 16px; overflow-x: auto; }
+  .tab { white-space: nowrap; padding: 10px 2px; font-size: 13px; }
+}
