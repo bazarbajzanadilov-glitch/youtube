@@ -5,7 +5,6 @@ import { useChannel } from '../storage/useChannel.js'
 import {
   SideHome, SideContent, SideAnalytics, SideCommunity, SideSubtitles,
   SideCopyright, SideMonetize, SideMagic, SideAudio, SideSettings, SideFeedback,
-  SideAdmin,
 } from './icons.jsx'
 
 const ITEMS = [
@@ -18,7 +17,6 @@ const ITEMS = [
   { key: 'monetize', label: 'Монетизация', Icon: SideMonetize },
   { key: 'channel', label: 'Настройка канала', Icon: SideMagic },
   { key: 'audio', label: 'Фонотека', Icon: SideAudio },
-  { key: 'admin', label: 'Админка', Icon: SideAdmin },
 ]
 
 export default function SidebarExpanded({ active = 'monetize' }) {
