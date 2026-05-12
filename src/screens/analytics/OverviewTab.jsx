@@ -9,12 +9,13 @@ import RealtimeMiniChart from '../../components/charts/RealtimeMiniChart.jsx'
 import { FAST_CHART_ANIMATION_SECONDS } from '../../components/charts/chartAnimation.js'
 import {
   formatCompactNumber, formatHours, formatSecondsAsClock,
-  formatNumberRu, formatDateLong, formatPercent, formatMoneyFixed,
+  formatNumberRu, formatDateLong, formatPercent, formatMoneyFixed, formatMoneyShort,
 } from '../../lib/analyticsFormat.js'
 import { CHART_COLORS } from '../../lib/chartColors.js'
 import { useRealtimeFeed } from '../../hooks/useRealtimeFeed.js'
 import { KpiArrowUpIcon, ChevronLeft, ChevronRight } from '../icons.jsx'
 import { useState } from 'react'
+import clockIcon from '../../assets/clock.svg'
 
 function rangeMessage(range) {
   switch (range.kind) {
@@ -33,10 +34,31 @@ const inlineKpiVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 }
 
-function InlineKPI({ label, value, format, hint, suffix, isFirst, hideMeta = false, showTrend = true }) {
+function InlineKPI({
+  label,
+  labelIcon,
+  value,
+  format,
+  hint,
+  suffix,
+  isFirst,
+  hideMeta = false,
+  showTrend = true,
+  onClick,
+  active = false,
+}) {
+  const Tag = onClick ? motion.button : motion.div
   return (
-    <motion.div className={`${s.inlineKpi} ${isFirst ? '' : s.inlineKpiBordered}`} variants={inlineKpiVariants}>
-      <div className={s.inlineKpiLabel}>{label}</div>
+    <Tag
+      type={onClick ? 'button' : undefined}
+      className={`${s.inlineKpi} ${onClick ? s.inlineKpiButton : ''} ${active ? s.inlineKpiActive : ''} ${isFirst ? '' : s.inlineKpiBordered}`}
+      variants={inlineKpiVariants}
+      onClick={onClick}
+    >
+      <div className={labelIcon ? `${s.inlineKpiLabel} ${s.inlineKpiLabelWithIcon}` : s.inlineKpiLabel}>
+        <span>{label}</span>
+        {labelIcon ? <img className={s.inlineKpiLabelIcon} src={labelIcon} alt="" aria-hidden="true" /> : null}
+      </div>
       <div className={s.inlineKpiValue}>
         <AnimatedCounter value={Number(value) || 0} format={format} />
         {suffix ? <span className={s.inlineKpiSuffix}>{suffix}</span> : null}
@@ -47,7 +69,7 @@ function InlineKPI({ label, value, format, hint, suffix, isFirst, hideMeta = fal
           <span className={s.inlineKpiHintText}>{hint}</span>
         </div>
       )}
-    </motion.div>
+    </Tag>
   )
 }
 
@@ -62,7 +84,7 @@ function moreThanUsual(value, delta, format) {
 }
 
 export default function OverviewTab({ data, onOpenAdmin }) {
-  const { overview, channel, realtime, range, monetization } = data
+  const { overview, channel, realtime, range, monetization, audience } = data
   const kpis = overview.kpis
   const realtimeFeed = useRealtimeFeed({
     initial: realtime.last48,
@@ -71,6 +93,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
     baseSubscribers: 0,
   })
   const [newestIdx, setNewestIdx] = useState(0)
+  const [chartMetric, setChartMetric] = useState('views')
   const newestPool = overview.topVideos.slice(0, Math.min(5, overview.topVideos.length))
   const newestVideo = newestPool[newestIdx] || overview.newest
 
@@ -91,6 +114,41 @@ export default function OverviewTab({ data, onOpenAdmin }) {
   const isLifetime = range.kind === 'lifetime'
   const periodDelta = (d) => isLifetime ? undefined : d
   const liveViews = realtimeFeed.bars[realtimeFeed.bars.length - 1] || 0
+  const overviewChartSeries = overview.series.map((row) => ({
+    ...row,
+    watchTimeHours: row.watchTime / 3600,
+  }))
+  const chartConfigs = {
+    views: {
+      data: overview.series,
+      dataKey: 'views',
+      name: 'Просмотры',
+      formatY: formatCompactNumber,
+      formatTooltipValue: (v) => formatCompactNumber(v),
+    },
+    watchTime: {
+      data: overviewChartSeries,
+      dataKey: 'watchTimeHours',
+      name: 'Время просмотра',
+      formatY: formatHours,
+      formatTooltipValue: (v) => `${formatHours(v)} ч`,
+    },
+    subscribers: {
+      data: audience?.subscribers || [],
+      dataKey: 'subscribers',
+      name: 'Подписчики',
+      formatY: formatCompactNumber,
+      formatTooltipValue: (v) => formatNumberRu(v),
+    },
+    revenue: {
+      data: overview.series,
+      dataKey: 'revenue',
+      name: 'Доход',
+      formatY: (n) => formatMoneyShort(n),
+      formatTooltipValue: (v) => formatMoneyFixed(v),
+    },
+  }
+  const chartConfig = chartConfigs[chartMetric] || chartConfigs.views
 
   return (
     <div className={s.overviewLayout}>
@@ -117,12 +175,16 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               format={formatCompactNumber}
               hint={isLifetime ? 'за всё время' : moreThanUsual(kpis.views.value, periodDelta(kpis.views.delta), formatCompactNumber)}
               isFirst
+              onClick={() => setChartMetric('views')}
+              active={chartMetric === 'views'}
             />
             <InlineKPI
               label="Время просмотра (часы)"
               value={kpis.watchTime.value}
               format={formatHours}
               hint={isLifetime ? 'за всё время' : moreThanUsual(kpis.watchTime.value, periodDelta(kpis.watchTime.delta), formatHours)}
+              onClick={() => setChartMetric('watchTime')}
+              active={chartMetric === 'watchTime'}
             />
             <InlineKPI
               label="Подписчики"
@@ -131,26 +193,31 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               hint={isLifetime
                 ? `всего ${formatNumberRu(kpis.subscribers.absolute)}`
                 : `${formatCompactNumber(Math.abs(kpis.subscribers.value))} больше обычного`}
+              onClick={() => setChartMetric('subscribers')}
+              active={chartMetric === 'subscribers'}
             />
             <InlineKPI
               label="Расчетный доход"
+              labelIcon={clockIcon}
               value={monetization?.kpis?.revenue?.value || 0}
               format={(n) => formatMoneyFixed(n)}
               hideMeta
               showTrend={false}
+              onClick={() => setChartMetric('revenue')}
+              active={chartMetric === 'revenue'}
             />
           </motion.div>
 
           <div className={s.heroChartWrap}>
             <AreaLineChart
-              data={overview.series}
-              dataKey="views"
+              data={chartConfig.data}
+              dataKey={chartConfig.dataKey}
               xKey="date"
               color={CHART_COLORS.primary}
               height={210}
-              name="Просмотры"
-              formatY={formatCompactNumber}
-              formatTooltipValue={(v, point) => formatMoneyFixed(point?.payload?.revenue ?? v)}
+              name={chartConfig.name}
+              formatY={chartConfig.formatY}
+              formatTooltipValue={chartConfig.formatTooltipValue}
               yAxisOrientation="right"
             />
           </div>

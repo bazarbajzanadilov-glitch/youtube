@@ -12,6 +12,8 @@ import {
 } from '../../lib/analyticsFormat.js'
 import { CHART_COLORS, REVENUE_SOURCE_PALETTE } from '../../lib/chartColors.js'
 import { KpiArrowUpIcon } from '../icons.jsx'
+import clockIcon from '../../assets/clock.svg'
+import { useState } from 'react'
 
 const inlineKpiVariants = {
   hidden: { opacity: 0, y: 8 },
@@ -43,10 +45,30 @@ function rangeMessage(range) {
   }
 }
 
-function InlineKPI({ label, value, format, hint, isFirst, mark = true, hideMeta = false }) {
+function InlineKPI({
+  label,
+  labelIcon,
+  value,
+  format,
+  hint,
+  isFirst,
+  mark = true,
+  hideMeta = false,
+  onClick,
+  active = false,
+}) {
+  const Tag = onClick ? motion.button : motion.div
   return (
-    <motion.div className={`${s.inlineKpi} ${isFirst ? '' : s.inlineKpiBordered}`} variants={inlineKpiVariants}>
-      <div className={s.inlineKpiLabel}>{label}</div>
+    <Tag
+      type={onClick ? 'button' : undefined}
+      className={`${s.inlineKpi} ${onClick ? s.inlineKpiButton : ''} ${active ? s.inlineKpiActive : ''} ${isFirst ? '' : s.inlineKpiBordered}`}
+      variants={inlineKpiVariants}
+      onClick={onClick}
+    >
+      <div className={labelIcon ? `${s.inlineKpiLabel} ${s.inlineKpiLabelWithIcon}` : s.inlineKpiLabel}>
+        <span>{label}</span>
+        {labelIcon ? <img className={s.inlineKpiLabelIcon} src={labelIcon} alt="" aria-hidden="true" /> : null}
+      </div>
       <div className={s.inlineKpiValue}>
         <AnimatedCounter value={Number(value) || 0} format={format} />
         {mark ? <span className={s.inlineKpiTrendIcon}><KpiArrowUpIcon /></span> : null}
@@ -56,12 +78,13 @@ function InlineKPI({ label, value, format, hint, isFirst, mark = true, hideMeta 
           <span className={s.inlineKpiHintText}>{hint}</span>
         </div>
       )}
-    </motion.div>
+    </Tag>
   )
 }
 
 export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
   const { monetization, range } = data
+  const [chartMetric, setChartMetric] = useState('revenue')
 
   if (monetization.enabled === false) {
     return (
@@ -102,6 +125,38 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
   const totalRev = monetization.kpis.revenue.value
   const sourceMap = Object.fromEntries(monetization.sources.map((src) => [src.key, src]))
   const publishedMarkers = buildPublishedMarkers(data.overview.topVideos, monetization.series)
+  const maxRevenuePoint = Math.max(1, ...monetization.series.map((row) => Number(row.revenue) || 0))
+  const chartConfigs = {
+    ads: {
+      data: monetization.stackedSeries,
+      dataKey: 'ads',
+      name: 'Реклама',
+      formatY: (n) => formatMoneyShort(n),
+      formatTooltipValue: (v) => formatMoneyFixed(v),
+    },
+    premium: {
+      data: monetization.stackedSeries,
+      dataKey: 'premium',
+      name: 'YouTube Premium',
+      formatY: (n) => formatMoneyShort(n),
+      formatTooltipValue: (v) => formatMoneyFixed(v),
+    },
+    shopping: {
+      data: monetization.stackedSeries,
+      dataKey: 'shopping',
+      name: 'Покупки и товары',
+      formatY: (n) => formatMoneyShort(n),
+      formatTooltipValue: (v) => formatMoneyFixed(v),
+    },
+    revenue: {
+      data: monetization.series,
+      dataKey: 'revenue',
+      name: 'Доход',
+      formatY: (n) => formatMoneyShort(n),
+      formatTooltipValue: (v) => formatMoneyFixed(v),
+    },
+  }
+  const chartConfig = chartConfigs[chartMetric] || chartConfigs.revenue
 
   return (
     <div className={s.overviewLayout}>
@@ -127,40 +182,51 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
               format={(n) => formatMoneyShort(n)}
               hint={sourceMap.ads ? formatPercent(sourceMap.ads.share * 100, 1) : 'нет данных'}
               isFirst
+              onClick={() => setChartMetric('ads')}
+              active={chartMetric === 'ads'}
             />
             <InlineKPI
               label="YouTube Premium"
               value={sourceMap.premium?.value || 0}
               format={(n) => formatMoneyShort(n)}
               hint={sourceMap.premium ? formatPercent(sourceMap.premium.share * 100, 1) : 'нет данных'}
+              onClick={() => setChartMetric('premium')}
+              active={chartMetric === 'premium'}
             />
             <InlineKPI
               label="Покупки и товары"
               value={sourceMap.shopping?.value || 0}
               format={(n) => formatMoneyShort(n)}
               hint={sourceMap.shopping ? formatPercent(sourceMap.shopping.share * 100, 1) : 'нет данных'}
+              onClick={() => setChartMetric('shopping')}
+              active={chartMetric === 'shopping'}
             />
             <InlineKPI
               label="Расчетный доход"
+              labelIcon={clockIcon}
               value={k.revenue.value}
               format={(n) => formatMoneyFixed(n)}
               hideMeta
               mark={false}
+              onClick={() => setChartMetric('revenue')}
+              active={chartMetric === 'revenue'}
             />
           </motion.div>
 
           <div className={s.heroChartWrap}>
             <AreaLineChart
-              data={monetization.series}
-              dataKey="revenue"
+              key={chartMetric}
+              data={chartConfig.data}
+              dataKey={chartConfig.dataKey}
               xKey="date"
               color={CHART_COLORS.primary}
               height={210}
-              name="Доход"
-              formatY={(n) => formatMoneyShort(n)}
-              formatTooltipValue={(v) => formatMoneyFixed(v)}
+              name={chartConfig.name}
+              formatY={chartConfig.formatY}
+              formatTooltipValue={chartConfig.formatTooltipValue}
               yAxisOrientation="right"
-              eventMarkers={publishedMarkers}
+              yDomain={[0, maxRevenuePoint]}
+              eventMarkers={chartMetric === 'revenue' ? publishedMarkers : []}
             />
           </div>
 
