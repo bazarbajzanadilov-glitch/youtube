@@ -1063,6 +1063,12 @@
   line-height: 1.35;
   font-weight: 400;
 }
+.revenueSummaryLabelWithIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
 .revenueSummaryValue {
   display: block;
   margin-top: 4px;
@@ -1070,6 +1076,9 @@
   line-height: 1.05;
   font-weight: 500;
   letter-spacing: -0.02em;
+}
+.revenueChartOffset {
+  margin-top: 70px;
 }
 
 /* === Responsive === */
