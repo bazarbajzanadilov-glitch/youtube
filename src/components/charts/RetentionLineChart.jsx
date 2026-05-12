@@ -7,6 +7,7 @@ import s from './AreaLineChart.module.css'
 import ChartTooltip from '../ui/ChartTooltip.jsx'
 import { CHART_COLORS } from '../../lib/chartColors.js'
 import { useDeferredMount } from './useDeferredMount.js'
+import { CHART_ANIMATION_MS } from './chartAnimation.js'
 
 export default function RetentionLineChart({
   data = [],
@@ -60,7 +61,7 @@ export default function RetentionLineChart({
             dot={false}
             activeDot={{ r: 5, stroke: color, strokeWidth: 2, fill: '#0f0f0f' }}
             isAnimationActive={!reduced}
-            animationDuration={780}
+            animationDuration={CHART_ANIMATION_MS}
             animationEasing="ease-out"
           />
         </LineChart>

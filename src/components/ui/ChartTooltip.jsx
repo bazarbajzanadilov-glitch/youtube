@@ -1,27 +1,23 @@
 import s from './ChartTooltip.module.css'
+import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 
-/**
- * Рендерит карточку при hover на чарте Recharts. Передаётся в Tooltip как `content={...}`.
- */
 export default function ChartTooltip({ active, payload, label, formatLabel, formatValue, valueSuffix = '' }) {
   if (!active || !payload || payload.length === 0) return null
-  const lbl = formatLabel ? formatLabel(label) : label
+
+  const first = payload[0]
+  const lbl = (formatLabel ? formatLabel(label) : formatChartDateLabel(label)) || first.name || first.dataKey
+  const numericValues = payload
+    .map((p) => Number(p.value ?? p.payload?.[p.dataKey]))
+    .filter((value) => Number.isFinite(value))
+  const raw = payload.length > 1 && numericValues.length > 0
+    ? numericValues.reduce((sum, value) => sum + value, 0)
+    : (first.value ?? first.payload?.[first.dataKey])
+  const formatted = raw == null ? '' : (formatValue ? formatValue(raw, first) : String(raw))
+
   return (
     <div className={s.tip}>
       {lbl ? <div className={s.label}>{lbl}</div> : null}
-      <div className={s.rows}>
-        {payload.map((p, i) => {
-          const val = p.value ?? p.payload?.[p.dataKey]
-          const formatted = formatValue ? formatValue(val, p) : String(val)
-          return (
-            <div key={`${p.dataKey || p.name}-${i}`} className={s.row}>
-              <span className={s.swatch} style={{ background: p.color || p.stroke || p.fill }} />
-              <span className={s.name}>{p.name || p.dataKey}</span>
-              <span className={s.value}>{formatted}{valueSuffix}</span>
-            </div>
-          )
-        })}
-      </div>
+      <div className={s.value}>{formatted}{valueSuffix}</div>
     </div>
   )
 }

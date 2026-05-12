@@ -5,6 +5,7 @@ import s from './DonutChart.module.css'
 import ChartTooltip from '../ui/ChartTooltip.jsx'
 import { PALETTE_5 } from '../../lib/chartColors.js'
 import { useDeferredMount } from './useDeferredMount.js'
+import { CHART_ANIMATION_MS } from './chartAnimation.js'
 
 function ActiveShape(props) {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props
@@ -59,7 +60,7 @@ export default function DonutChart({
             stroke="rgba(0,0,0,0.5)"
             strokeWidth={1}
             isAnimationActive={!reduced}
-            animationDuration={780}
+            animationDuration={CHART_ANIMATION_MS}
             animationEasing="ease-out"
             activeIndex={activeIndex}
             activeShape={ActiveShape}

@@ -38,6 +38,15 @@ export function formatMoneyShort(amount) {
   return `${v.toFixed(2).replace('.', ',')}${NBSP}$`
 }
 
+export function formatMoneyFixed(amount) {
+  const v = Number(amount) || 0
+  const NBSP = '\u00a0'
+  return `${v.toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}${NBSP}$`
+}
+
 export function formatNumberRu(n) {
   return Math.round(Number(n) || 0).toLocaleString('ru-RU')
 }

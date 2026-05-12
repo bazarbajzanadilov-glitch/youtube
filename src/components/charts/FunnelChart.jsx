@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import s from './FunnelChart.module.css'
+import { CHART_ANIMATION_SECONDS } from './chartAnimation.js'
 
 /**
  * Воронка — 3 уровня по PDF 22.pdf «Показы значков и время просмотра видео».
@@ -21,7 +22,7 @@ export default function FunnelChart({ steps = [] }) {
                 style={{ width: `${widthPct}%` }}
                 initial={reduced ? { width: `${widthPct}%` } : { width: 0, opacity: 0 }}
                 animate={{ width: `${widthPct}%`, opacity: 1 }}
-                transition={{ duration: 0.65, ease: 'easeOut', delay: i * 0.12 }}
+                transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut', delay: i * 0.12 }}
               >
                 <div className={s.bandContent}>
                   <span className={s.bandLabel}>{step.label}</span>

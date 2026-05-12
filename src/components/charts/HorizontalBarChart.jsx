@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import s from './HorizontalBarChart.module.css'
 import { CHART_COLORS } from '../../lib/chartColors.js'
+import { CHART_ANIMATION_SECONDS } from './chartAnimation.js'
 
 /**
  * Горизонтальные бары с inline-процентами. Сделано без Recharts —
@@ -32,7 +33,7 @@ export default function HorizontalBarChart({
                 style={{ background: color }}
                 initial={reduced ? { width: `${pct}%` } : { width: 0 }}
                 animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.65, ease: 'easeOut', delay: i * 0.04 }}
+                transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut', delay: i * 0.04 }}
               />
             </span>
             <span className={s.value}>{formatValue(value)}</span>

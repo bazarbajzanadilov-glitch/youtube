@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
   CartesianGrid, Tooltip, ReferenceLine,
@@ -8,6 +8,8 @@ import s from './AreaLineChart.module.css'
 import ChartTooltip from '../ui/ChartTooltip.jsx'
 import { CHART_COLORS } from '../../lib/chartColors.js'
 import { useDeferredMount } from './useDeferredMount.js'
+import { CHART_ANIMATION_SECONDS } from './chartAnimation.js'
+import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 
 const RU_MONTHS_SHORT = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек']
 
@@ -21,12 +23,7 @@ function formatXTick(value) {
 }
 
 function defaultLabelFormatter(label) {
-  if (typeof label !== 'string') return label
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(label)
-  if (!m) return label
-  const d = new Date(label)
-  const w = ['вс','пн','вт','ср','чт','пт','сб'][d.getDay()]
-  return `${w}, ${parseInt(m[3], 10)} ${RU_MONTHS_SHORT[parseInt(m[2], 10) - 1]} ${m[1]}`
+  return formatChartDateLabel(label)
 }
 
 export default function AreaLineChart({
@@ -69,13 +66,18 @@ export default function AreaLineChart({
   return (
     <div className={s.wrap} style={{ height }}>
       {ready ? (
+      <motion.div
+        style={{ width: '100%', height: '100%' }}
+        initial={reduced ? false : { clipPath: 'inset(0 100% 0 0)' }}
+        animate={{ clipPath: 'inset(0 0% 0 0)' }}
+        transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut' }}
+      >
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
         <AreaChart data={data} margin={chartMargin}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.55} />
-              <stop offset="55%" stopColor={color} stopOpacity={0.18} />
-              <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+              <stop offset="0%" stopColor={CHART_COLORS.areaFill} stopOpacity={1} />
+              <stop offset="100%" stopColor={CHART_COLORS.areaFill} stopOpacity={1} />
             </linearGradient>
           </defs>
           {showGrid ? (
@@ -117,14 +119,15 @@ export default function AreaLineChart({
             strokeWidth={2.8}
             fill={`url(#${gradientId})`}
             fillOpacity={1}
-            isAnimationActive={!reduced}
-            animationDuration={780}
+            isAnimationActive={false}
+            animationDuration={0}
             animationEasing="ease-out"
             activeDot={{ r: 6, stroke: color, strokeWidth: 2.5, fill: '#0f0f0f' }}
             dot={data.length <= 14 ? { r: 3, stroke: color, strokeWidth: 1.5, fill: color } : false}
           />
         </AreaChart>
       </ResponsiveContainer>
+      </motion.div>
       ) : null}
       {markerIndexes.length > 0 ? (
         <div

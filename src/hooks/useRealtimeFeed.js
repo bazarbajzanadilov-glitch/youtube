@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { generateRealtimeMinute, hashSeed } from '../lib/analyticsEngine.js'
 
 /**
@@ -6,23 +6,26 @@ import { generateRealtimeMinute, hashSeed } from '../lib/analyticsEngine.js'
  * влево, добавляет новый бар. На скрытой вкладке — пауза без сброса состояния.
  */
 export function useRealtimeFeed({ initial, seed = 1, intervalMs = 5000, baseSubscribers = 0 } = {}) {
-  const startArr = Array.isArray(initial) && initial.length === 48
-    ? initial
-    : new Array(48).fill(40)
+  const startArr = useMemo(() => (
+    Array.isArray(initial) && initial.length === 48
+      ? initial.map((value) => Math.max(0, Number(value) || 0))
+      : new Array(48).fill(40)
+  ), [initial])
+  const inputKey = useMemo(() => `${seed}:${startArr.join('|')}`, [seed, startArr])
   const [bars, setBars] = useState(startArr)
   const [subDelta, setSubDelta] = useState(0)
   const tickRef = useRef(0)
   const intervalRef = useRef(null)
-  const lastSeedRef = useRef(seed)
+  const lastInputKeyRef = useRef(inputKey)
 
   useEffect(() => {
-    if (lastSeedRef.current !== seed) {
-      lastSeedRef.current = seed
+    if (lastInputKeyRef.current !== inputKey) {
+      lastInputKeyRef.current = inputKey
       setBars(startArr)
       setSubDelta(0)
       tickRef.current = 0
     }
-  }, [seed, startArr])
+  }, [inputKey, startArr])
 
   useEffect(() => {
     function tick() {

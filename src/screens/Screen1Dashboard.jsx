@@ -12,6 +12,7 @@ import { useChannel } from '../storage/useChannel.js'
 import { formatNumber, formatMoney, formatViews, formatLikePct } from '../storage/videoStore.js'
 import { effectiveRevenue, effectiveComments, build as buildAnalytics } from '../lib/analyticsAggregator.js'
 import SparklineChart from '../components/charts/SparklineChart.jsx'
+import { FAST_CHART_ANIMATION_MS } from '../components/charts/chartAnimation.js'
 import { CHART_COLORS } from '../lib/chartColors.js'
 
 const PostEmptyArt = () => (
@@ -164,7 +165,7 @@ export default function Screen1Dashboard() {
                 ) : null}
                 {sparkSeries.length > 0 ? (
                   <div className={s.sparkRow}>
-                    <SparklineChart values={sparkSeries} color={CHART_COLORS.primary} height={56} />
+                    <SparklineChart values={sparkSeries} color={CHART_COLORS.primary} height={56} animationDuration={FAST_CHART_ANIMATION_MS} />
                   </div>
                 ) : null}
               </div>
@@ -214,7 +215,7 @@ export default function Screen1Dashboard() {
               <div className={s.deltaLine}>За всё время</div>
               {revenueSpark.length > 0 ? (
                 <div className={s.sparkRow}>
-                  <SparklineChart values={revenueSpark} color="#2ba640" height={56} />
+                  <SparklineChart values={revenueSpark} color={CHART_COLORS.primary} height={56} animationDuration={FAST_CHART_ANIMATION_MS} />
                 </div>
               ) : null}
               <div className={s.divider}/>

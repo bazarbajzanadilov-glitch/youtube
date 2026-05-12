@@ -13,18 +13,13 @@
 }
 .label {
   color: var(--studio-text-muted);
-  font-size: 11px;
-  margin-bottom: 6px;
+  font-size: 12px;
+  margin-bottom: 8px;
   text-transform: capitalize;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
-.rows { display: flex; flex-direction: column; gap: 5px; }
-.row { display: flex; align-items: center; gap: 8px; }
-.swatch {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
+.value {
+  color: #41B3D8;
+  font-size: 21px;
+  font-weight: 600;
 }
-.name { color: var(--studio-text-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.value { color: var(--studio-text); font-weight: 500; }

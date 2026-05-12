@@ -474,8 +474,13 @@ function buildRealtime(seed, totalViews, days) {
   const bars = 48
   const rawShape = generateDailyShape({ seed, days: bars, profile: 'seasonal', startWeekday: 0 })
   const baseDailyViews = totalViews / Math.max(1, days)
-  const hourlyBase = baseDailyViews / 24
-  const last48 = normalizeToTotal(rawShape, hourlyBase * bars).map((x) => Math.max(2, Math.round(x)))
+  const visibleDailyBase = Math.max(baseDailyViews, 240)
+  const hourlyBase = visibleDailyBase / 24
+  const last48 = normalizeToTotal(rawShape, hourlyBase * bars).map((x, i) => {
+    const wave = 1 + Math.sin((i / 48) * Math.PI * 4) * 0.24
+    const seeded = 0.72 + (((seed + i * 37) % 100) / 100) * 0.62
+    return Math.max(4, Math.round(x * wave * seeded))
+  })
   const currentViewers = Math.max(3, Math.round(last48[last48.length - 1] / 60 + 8))
   const totalLastHour = last48[last48.length - 1]
   return { last48, currentViewers, totalLastHour, hourlyBase, generatorSeed: seed }

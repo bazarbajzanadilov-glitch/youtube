@@ -384,11 +384,11 @@ export default function Screen11Admin() {
                 <div className={s.field}><label className={s.label}>Просмотры</label>
                   <input type="number" min="0" className={s.input} placeholder="случайное 1000–500 000" value={form.views} onChange={(e) => setField('views', e.target.value)}/></div>
                 <div className={s.field}><label className={s.label}>Доход за видео ($)</label>
-                  <input type="number" min="0" step="0.01" className={s.input} placeholder="расчётный доход" value={form.revenue} onChange={(e) => setField('revenue', e.target.value)}/></div>
+                  <input type="number" min="0" step="0.01" className={s.input} placeholder="расчетный доход" value={form.revenue} onChange={(e) => setField('revenue', e.target.value)}/></div>
               </div>
               {computed ? (
                 <div className={s.previewBox}>
-                  <span className={s.label}>Авто-расчёт</span>
+                  <span className={s.label}>Авто-расчет</span>
                   <div className={s.previewGrid}>
                     <div><span className={s.previewLabel}>Лайки</span><span className={s.previewValue}>{formatNumber(computed.likes)}</span></div>
                     <div><span className={s.previewLabel}>Дизлайки</span><span className={s.previewValue}>{formatNumber(computed.dislikes)}</span></div>

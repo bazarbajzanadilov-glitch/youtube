@@ -7,6 +7,7 @@ import AnimatedCounter from '../../components/ui/AnimatedCounter.jsx'
 import DeltaChip from '../../components/ui/DeltaChip.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
 import FunnelChart from '../../components/charts/FunnelChart.jsx'
+import { CHART_ANIMATION_SECONDS } from '../../components/charts/chartAnimation.js'
 import {
   formatCompactNumber, formatNumberRu, formatPercent, formatSecondsAsClock,
 } from '../../lib/analyticsFormat.js'
@@ -177,7 +178,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
                       className={s.trafficBar}
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.6, ease: 'easeOut' }}
+                      transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut' }}
                     />
                   </div>
                   <span className={s.trafficValue}>{formatPercent(pct, 1)}</span>
@@ -209,7 +210,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
                         className={s.bestBarInner}
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
-                        transition={{ duration: 0.55, ease: 'easeOut' }}
+                        transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut' }}
                       />
                     </div>
                     <span className={s.bestValue}>{formatCompactNumber(v.views)}</span>

@@ -6,6 +6,7 @@ import AnimatedCounter from '../../components/ui/AnimatedCounter.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
 import HorizontalBarChart from '../../components/charts/HorizontalBarChart.jsx'
 import Heatmap7x24 from '../../components/charts/Heatmap7x24.jsx'
+import { CHART_ANIMATION_SECONDS } from '../../components/charts/chartAnimation.js'
 import {
   formatCompactNumber, formatNumberRu, formatPercent,
 } from '../../lib/analyticsFormat.js'
@@ -121,7 +122,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
                   style={{ width: `${seg.share * 100}%`, background: lighten(seg.color, i) }}
                   initial={{ width: 0 }}
                   animate={{ width: `${seg.share * 100}%` }}
-                  transition={{ duration: 0.6, ease: 'easeOut', delay: i * 0.1 }}
+                  transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut', delay: i * 0.1 }}
                 />
               ))}
             </div>
@@ -202,7 +203,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
                         className={s.bestBarInner}
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
-                        transition={{ duration: 0.55, ease: 'easeOut' }}
+                        transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut' }}
                       />
                     </div>
                     <span className={s.bestValue}>{formatCompactNumber(v.views)}</span>
@@ -233,7 +234,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
               <div className={s.formatLabel}>Видео</div>
               <div className={s.formatBar}>
                 <motion.div className={s.formatFill} style={{ width: '78%' }}
-                  initial={{ width: 0 }} animate={{ width: '78%' }} transition={{ duration: 0.6 }} />
+                  initial={{ width: 0 }} animate={{ width: '78%' }} transition={{ duration: CHART_ANIMATION_SECONDS }} />
               </div>
               <div className={s.formatScale}><span>Никто не смотрит</span><span>Смотрят все</span></div>
             </div>
@@ -241,7 +242,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
               <div className={s.formatLabel}>Shorts</div>
               <div className={s.formatBar}>
                 <motion.div className={s.formatFill} style={{ width: '32%' }}
-                  initial={{ width: 0 }} animate={{ width: '32%' }} transition={{ duration: 0.6, delay: 0.1 }} />
+                  initial={{ width: 0 }} animate={{ width: '32%' }} transition={{ duration: CHART_ANIMATION_SECONDS, delay: 0.1 }} />
               </div>
               <div className={s.formatScale}><span>Никто не смотрит</span><span>Смотрят все</span></div>
             </div>
@@ -249,7 +250,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
               <div className={s.formatLabel}>Трансляции</div>
               <div className={s.formatBar}>
                 <motion.div className={s.formatFill} style={{ width: '45%' }}
-                  initial={{ width: 0 }} animate={{ width: '45%' }} transition={{ duration: 0.6, delay: 0.2 }} />
+                  initial={{ width: 0 }} animate={{ width: '45%' }} transition={{ duration: CHART_ANIMATION_SECONDS, delay: 0.2 }} />
               </div>
               <div className={s.formatScale}><span>Никто не смотрит</span><span>Смотрят все</span></div>
             </div>

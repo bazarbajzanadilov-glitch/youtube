@@ -11,9 +11,10 @@ import DateRangePicker from '../components/ui/DateRangePicker.jsx'
 import OverviewTab from './analytics/OverviewTab.jsx'
 import ContentTab from './analytics/ContentTab.jsx'
 import AudienceTab from './analytics/AudienceTab.jsx'
+import RevenueTab from './analytics/RevenueTab.jsx'
 import TrendsTab from './analytics/TrendsTab.jsx'
 
-const TABS = ['Обзор', 'Контент', 'Аудитория', 'Тренды']
+const TABS = ['Обзор', 'Контент', 'Аудитория', 'Доход', 'Тренды']
 
 export default function Screen3Analytics() {
   const { showToast, go } = useContext(NavContext)
@@ -25,6 +26,7 @@ export default function Screen3Analytics() {
     if (activeTab === 0) return <OverviewTab data={data} onOpenAdmin={() => go('admin')} />
     if (activeTab === 1) return <ContentTab data={data} onOpenAdmin={() => go('admin')} />
     if (activeTab === 2) return <AudienceTab data={data} onOpenAdmin={() => go('admin')} />
+    if (activeTab === 3) return <RevenueTab data={data} />
     return <TrendsTab data={data} />
   }
 

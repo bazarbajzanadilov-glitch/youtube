@@ -1,30 +1,31 @@
 /**
  * Палитра графиков. Все оттенки — производные от основного синего
- * `--studio-chart-stroke` (#5891b0), чтобы все чарты в приложении
+ * `--studio-chart-stroke` (#41B3D8), чтобы все чарты в приложении
  * выглядели единым синим цветом.
  */
 
-const BLUE = '#5891b0'
-const BLUE_DARK = '#3d7794'
-const BLUE_DEEP = '#285c78'
-const BLUE_LIGHT = '#7eb1cb'
-const BLUE_LIGHTER = '#a4cce0'
-const BLUE_PALE = '#cfe4ee'
+const BLUE = '#41B3D8'
+const BLUE_DARK = '#3296b6'
+const BLUE_DEEP = '#287a96'
+const BLUE_LIGHT = '#70c7e2'
+const BLUE_LIGHTER = '#9edbef'
+const BLUE_PALE = '#c9eef7'
 
 export const CHART_COLORS = {
   primary: BLUE,
-  primarySoft: 'rgba(88, 145, 176, 0.32)',
-  primaryGhost: 'rgba(88, 145, 176, 0.08)',
+  primarySoft: 'rgba(65, 179, 216, 0.32)',
+  primaryGhost: 'rgba(65, 179, 216, 0.08)',
+  areaFill: '#2B363A',
   secondary: BLUE_LIGHT,
   purple: BLUE_DEEP,
-  purpleSoft: 'rgba(88, 145, 176, 0.32)',
-  purpleGhost: 'rgba(88, 145, 176, 0.08)',
+  purpleSoft: 'rgba(65, 179, 216, 0.32)',
+  purpleGhost: 'rgba(65, 179, 216, 0.08)',
   green: BLUE,
-  greenSoft: 'rgba(88, 145, 176, 0.32)',
+  greenSoft: 'rgba(65, 179, 216, 0.32)',
   red: BLUE_DARK,
-  redSoft: 'rgba(88, 145, 176, 0.32)',
+  redSoft: 'rgba(65, 179, 216, 0.32)',
   amber: BLUE_LIGHT,
-  amberSoft: 'rgba(88, 145, 176, 0.32)',
+  amberSoft: 'rgba(65, 179, 216, 0.32)',
   pink: BLUE_LIGHTER,
   cyan: BLUE_LIGHT,
   grid: '#2a2a2a',
@@ -70,10 +71,10 @@ export const REVENUE_SOURCE_PALETTE = {
 }
 
 export const HEATMAP_RAMP = [
-  'rgba(88, 145, 176, 0.04)',
-  'rgba(88, 145, 176, 0.18)',
-  'rgba(88, 145, 176, 0.36)',
-  'rgba(88, 145, 176, 0.54)',
-  'rgba(88, 145, 176, 0.72)',
-  'rgba(88, 145, 176, 0.92)',
+  'rgba(65, 179, 216, 0.04)',
+  'rgba(65, 179, 216, 0.18)',
+  'rgba(65, 179, 216, 0.36)',
+  'rgba(65, 179, 216, 0.54)',
+  'rgba(65, 179, 216, 0.72)',
+  'rgba(65, 179, 216, 0.92)',
 ]

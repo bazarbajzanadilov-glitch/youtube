@@ -13,6 +13,7 @@ import Screen8bHomeTab from './screens/Screen8bHomeTab.jsx'
 import Screen9AudioLibrary from './screens/Screen9AudioLibrary.jsx'
 import Screen10Settings from './screens/Screen10Settings.jsx'
 import Screen11Admin from './screens/Screen11Admin.jsx'
+import { continueDoubleHardResetIfNeeded } from './lib/hardResetSite.js'
 
 const SCREENS = [
   { key: 'home', route: 'dashboard', name: 'Панель управления каналом', Component: Screen1Dashboard },
@@ -80,12 +81,17 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
     const onHashChange = () => setRoute(normalizeHashRoute())
-    if (!window.location.hash) {
-      window.location.replace('#/dashboard')
-    }
-    window.addEventListener('hashchange', onHashChange)
+    continueDoubleHardResetIfNeeded().catch(() => false).then((isResetting) => {
+      if (cancelled || isResetting) return
+      if (!window.location.hash) {
+        window.location.replace('#/dashboard')
+      }
+      window.addEventListener('hashchange', onHashChange)
+    })
     return () => {
+      cancelled = true
       window.removeEventListener('hashchange', onHashChange)
       if (toastTimer.current) clearTimeout(toastTimer.current)
     }

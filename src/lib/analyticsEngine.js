@@ -188,8 +188,8 @@ export function estimateLifetimeRevenue({ views, seed, ageDays }) {
   if (safeViews <= 0) return 0
   const rand = seededRng(seed)
   const safeAge = Math.max(0, Number(ageDays) || 0)
-  const monetizedRamp = safeAge === 0 ? 0.35 + rand() * 0.25 : 0.78 + rand() * 0.18
-  const ratePerThousand = 1.35 + rand() * 3.7
+  const monetizedRamp = safeAge === 0 ? 0.72 + rand() * 0.18 : 0.9 + rand() * 0.16
+  const ratePerThousand = 8 + rand() * 14
   const revenue = safeViews * monetizedRamp * ratePerThousand / 1000
   return Math.round(revenue * 100) / 100
 }

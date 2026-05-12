@@ -5,7 +5,7 @@ import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import StackedBarChart from '../../components/charts/StackedBarChart.jsx'
 import HorizontalBarChart from '../../components/charts/HorizontalBarChart.jsx'
-import { formatCompactNumber, formatMoneyShort, formatPercent } from '../../lib/analyticsFormat.js'
+import { formatCompactNumber, formatMoneyFixed, formatMoneyShort, formatPercent } from '../../lib/analyticsFormat.js'
 import { CHART_COLORS, REVENUE_SOURCE_PALETTE } from '../../lib/chartColors.js'
 
 export default function MonetizationIncomeTab({ data, onOpenAdmin }) {
@@ -58,7 +58,7 @@ export default function MonetizationIncomeTab({ data, onOpenAdmin }) {
           bars={stackedBars}
           height={220}
           formatY={formatMoneyShort}
-          formatTooltipValue={formatMoneyShort}
+          formatTooltipValue={formatMoneyFixed}
         />
       </Card>
 

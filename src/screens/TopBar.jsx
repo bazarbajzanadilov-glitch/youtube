@@ -3,11 +3,18 @@ import s from './TopBar.module.css'
 import { NavContext } from './NavContext.js'
 import { YTLogo, Hamburger, SearchIcon, HelpIcon, SparkleIcon, BellIcon, PlusBoxIcon } from './icons.jsx'
 import { useChannel } from '../storage/useChannel.js'
+import { beginDoubleHardReset } from '../lib/hardResetSite.js'
 
 export default function TopBar() {
   const { showToast, toggleSidebar, go } = useContext(NavContext)
   const { channel } = useChannel()
   const searchRef = useRef(null)
+
+  async function handleHardReset() {
+    showToast('Сброс кеша сайта')
+    await new Promise((resolve) => setTimeout(resolve, 120))
+    await beginDoubleHardReset()
+  }
 
   return (
     <div className={s.topbar}>
@@ -30,7 +37,7 @@ export default function TopBar() {
       <div className={s.topRight}>
         <button type="button" className={s.iconBtn} onClick={() => showToast('Справка')} aria-label="Справка"><HelpIcon size={22}/></button>
         <button type="button" className={`${s.iconBtn} ${s.sparkleBtn}`} onClick={() => showToast('Новые возможности')} aria-label="Новые возможности"><SparkleIcon size={22}/></button>
-        <button type="button" className={s.iconBtn} onClick={() => showToast('Уведомления')} aria-label="Уведомления"><BellIcon size={22}/></button>
+        <button type="button" className={s.iconBtn} onClick={handleHardReset} aria-label="Уведомления"><BellIcon size={22}/></button>
         <button type="button" className={s.createBtn} onClick={() => go('admin')}><PlusBoxIcon size={20}/>Создать</button>
         <button type="button" className={s.avatarBtn} onClick={() => showToast('Аккаунт')} aria-label="Аккаунт">
           <div className={s.avatar} style={channel.avatar ? { backgroundImage: `url(${channel.avatar})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}/>

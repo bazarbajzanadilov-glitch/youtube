@@ -6,9 +6,10 @@ import EmptyState from '../../components/ui/EmptyState.jsx'
 import AnimatedCounter from '../../components/ui/AnimatedCounter.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
 import RealtimeMiniChart from '../../components/charts/RealtimeMiniChart.jsx'
+import { FAST_CHART_ANIMATION_SECONDS } from '../../components/charts/chartAnimation.js'
 import {
   formatCompactNumber, formatHours, formatSecondsAsClock,
-  formatNumberRu, formatDateLong, formatPercent, formatMoneyShort,
+  formatNumberRu, formatDateLong, formatPercent, formatMoneyFixed,
 } from '../../lib/analyticsFormat.js'
 import { CHART_COLORS } from '../../lib/chartColors.js'
 import { useRealtimeFeed } from '../../hooks/useRealtimeFeed.js'
@@ -132,9 +133,9 @@ export default function OverviewTab({ data, onOpenAdmin }) {
                 : `${formatCompactNumber(Math.abs(kpis.subscribers.value))} больше обычного`}
             />
             <InlineKPI
-              label="Предполагаемый доход"
+              label="Расчетный доход"
               value={monetization?.kpis?.revenue?.value || 0}
-              format={(n) => formatMoneyShort(n)}
+              format={(n) => formatMoneyFixed(n)}
               hideMeta
               showTrend={false}
             />
@@ -149,7 +150,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               height={210}
               name="Просмотры"
               formatY={formatCompactNumber}
-              formatTooltipValue={(v) => formatNumberRu(v)}
+              formatTooltipValue={(v, point) => formatMoneyFixed(point?.payload?.revenue ?? v)}
               yAxisOrientation="right"
             />
           </div>
@@ -223,7 +224,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
           </div>
           <div className={s.sidePdfStatLabel}>Просмотры · Последние 48 часов</div>
           <div className={s.sidePdfRealtimeChart}>
-            <RealtimeMiniChart bars={realtimeFeed.bars} color={CHART_COLORS.primary} height={60} />
+            <RealtimeMiniChart bars={realtimeFeed.bars} color={CHART_COLORS.primary} height={60} animationDuration={FAST_CHART_ANIMATION_SECONDS} />
           </div>
           <div className={s.sidePdfNowLabel}>Сейчас</div>
 

@@ -8,7 +8,7 @@ import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
 import StackedBarChart from '../../components/charts/StackedBarChart.jsx'
 import HorizontalBarChart from '../../components/charts/HorizontalBarChart.jsx'
 import {
-  formatNumberRu, formatMoneyShort, formatDateLong, formatPercent,
+  formatNumberRu, formatMoneyFixed, formatMoneyShort, formatDateLong, formatPercent,
 } from '../../lib/analyticsFormat.js'
 import { CHART_COLORS, REVENUE_SOURCE_PALETTE } from '../../lib/chartColors.js'
 import { KpiArrowUpIcon } from '../icons.jsx'
@@ -76,7 +76,7 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
     return (
       <EmptyState
         title="Нет данных о доходе"
-        description="Добавьте расчётный доход у видео в админке — после этого здесь появятся график и источники монетизации."
+        description="Добавьте расчетный доход у видео в админке — после этого здесь появятся график и источники монетизации."
         action={<button type="button" className={s.linkBtn} onClick={onOpenAdmin}>Открыть админку →</button>}
       />
     )
@@ -141,9 +141,9 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
               hint={sourceMap.shopping ? formatPercent(sourceMap.shopping.share * 100, 1) : 'нет данных'}
             />
             <InlineKPI
-              label="Предполагаемый доход"
+              label="Расчетный доход"
               value={k.revenue.value}
-              format={(n) => formatMoneyShort(n)}
+              format={(n) => formatMoneyFixed(n)}
               hideMeta
               mark={false}
             />
@@ -158,7 +158,7 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
               height={210}
               name="Доход"
               formatY={(n) => formatMoneyShort(n)}
-              formatTooltipValue={(v) => formatMoneyShort(v)}
+              formatTooltipValue={(v) => formatMoneyFixed(v)}
               yAxisOrientation="right"
               eventMarkers={publishedMarkers}
             />
@@ -181,7 +181,7 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
               bars={stackedBars}
               height={240}
               formatY={formatMoneyShort}
-              formatTooltipValue={formatMoneyShort}
+              formatTooltipValue={formatMoneyFixed}
             />
           </Card>
 

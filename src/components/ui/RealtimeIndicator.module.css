@@ -10,7 +10,7 @@
   height: 8px;
   border-radius: 50%;
   position: relative;
-  background: #5891b0;
+  background: #41B3D8;
   flex-shrink: 0;
 }
 .off .dot { background: var(--studio-text-disabled); }
