@@ -14,9 +14,11 @@ export default function AnimatedCounter({ value = 0, duration = 850, format = (x
 
   useEffect(() => {
     if (reduced || duration <= 0) {
-      setDisplay(value)
-      fromRef.current = value
-      return
+      const id = requestAnimationFrame(() => {
+        setDisplay(value)
+        fromRef.current = value
+      })
+      return () => cancelAnimationFrame(id)
     }
     const from = fromRef.current
     const to = value

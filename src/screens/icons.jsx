@@ -71,6 +71,12 @@ export const CheckCircle = ({ size = 16, color = '#2ba640' }) => (
 export const ArrowUpIcon = ({ size = 16, color = '#2ba640' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M12,4l-8,8h5v8h6v-8h5L12,4z"/></svg>
 )
+export const KpiArrowUpIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 21 21" fill="none" aria-hidden="true">
+    <rect width="21" height="21" rx="10.5" fill="#2BA640" />
+    <path d="M10.5 5V17.5M15 9.5L10.5 5L6 9.5" stroke="#1F1F1F" strokeWidth="2" />
+  </svg>
+)
 export const InfoIcon = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M11,17h2v-6h-2V17z M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10s10-4.48,10-10S17.52,2,12,2z M12,20c-4.41,0-8-3.59-8-8 s3.59-8,8-8s8,3.59,8,8S16.41,20,12,20z M11,9h2V7h-2V9z"/></svg>
 )

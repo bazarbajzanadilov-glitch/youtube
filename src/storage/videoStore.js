@@ -4,6 +4,15 @@
  * Лайки/дизлайки/проценты — вычисляются автоматически из просмотров.
  */
 
+import {
+  hashSeed,
+  seededRng,
+  getVideoAgeDays,
+  inferProfile,
+  estimateLifetimeViews,
+  estimateLifetimeRevenue,
+} from '../lib/analyticsEngine.js'
+
 const STORAGE_KEY = 'yt-studio-videos'
 const STORAGE_EVENT = 'yt-studio-store-update'
 const BOOTSTRAP_FLAG = 'yt-studio-videos-bootstrapped'
@@ -104,18 +113,143 @@ export function randomTitle() {
   return `${RANDOM_WORDS_A[randInt(0, RANDOM_WORDS_A.length - 1)]} ${RANDOM_WORDS_B[randInt(0, RANDOM_WORDS_B.length - 1)]} ${RANDOM_WORDS_C[randInt(0, RANDOM_WORDS_C.length - 1)]}`
 }
 
-export function randomViews() { return randInt(1_000, 500_000) }
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
 
-export function suggestRevenue(views) {
-  // Реалистичная фейк-логика: $2-5 за 1000 просмотров (RPM)
-  const rpm = rand(2, 5)
-  return Math.round(views * rpm / 1000 * 100) / 100
+function parseNonNegativeInteger(value) {
+  if (value === '' || value == null) return null
+  const parsed = parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+}
+
+function parseNonNegativeMoney(value) {
+  if (value === '' || value == null) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) / 100 : null
+}
+
+function seedForVideo({ id, title, date, duration } = {}) {
+  return hashSeed(id || '', title || 'video', date || todayISO(), duration || '')
+}
+
+function pickProfileFromSeed(seed, ageDays) {
+  const rand = seededRng(seed)
+  if (ageDays < 4) return rand() > 0.8 ? 'viralSpike' : 'gradualGrowth'
+  if (ageDays > 180) return rand() > 0.72 ? 'steady' : 'decayAfterPeak'
+  if (rand() > 0.88) return 'viralSpike'
+  if (rand() > 0.72) return 'seasonal'
+  if (rand() > 0.56) return 'steady'
+  return 'gradualGrowth'
+}
+
+export function generateVideoStats({ id, title, date, duration, seed, today = new Date() } = {}) {
+  const publishDate = date || todayISO()
+  const ageDays = getVideoAgeDays(publishDate, today)
+  const baseSeed = seed || seedForVideo({ id, title, date: publishDate, duration })
+  const profile = pickProfileFromSeed(baseSeed, ageDays)
+  const views = estimateLifetimeViews({ seed: baseSeed, ageDays, profile })
+  const revenue = estimateLifetimeRevenue({ views, seed: hashSeed(baseSeed, 'revenue'), ageDays })
+  const metrics = computeMetrics(views, (baseSeed % 10000) / 10000)
+  return { views, revenue, ...metrics, profile, ageDays }
+}
+
+export function randomViews(options = {}) {
+  if (options && typeof options === 'object') {
+    return generateVideoStats(options).views
+  }
+  return generateVideoStats({ date: todayISO(), seed: hashSeed(Date.now(), Math.random()) }).views
+}
+
+export function suggestRevenue(input) {
+  if (input && typeof input === 'object') {
+    const views = parseNonNegativeInteger(input.views) ?? 0
+    const date = input.date || todayISO()
+    const seed = input.seed || seedForVideo(input)
+    return estimateLifetimeRevenue({
+      views,
+      seed: hashSeed(seed, 'revenue'),
+      ageDays: getVideoAgeDays(date, input.today || new Date()),
+    })
+  }
+  const views = parseNonNegativeInteger(input) ?? 0
+  return estimateLifetimeRevenue({
+    views,
+    seed: hashSeed(views, Date.now(), Math.random()),
+    ageDays: getVideoAgeDays(todayISO()),
+  })
 }
 
 export function randomDuration() {
   const m = randInt(0, 14)
   const sec = randInt(1, 59)
   return `${m}:${sec < 10 ? '0' + sec : sec}`
+}
+
+export function normalizeVideo(input = {}, options = {}) {
+  const base = options.base || null
+  const id = input.id || base?.id || makeId(input.title || base?.title || 'video')
+  const title = input.title || base?.title || 'Без названия'
+  const date = input.date || base?.date || todayISO()
+  const duration = input.duration || base?.duration || randomDuration()
+  const seed = seedForVideo({ id, title, date, duration })
+  const generated = generateVideoStats({ id, title, date, duration, seed })
+
+  const inputViews = parseNonNegativeInteger(input.views)
+  const baseViews = parseNonNegativeInteger(base?.views)
+  const dateLikeChanged = input.date !== undefined || input.title !== undefined || input.duration !== undefined
+  const forceAutoViews = input.autoViews === true
+  const baseAutoViews = base?._autoStats?.views === true
+  const shouldGenerateViews = forceAutoViews || (
+    inputViews === null && (!base || baseViews === null || (baseAutoViews && dateLikeChanged))
+  )
+  const views = shouldGenerateViews ? generated.views : (inputViews ?? baseViews ?? generated.views)
+
+  const inputRevenue = parseNonNegativeMoney(input.revenue)
+  const baseRevenue = parseNonNegativeMoney(base?.revenue)
+  const forceAutoRevenue = input.autoRevenue === true
+  const baseAutoRevenue = base?._autoStats?.revenue === true
+  const viewsChanged = views !== baseViews
+  const generatedRevenue = estimateLifetimeRevenue({
+    views,
+    seed: hashSeed(seed, 'revenue'),
+    ageDays: getVideoAgeDays(date),
+  })
+  const shouldGenerateRevenue = forceAutoRevenue || (
+    inputRevenue === null && (!base || baseRevenue === null || (baseAutoRevenue && (dateLikeChanged || viewsChanged)))
+  )
+  const revenue = shouldGenerateRevenue ? generatedRevenue : (inputRevenue ?? baseRevenue ?? generatedRevenue)
+
+  const metrics = computeMetrics(views, (seed % 10000) / 10000)
+  const viewsForBaseMetrics = parseNonNegativeInteger(base?.views)
+  const metricsNeedRefresh = !base || views !== viewsForBaseMetrics || input.autoViews === true
+  const likes = metricsNeedRefresh
+    ? metrics.likes
+    : (parseNonNegativeInteger(input.likes) ?? parseNonNegativeInteger(base?.likes) ?? metrics.likes)
+  const dislikes = metricsNeedRefresh
+    ? metrics.dislikes
+    : (parseNonNegativeInteger(input.dislikes) ?? parseNonNegativeInteger(base?.dislikes) ?? metrics.dislikes)
+  const likePct = likes + dislikes === 0 ? null : likes / (likes + dislikes)
+  const profile = input.profile || base?.profile || generated.profile || inferProfile({ ...base, ...input, views, date })
+
+  return {
+    id,
+    title,
+    cover: input.cover !== undefined ? input.cover : (base?.cover || null),
+    date,
+    duration,
+    views,
+    likes,
+    dislikes,
+    likePct,
+    revenue,
+    profile,
+    _autoStats: {
+      views: shouldGenerateViews || (baseAutoViews && inputViews === null),
+      revenue: shouldGenerateRevenue || (baseAutoRevenue && inputRevenue === null),
+    },
+    createdAt: input.createdAt || base?.createdAt || Date.now(),
+  }
 }
 
 /* === Низкоуровневое хранилище === */
@@ -157,23 +291,7 @@ export function getVideos() {
 }
 
 export function addVideo(input) {
-  const id = makeId(input.title || 'video')
-  const views = input.views ?? randomViews()
-  const { likes, dislikes, likePct } = computeMetrics(views, Math.random())
-  const revenue = input.revenue ?? suggestRevenue(views)
-  const video = {
-    id,
-    title: input.title || 'Без названия',
-    cover: input.cover || null,
-    date: input.date || new Date().toISOString().slice(0, 10),
-    duration: input.duration || randomDuration(),
-    views,
-    likes,
-    dislikes,
-    likePct,
-    revenue,
-    createdAt: Date.now(),
-  }
+  const video = normalizeVideo(input)
   const all = read()
   all.push(video)
   write(all)
@@ -184,18 +302,7 @@ export function updateVideo(id, patch) {
   const all = read()
   const idx = all.findIndex((v) => v.id === id)
   if (idx < 0) return null
-  const merged = { ...all[idx], ...patch }
-  // Если изменились views — пересчитать likes/dislikes
-  if (patch.views !== undefined && patch.views !== all[idx].views) {
-    const m = computeMetrics(merged.views, Math.random())
-    merged.likes = m.likes
-    merged.dislikes = m.dislikes
-    merged.likePct = m.likePct
-  }
-  // Если revenue не задан и views поменялся — пересчитать
-  if (patch.revenue === undefined && patch.views !== undefined && patch.views !== all[idx].views) {
-    merged.revenue = suggestRevenue(merged.views)
-  }
+  const merged = normalizeVideo(patch, { base: all[idx] })
   all[idx] = merged
   write(all)
   return merged
@@ -214,23 +321,11 @@ export function importVideos(arr) {
   if (!Array.isArray(arr)) return
   const sanitized = arr
     .filter((v) => v && typeof v === 'object')
-    .map((v) => {
-      const views = Math.max(0, parseInt(v.views, 10) || 0)
-      const m = computeMetrics(views, Math.random())
-      return {
-        id: v.id || makeId(v.title || 'video'),
-        title: v.title || 'Без названия',
-        cover: v.cover || null,
-        date: v.date || new Date().toISOString().slice(0, 10),
-        duration: v.duration || randomDuration(),
-        views,
-        likes: Number.isFinite(v.likes) ? v.likes : m.likes,
-        dislikes: Number.isFinite(v.dislikes) ? v.dislikes : m.dislikes,
-        likePct: Number.isFinite(v.likePct) ? v.likePct : m.likePct,
-        revenue: Number.isFinite(v.revenue) ? v.revenue : suggestRevenue(views),
-        createdAt: v.createdAt || Date.now(),
-      }
-    })
+    .map((v) => normalizeVideo({
+      ...v,
+      autoViews: parseNonNegativeInteger(v.views) === null,
+      autoRevenue: parseNonNegativeMoney(v.revenue) === null,
+    }))
   write(sanitized)
 }
 
@@ -243,22 +338,18 @@ export function removeMany(ids) {
 export function bulkAddRandom(count) {
   const all = read()
   for (let i = 0; i < count; i++) {
-    const views = randomViews()
-    const { likes, dislikes, likePct } = computeMetrics(views, Math.random())
     const title = randomTitle()
-    all.push({
+    const date = new Date(Date.now() - randInt(0, 365) * 86400000).toISOString().slice(0, 10)
+    all.push(normalizeVideo({
       id: makeId(title),
       title,
       cover: null,
-      date: new Date(Date.now() - randInt(0, 365) * 86400000).toISOString().slice(0, 10),
+      date,
       duration: randomDuration(),
-      views,
-      likes,
-      dislikes,
-      likePct,
-      revenue: suggestRevenue(views),
+      autoViews: true,
+      autoRevenue: true,
       createdAt: Date.now() + i,
-    })
+    }))
   }
   write(all)
 }

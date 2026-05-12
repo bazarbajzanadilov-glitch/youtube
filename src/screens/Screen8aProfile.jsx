@@ -71,8 +71,8 @@ export default function Screen8aProfile() {
         <div className={s.section}>
           <div className={s.sectionTitle}>Псевдоним</div>
           <div className={s.sectionDesc}>Уникальное имя с символом @, по которому зрители смогут найти ваш канал.</div>
-          <input className={s.input} defaultValue="@restsheets2962"/>
-          <div className={s.urlBelow}>https://www.youtube.com/@restsheets2962</div>
+          <input className={s.input} defaultValue="@inside-trading"/>
+          <div className={s.urlBelow}>https://www.youtube.com/@inside-trading</div>
         </div>
 
         <div className={s.section}>

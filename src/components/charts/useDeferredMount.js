@@ -12,8 +12,8 @@ export function useDeferredMount() {
       const id = requestAnimationFrame(() => setReady(true))
       return () => cancelAnimationFrame(id)
     }
-    setReady(true)
-    return undefined
+    const id = setTimeout(() => setReady(true), 0)
+    return () => clearTimeout(id)
   }, [])
   return ready
 }

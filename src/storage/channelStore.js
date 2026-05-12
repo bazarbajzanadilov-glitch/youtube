@@ -11,8 +11,6 @@ const DEFAULT_CHANNEL = {
   country: 'RU',
   subscriberCount: 12500,
   monetizationEnabled: true,
-  rpm: 3.2,
-  cpm: 8.1,
   joinDate: '2022-01-15',
   avatar: null,
 }

@@ -48,7 +48,7 @@ export default function Screen7Monetization() {
             <SparkleIcon size={18}/>Какие видео приносят больше всего?
           </button>
           <button type="button" className={s.suggestion} onClick={() => showToast('Подсказка ИИ')}>
-            <SparkleIcon size={18}/>Можно ли поднять CPM?
+            <SparkleIcon size={18}/>Как меняются источники дохода?
           </button>
           <button type="button" className={s.kebab} onClick={() => showToast('Ещё')} aria-label="Ещё">
             <KebabIcon/>

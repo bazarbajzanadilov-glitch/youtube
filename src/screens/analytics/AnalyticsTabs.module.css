@@ -61,6 +61,9 @@
   overflow: hidden;
   background: rgba(255, 255, 255, 0.015);
 }
+.inlineKpiRowFour {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 .inlineKpi {
   padding: 16px 18px 18px;
   text-align: center;
@@ -89,7 +92,7 @@
 }
 .inlineKpiValue {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
   font-size: 26px;
   font-weight: 500;
@@ -99,16 +102,28 @@
   line-height: 1.05;
 }
 .inlineKpiValue svg { transform: translateY(-2px); flex-shrink: 0; }
+.inlineKpiTrendIcon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transform: none;
+}
+.inlineKpiTrendIcon svg {
+  display: block;
+  transform: none;
+}
 .inlineKpiSuffix { color: var(--studio-text-muted); font-size: 14px; font-weight: 400; }
 .inlineKpiHint {
   display: flex;
   align-items: center;
-  gap: 6px;
   font-size: 12px;
   color: var(--studio-text-muted);
-  flex-wrap: wrap;
   justify-content: center;
   text-align: center;
+  min-height: 16px;
 }
 .inlineKpiHintText { color: var(--studio-text-muted); line-height: 1.3; }
 

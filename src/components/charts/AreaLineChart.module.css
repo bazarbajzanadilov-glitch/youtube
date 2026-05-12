@@ -5,3 +5,40 @@
 }
 .wrap :global(.recharts-tooltip-wrapper) { z-index: 4; }
 .wrap :global(.recharts-cartesian-grid line) { stroke-opacity: 1; }
+
+.markerRail {
+  position: absolute;
+  left: var(--chart-left, 56px);
+  right: var(--chart-right, 56px);
+  bottom: 22px;
+  height: 18px;
+  pointer-events: none;
+}
+
+.eventMarker {
+  position: absolute;
+  top: 0;
+  width: 22px;
+  height: 18px;
+  border-radius: 4px;
+  background: #a9a9a9;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.playGlyph {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid #111;
+  margin-left: 2px;
+}
+
+@media (max-width: 720px) {
+  .markerRail { left: 44px; right: 44px; }
+  .eventMarker:nth-child(n+4) { display: none; }
+}

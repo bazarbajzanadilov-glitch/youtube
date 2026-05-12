@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { ResponsiveContainer, PieChart, Pie, Cell, Sector, Tooltip } from 'recharts'
 import s from './DonutChart.module.css'
 import ChartTooltip from '../ui/ChartTooltip.jsx'
-import { CHART_COLORS, PALETTE_5 } from '../../lib/chartColors.js'
+import { PALETTE_5 } from '../../lib/chartColors.js'
 import { useDeferredMount } from './useDeferredMount.js'
 
 function ActiveShape(props) {

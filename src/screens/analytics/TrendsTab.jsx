@@ -2,7 +2,7 @@ import { useState } from 'react'
 import s from './AnalyticsTabs.module.css'
 import Card from '../../components/ui/Card.jsx'
 import { HeartIcon, SparkleIcon, SearchIcon } from '../icons.jsx'
-import { formatCompactNumber, formatDateLong } from '../../lib/analyticsFormat.js'
+import { formatCompactNumber } from '../../lib/analyticsFormat.js'
 
 const SEARCH_IDEAS = [
   'обзор iphone 17 pro', 'самые быстрые электрокары 2026', 'asmr погода рассвет', 'jujutsu kaisen final',

@@ -54,7 +54,7 @@ function PaneGeneral({ showToast }) {
   )
 }
 
-function PaneChannel({ showToast, channelName, setChannelName }) {
+function PaneChannel({ channelName, setChannelName }) {
   return (
     <>
       <Field label="Название канала">
@@ -75,7 +75,7 @@ function PaneChannel({ showToast, channelName, setChannelName }) {
   )
 }
 
-function PaneUpload({ showToast, settings, setSettings }) {
+function PaneUpload({ settings, setSettings }) {
   return (
     <>
       <Field label="Описание по умолчанию" hint="Шаблон описания, который будет применяться к новым видео.">
@@ -90,7 +90,7 @@ function PaneUpload({ showToast, settings, setSettings }) {
   )
 }
 
-function PanePermissions({ showToast, channelName }) {
+function PanePermissions({ channelName }) {
   return (
     <>
       <div className={s.note}>
@@ -111,7 +111,7 @@ function PanePermissions({ showToast, channelName }) {
   )
 }
 
-function PaneModeration({ showToast, settings, setSettings }) {
+function PaneModeration({ settings, setSettings }) {
   return (
     <>
       <Toggle on={settings.holdForReview} onClick={() => setSettings({ ...settings, holdForReview: !settings.holdForReview })} label="Удерживать потенциально неуместные комментарии для проверки"/>
@@ -123,7 +123,7 @@ function PaneModeration({ showToast, settings, setSettings }) {
   )
 }
 
-function PaneAgreements({ showToast }) {
+function PaneAgreements() {
   return (
     <>
       <div className={s.note}>
@@ -199,11 +199,11 @@ export default function Screen10Settings() {
             </div>
             <div className={s.modalRight}>
               {menuIdx === 0 && <PaneGeneral showToast={showToast}/>}
-              {menuIdx === 1 && <PaneChannel showToast={showToast} channelName={channelName} setChannelName={setChannelName}/>}
-              {menuIdx === 2 && <PaneUpload showToast={showToast} settings={settings} setSettings={setSettings}/>}
-              {menuIdx === 3 && <PanePermissions showToast={showToast} channelName={channelName}/>}
-              {menuIdx === 4 && <PaneModeration showToast={showToast} settings={settings} setSettings={setSettings}/>}
-              {menuIdx === 5 && <PaneAgreements showToast={showToast}/>}
+              {menuIdx === 1 && <PaneChannel channelName={channelName} setChannelName={setChannelName}/>}
+              {menuIdx === 2 && <PaneUpload settings={settings} setSettings={setSettings}/>}
+              {menuIdx === 3 && <PanePermissions channelName={channelName}/>}
+              {menuIdx === 4 && <PaneModeration settings={settings} setSettings={setSettings}/>}
+              {menuIdx === 5 && <PaneAgreements/>}
             </div>
           </div>
           <div className={s.modalFooter}>

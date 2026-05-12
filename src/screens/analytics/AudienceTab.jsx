@@ -3,7 +3,6 @@ import s from './AnalyticsTabs.module.css'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AnimatedCounter from '../../components/ui/AnimatedCounter.jsx'
-import DeltaChip from '../../components/ui/DeltaChip.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
 import HorizontalBarChart from '../../components/charts/HorizontalBarChart.jsx'
 import Heatmap7x24 from '../../components/charts/Heatmap7x24.jsx'
@@ -11,7 +10,7 @@ import {
   formatCompactNumber, formatNumberRu, formatPercent,
 } from '../../lib/analyticsFormat.js'
 import { CHART_COLORS } from '../../lib/chartColors.js'
-import { CheckCircle, ArrowUpIcon } from '../icons.jsx'
+import { ArrowUpIcon } from '../icons.jsx'
 
 const inlineKpiVariants = {
   hidden: { opacity: 0, y: 8 },

@@ -5,7 +5,7 @@ import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
 import DonutChart from '../../components/charts/DonutChart.jsx'
-import { formatCompactNumber, formatMoneyShort, formatPercent, formatNumberRu } from '../../lib/analyticsFormat.js'
+import { formatCompactNumber, formatPercent, formatNumberRu } from '../../lib/analyticsFormat.js'
 import { CHART_COLORS } from '../../lib/chartColors.js'
 
 const AD_FORMATS = [
@@ -39,7 +39,6 @@ export default function MonetizationAdsTab({ data, onOpenAdmin }) {
     <div className={s.layoutSingle}>
       <div className={s.kpiGrid}>
         <KPICard label="Показы рекламы" value={monetization.kpis.adImpressions.value} format={formatCompactNumber} highlighted />
-        <KPICard label="CPM" value={monetization.kpis.cpm.value} format={formatMoneyShort} />
         <KPICard label="Fill rate" value={fillRate * 100} format={(n) => formatPercent(n, 0)} hint="доля заполненных мест" />
         <KPICard label="Монетизированные просмотры" value={monetization.kpis.monetizedPlaybacks.value} format={formatCompactNumber} />
       </div>
@@ -94,18 +93,6 @@ export default function MonetizationAdsTab({ data, onOpenAdmin }) {
               <span className={sx.detailLabel}>Fill rate</span>
               <span className={sx.detailShare}>{formatPercent(fillRate * 100, 0)}</span>
               <span className={sx.detailValue}>лучше нормы</span>
-            </li>
-            <li className={sx.detailItem}>
-              <span className={sx.dot} style={{ background: CHART_COLORS.primary }} />
-              <span className={sx.detailLabel}>CPM</span>
-              <span className={sx.detailShare}>среднее</span>
-              <span className={sx.detailValue}>{formatMoneyShort(monetization.kpis.cpm.value)}</span>
-            </li>
-            <li className={sx.detailItem}>
-              <span className={sx.dot} style={{ background: CHART_COLORS.purple }} />
-              <span className={sx.detailLabel}>RPM</span>
-              <span className={sx.detailShare}>среднее</span>
-              <span className={sx.detailValue}>{formatMoneyShort(monetization.kpis.rpm.value)}</span>
             </li>
             <li className={sx.detailItem}>
               <span className={sx.dot} style={{ background: CHART_COLORS.amber }} />

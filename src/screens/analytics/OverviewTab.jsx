@@ -4,16 +4,15 @@ import Card from '../../components/ui/Card.jsx'
 import RealtimeIndicator from '../../components/ui/RealtimeIndicator.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AnimatedCounter from '../../components/ui/AnimatedCounter.jsx'
-import DeltaChip from '../../components/ui/DeltaChip.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
 import RealtimeMiniChart from '../../components/charts/RealtimeMiniChart.jsx'
 import {
   formatCompactNumber, formatHours, formatSecondsAsClock,
-  formatNumberRu, formatDateLong, formatPercent,
+  formatNumberRu, formatDateLong, formatPercent, formatMoneyShort,
 } from '../../lib/analyticsFormat.js'
 import { CHART_COLORS } from '../../lib/chartColors.js'
 import { useRealtimeFeed } from '../../hooks/useRealtimeFeed.js'
-import { CheckCircle, ChevronLeft, ChevronRight } from '../icons.jsx'
+import { KpiArrowUpIcon, ChevronLeft, ChevronRight } from '../icons.jsx'
 import { useState } from 'react'
 
 function rangeMessage(range) {
@@ -33,31 +32,36 @@ const inlineKpiVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 }
 
-function InlineKPI({ label, value, format, delta, hint, suffix, isFirst }) {
+function InlineKPI({ label, value, format, hint, suffix, isFirst, hideMeta = false, showTrend = true }) {
   return (
     <motion.div className={`${s.inlineKpi} ${isFirst ? '' : s.inlineKpiBordered}`} variants={inlineKpiVariants}>
       <div className={s.inlineKpiLabel}>{label}</div>
       <div className={s.inlineKpiValue}>
         <AnimatedCounter value={Number(value) || 0} format={format} />
         {suffix ? <span className={s.inlineKpiSuffix}>{suffix}</span> : null}
-        <CheckCircle size={16} color="#2ba640" />
+        {showTrend ? <span className={s.inlineKpiTrendIcon}><KpiArrowUpIcon /></span> : null}
       </div>
-      {Number.isFinite(delta) ? (
+      {hideMeta ? null : (
         <div className={s.inlineKpiHint}>
-          <DeltaChip value={delta} />
-          {hint ? <span className={s.inlineKpiHintText}>{hint}</span> : null}
-        </div>
-      ) : (
-        <div className={s.inlineKpiHint}>
-          <span className={s.inlineKpiHintText}>{hint || 'Обычное значение'}</span>
+          <span className={s.inlineKpiHintText}>{hint}</span>
         </div>
       )}
     </motion.div>
   )
 }
 
+function moreThanUsual(value, delta, format) {
+  const v = Number(value) || 0
+  const d = Number(delta)
+  if (v <= 0) return 'Обычное значение'
+  if (!Number.isFinite(d) || d <= 0) return `${format(v)} больше обычного`
+  const previous = v / (1 + d / 100)
+  const diff = Math.max(0, v - previous)
+  return `${format(diff)} больше обычного`
+}
+
 export default function OverviewTab({ data, onOpenAdmin }) {
-  const { overview, channel, realtime, lifetime, range } = data
+  const { overview, channel, realtime, range, monetization } = data
   const kpis = overview.kpis
   const realtimeFeed = useRealtimeFeed({
     initial: realtime.last48,
@@ -101,7 +105,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
           </h2>
 
           <motion.div
-            className={s.inlineKpiRow}
+            className={`${s.inlineKpiRow} ${s.inlineKpiRowFour}`}
             variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
             initial="hidden"
             animate="show"
@@ -110,16 +114,14 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               label="Просмотры"
               value={kpis.views.value}
               format={formatCompactNumber}
-              delta={periodDelta(kpis.views.delta)}
-              hint={isLifetime ? 'за всё время' : 'Обычное значение'}
+              hint={isLifetime ? 'за всё время' : moreThanUsual(kpis.views.value, periodDelta(kpis.views.delta), formatCompactNumber)}
               isFirst
             />
             <InlineKPI
               label="Время просмотра (часы)"
               value={kpis.watchTime.value}
               format={formatHours}
-              delta={periodDelta(kpis.watchTime.delta)}
-              hint={isLifetime ? 'за всё время' : 'Обычное значение'}
+              hint={isLifetime ? 'за всё время' : moreThanUsual(kpis.watchTime.value, periodDelta(kpis.watchTime.delta), formatHours)}
             />
             <InlineKPI
               label="Подписчики"
@@ -127,7 +129,14 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               format={(n) => `${n >= 0 ? '+' : ''}${Math.round(n).toLocaleString('ru-RU')}`}
               hint={isLifetime
                 ? `всего ${formatNumberRu(kpis.subscribers.absolute)}`
-                : 'На 50 % больше, чем за предыдущие 28 дней'}
+                : `${formatCompactNumber(Math.abs(kpis.subscribers.value))} больше обычного`}
+            />
+            <InlineKPI
+              label="Предполагаемый доход"
+              value={monetization?.kpis?.revenue?.value || 0}
+              format={(n) => formatMoneyShort(n)}
+              hideMeta
+              showTrend={false}
             />
           </motion.div>
 
@@ -141,6 +150,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               name="Просмотры"
               formatY={formatCompactNumber}
               formatTooltipValue={(v) => formatNumberRu(v)}
+              yAxisOrientation="right"
             />
           </div>
 
@@ -307,7 +317,7 @@ function avgWatchPretty(v) {
   const sec = Math.round(durationToSec(v.duration) * 0.45)
   return formatSecondsAsClock(sec)
 }
-function avgWatchPercent(v) {
+function avgWatchPercent() {
   return formatPercent(45, 1)
 }
 function ctrPretty(v) {

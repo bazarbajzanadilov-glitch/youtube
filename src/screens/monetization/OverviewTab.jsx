@@ -4,7 +4,6 @@ import sx from './MonetizationExtras.module.css'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AnimatedCounter from '../../components/ui/AnimatedCounter.jsx'
-import DeltaChip from '../../components/ui/DeltaChip.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
 import StackedBarChart from '../../components/charts/StackedBarChart.jsx'
 import HorizontalBarChart from '../../components/charts/HorizontalBarChart.jsx'
@@ -12,11 +11,24 @@ import {
   formatNumberRu, formatMoneyShort, formatDateLong, formatPercent,
 } from '../../lib/analyticsFormat.js'
 import { CHART_COLORS, REVENUE_SOURCE_PALETTE } from '../../lib/chartColors.js'
-import { CheckCircle } from '../icons.jsx'
+import { KpiArrowUpIcon } from '../icons.jsx'
 
 const inlineKpiVariants = {
   hidden: { opacity: 0, y: 8 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+}
+
+function buildPublishedMarkers(videos, series) {
+  const dates = new Set(series.map((row) => row.date))
+  const seen = new Set()
+  const markers = []
+  for (const video of videos) {
+    if (!video.date || !dates.has(video.date) || seen.has(video.date)) continue
+    seen.add(video.date)
+    markers.push({ date: video.date, label: video.title })
+    if (markers.length >= 8) break
+  }
+  return markers
 }
 
 function rangeMessage(range) {
@@ -31,22 +43,17 @@ function rangeMessage(range) {
   }
 }
 
-function InlineKPI({ label, value, format, delta, hint, isFirst, mark = true }) {
+function InlineKPI({ label, value, format, hint, isFirst, mark = true, hideMeta = false }) {
   return (
     <motion.div className={`${s.inlineKpi} ${isFirst ? '' : s.inlineKpiBordered}`} variants={inlineKpiVariants}>
       <div className={s.inlineKpiLabel}>{label}</div>
       <div className={s.inlineKpiValue}>
         <AnimatedCounter value={Number(value) || 0} format={format} />
-        {mark ? <CheckCircle size={16} color="#2ba640" /> : null}
+        {mark ? <span className={s.inlineKpiTrendIcon}><KpiArrowUpIcon /></span> : null}
       </div>
-      {Number.isFinite(delta) ? (
+      {hideMeta ? null : (
         <div className={s.inlineKpiHint}>
-          <DeltaChip value={delta} />
-          {hint ? <span className={s.inlineKpiHintText}>{hint}</span> : null}
-        </div>
-      ) : (
-        <div className={s.inlineKpiHint}>
-          <span className={s.inlineKpiHintText}>{hint || 'Обычное значение'}</span>
+          <span className={s.inlineKpiHintText}>{hint}</span>
         </div>
       )}
     </motion.div>
@@ -60,7 +67,7 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
     return (
       <EmptyState
         title="Монетизация отключена"
-        description="Включите партнёрскую программу в админке (раздел «Канал» → флаг «Монетизация»), чтобы видеть доходы, RPM и расщепление по источникам."
+        description="Включите партнёрскую программу в админке (раздел «Канал» → флаг «Монетизация»), чтобы видеть доходы и расщепление по источникам."
         action={<button type="button" className={s.linkBtn} onClick={onOpenAdmin}>Открыть админку →</button>}
       />
     )
@@ -69,15 +76,13 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
     return (
       <EmptyState
         title="Нет данных о доходе"
-        description="Добавьте видео в админке. RPM канала умножится на просмотры — и вы увидите расчётный доход здесь."
+        description="Добавьте расчётный доход у видео в админке — после этого здесь появятся график и источники монетизации."
         action={<button type="button" className={s.linkBtn} onClick={onOpenAdmin}>Открыть админку →</button>}
       />
     )
   }
 
   const k = monetization.kpis
-  const isLifetime = range.kind === 'lifetime'
-  const periodDelta = (d) => isLifetime ? undefined : d
   const stackedBars = [
     { key: 'ads', name: 'Реклама', color: REVENUE_SOURCE_PALETTE.ads },
     { key: 'premium', name: 'YouTube Premium', color: REVENUE_SOURCE_PALETTE.premium },
@@ -95,6 +100,8 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
     .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
     .slice(0, 5)
   const totalRev = monetization.kpis.revenue.value
+  const sourceMap = Object.fromEntries(monetization.sources.map((src) => [src.key, src]))
+  const publishedMarkers = buildPublishedMarkers(data.overview.topVideos, monetization.series)
 
   return (
     <div className={s.overviewLayout}>
@@ -109,31 +116,35 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
           </h2>
 
           <motion.div
-            className={s.inlineKpiRow}
+            className={`${s.inlineKpiRow} ${sx.revenueKpiRow}`}
             variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
             initial="hidden"
             animate="show"
           >
             <InlineKPI
-              label="Расчётный доход"
-              value={k.revenue.value}
+              label="Реклама"
+              value={sourceMap.ads?.value || 0}
               format={(n) => formatMoneyShort(n)}
-              delta={periodDelta(k.revenue.delta)}
-              hint={isLifetime ? 'за всё время' : 'Обычное значение'}
+              hint={sourceMap.ads ? formatPercent(sourceMap.ads.share * 100, 1) : 'нет данных'}
               isFirst
             />
             <InlineKPI
-              label="RPM"
-              value={k.rpm.value}
+              label="YouTube Premium"
+              value={sourceMap.premium?.value || 0}
               format={(n) => formatMoneyShort(n)}
-              hint="на 1000 показов"
-              mark={false}
+              hint={sourceMap.premium ? formatPercent(sourceMap.premium.share * 100, 1) : 'нет данных'}
             />
             <InlineKPI
-              label="CPM"
-              value={k.cpm.value}
+              label="Покупки и товары"
+              value={sourceMap.shopping?.value || 0}
               format={(n) => formatMoneyShort(n)}
-              hint="реклама"
+              hint={sourceMap.shopping ? formatPercent(sourceMap.shopping.share * 100, 1) : 'нет данных'}
+            />
+            <InlineKPI
+              label="Предполагаемый доход"
+              value={k.revenue.value}
+              format={(n) => formatMoneyShort(n)}
+              hideMeta
               mark={false}
             />
           </motion.div>
@@ -148,6 +159,8 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
               name="Доход"
               formatY={(n) => formatMoneyShort(n)}
               formatTooltipValue={(v) => formatMoneyShort(v)}
+              yAxisOrientation="right"
+              eventMarkers={publishedMarkers}
             />
           </div>
 
@@ -193,7 +206,6 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
                 <th className={s.first}>Видео</th>
                 <th className={s.right}>Просмотры</th>
                 <th className={s.right}>Доход</th>
-                <th className={s.right}>RPM</th>
               </tr>
             </thead>
             <tbody>
@@ -212,8 +224,7 @@ export default function MonetizationOverviewTab({ data, onOpenAdmin }) {
                     </div>
                   </td>
                   <td className={s.right}>{formatNumberRu(v.views)}</td>
-                  <td className={s.right}>{formatMoneyShort(v.revenue || ((v.views || 0) * (data.channel?.rpm || 0) / 1000))}</td>
-                  <td className={s.right}>{v.views > 0 ? formatMoneyShort(((v.revenue || (v.views * (data.channel?.rpm || 0) / 1000)) / v.views) * 1000) : '—'}</td>
+                  <td className={s.right}>{formatMoneyShort(v.revenue || 0)}</td>
                 </tr>
               ))}
             </tbody>

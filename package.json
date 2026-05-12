@@ -8,6 +8,7 @@
     "start": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "verify:analytics": "node scripts/verify-analytics-lifecycle.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

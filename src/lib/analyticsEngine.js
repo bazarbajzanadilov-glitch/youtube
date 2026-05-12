@@ -56,8 +56,6 @@ export function startOfDay(d) {
 
 /* === profiles === */
 
-const PROFILES = ['gradualGrowth', 'viralSpike', 'decayAfterPeak', 'seasonal', 'steady']
-
 export function inferProfile(video, today = new Date()) {
   const ageDays = Math.max(0, daysBetween(new Date(video.date), today))
   const v = Number(video.views) || 0
@@ -65,6 +63,135 @@ export function inferProfile(video, today = new Date()) {
   if (ageDays > 180) return 'decayAfterPeak'
   if (v < 5000) return 'steady'
   return 'gradualGrowth'
+}
+
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n))
+}
+
+function profileParams(profile, rand) {
+  switch (profile) {
+    case 'viralSpike':
+      return {
+        peakAt: 1.8 + rand() * 3.4,
+        rampPower: 1.75 + rand() * 0.45,
+        decay: 0.045 + rand() * 0.025,
+        floor: 0.045 + rand() * 0.035,
+        plateau: 1 + Math.floor(rand() * 2),
+        spikeChance: 0.065,
+      }
+    case 'decayAfterPeak':
+      return {
+        peakAt: 3.5 + rand() * 7,
+        rampPower: 1.55 + rand() * 0.35,
+        decay: 0.018 + rand() * 0.014,
+        floor: 0.075 + rand() * 0.055,
+        plateau: 2 + Math.floor(rand() * 4),
+        spikeChance: 0.035,
+      }
+    case 'steady':
+      return {
+        peakAt: 5 + rand() * 12,
+        rampPower: 1.25 + rand() * 0.3,
+        decay: 0.006 + rand() * 0.006,
+        floor: 0.18 + rand() * 0.12,
+        plateau: 5 + Math.floor(rand() * 8),
+        spikeChance: 0.045,
+      }
+    case 'seasonal':
+      return {
+        peakAt: 6 + rand() * 18,
+        rampPower: 1.35 + rand() * 0.35,
+        decay: 0.008 + rand() * 0.012,
+        floor: 0.13 + rand() * 0.09,
+        plateau: 4 + Math.floor(rand() * 10),
+        spikeChance: 0.06,
+      }
+    case 'gradualGrowth':
+    default:
+      return {
+        peakAt: 7 + rand() * 18,
+        rampPower: 1.35 + rand() * 0.4,
+        decay: 0.011 + rand() * 0.014,
+        floor: 0.1 + rand() * 0.08,
+        plateau: 3 + Math.floor(rand() * 7),
+        spikeChance: 0.05,
+      }
+  }
+}
+
+export function getVideoAgeDays(date, today = new Date()) {
+  if (!date) return 0
+  const publish = startOfDay(new Date(date))
+  const todayD = startOfDay(today)
+  if (Number.isNaN(publish.getTime()) || publish > todayD) return 0
+  return Math.max(0, daysBetween(publish, todayD))
+}
+
+export function generateLifecycleShape({ seed, days, profile = 'gradualGrowth', startWeekday = 0 }) {
+  if (days <= 0) return []
+  const rand = seededRng(seed)
+  const params = profileParams(profile, rand)
+  const out = new Array(days).fill(0)
+  const peakIdx = clamp(Math.round(params.peakAt), 0, days - 1)
+  let drift = 1
+
+  for (let i = 0; i < days; i += 1) {
+    const weekend = ((startWeekday + i) % 7 >= 5) ? 1.1 : 1
+    const wave = 1 + Math.sin((i + startWeekday) / 7 * Math.PI * 2) * 0.055
+    let phase
+
+    if (i <= peakIdx) {
+      const t = peakIdx === 0 ? 1 : i / peakIdx
+      phase = 0.035 + Math.pow(t, params.rampPower)
+    } else if (i <= peakIdx + params.plateau) {
+      const t = (i - peakIdx) / Math.max(1, params.plateau)
+      phase = 1 - t * (0.08 + rand() * 0.05)
+    } else {
+      const t = i - peakIdx - params.plateau
+      phase = params.floor + (1 - params.floor) * Math.exp(-t * params.decay)
+    }
+
+    drift = clamp(drift + (rand() - 0.5) * 0.08, 0.78, 1.22)
+    let value = phase * weekend * wave * drift * (0.88 + rand() * 0.24)
+    if (rand() < params.spikeChance) value *= 1.18 + rand() * 0.28
+    if (rand() < 0.035) value *= 0.74 + rand() * 0.12
+    out[i] = Math.max(0.015, value)
+  }
+
+  if (days > 1) out[0] = Math.min(out[0], out[peakIdx] * (0.03 + rand() * 0.04))
+  if (days > 2) out[1] = Math.min(out[1], out[peakIdx] * (0.1 + rand() * 0.08))
+  return out
+}
+
+export function estimateLifetimeViews({ seed, ageDays, profile = 'gradualGrowth' }) {
+  const rand = seededRng(seed)
+  const safeAge = Math.max(0, Number(ageDays) || 0)
+  const ageFactor = Math.pow(safeAge + 1, 0.78)
+  const maturity = 1 - Math.exp(-safeAge / 42)
+  const profileBase = {
+    viralSpike: 9000,
+    decayAfterPeak: 3600,
+    seasonal: 2500,
+    steady: 700,
+    gradualGrowth: 1700,
+  }[profile] || 1700
+  const volatility = 0.55 + rand() * 1.35
+  const evergreenBoost = safeAge > 120 ? 1 + rand() * 0.45 : 1
+  const currentDayCap = safeAge === 0 ? 0.035 + rand() * 0.08 : 1
+  const views = profileBase * ageFactor * (0.2 + maturity) * volatility * evergreenBoost * currentDayCap
+  return Math.max(safeAge === 0 ? 8 : 60, Math.round(views))
+}
+
+export function estimateLifetimeRevenue({ views, seed, ageDays }) {
+  const safeViews = Math.max(0, Number(views) || 0)
+  if (safeViews <= 0) return 0
+  const rand = seededRng(seed)
+  const safeAge = Math.max(0, Number(ageDays) || 0)
+  const monetizedRamp = safeAge === 0 ? 0.35 + rand() * 0.25 : 0.78 + rand() * 0.18
+  const ratePerThousand = 1.35 + rand() * 3.7
+  const revenue = safeViews * monetizedRamp * ratePerThousand / 1000
+  return Math.round(revenue * 100) / 100
 }
 
 /**

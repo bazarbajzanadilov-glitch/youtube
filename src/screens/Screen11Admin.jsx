@@ -4,8 +4,8 @@ import TopBar from './TopBar.jsx'
 import Sidebar from './Sidebar.jsx'
 import { NavContext } from './NavContext.js'
 import {
-  randomTitle, randomViews, randomDuration,
-  suggestRevenue, computeMetrics,
+  randomTitle, randomDuration,
+  suggestRevenue, computeMetrics, generateVideoStats,
   formatNumber, formatMoney, formatLikePct, formatDate,
 } from '../storage/videoStore.js'
 import { useVideos } from '../storage/useVideos.js'
@@ -75,7 +75,28 @@ export default function Screen11Admin() {
   }, [form.views])
 
   function setField(name, value) {
-    setForm((f) => ({ ...f, [name]: value }))
+    setForm((f) => {
+      const next = { ...f, [name]: value }
+      if (name === 'date' && (f.views === '' || f.revenue === '')) {
+        const stats = generateVideoStats({
+          id: f.id || undefined,
+          title: next.title || 'video',
+          date: value || todayISO(),
+          duration: next.duration || undefined,
+        })
+        if (f.views === '') next.views = String(stats.views)
+        if (f.revenue === '') {
+          const revenueViews = next.views === '' ? stats.views : Math.max(0, parseInt(next.views, 10) || 0)
+          next.revenue = String(suggestRevenue({
+            views: revenueViews,
+            date: value || todayISO(),
+            title: next.title || 'video',
+            duration: next.duration || undefined,
+          }))
+        }
+      }
+      return next
+    })
   }
 
   function onChannelField(name, value) {
@@ -84,7 +105,7 @@ export default function Screen11Admin() {
   function onResetChannel() {
     askConfirm({
       title: 'Сбросить настройки канала?',
-      message: 'Название, RPM, страна и другие параметры вернутся к значениям по умолчанию.',
+      message: 'Название, страна и другие параметры вернутся к значениям по умолчанию.',
       onConfirm: () => { resetChannel(); showToast('Настройки канала сброшены') },
     })
   }
@@ -111,15 +132,25 @@ export default function Screen11Admin() {
   }
 
   function onRandomFill() {
-    const views = randomViews()
     setForm((f) => ({
       ...f,
       title: f.title || randomTitle(),
       date: f.date || todayISO(),
       duration: f.duration || randomDuration(),
-      views: String(views),
-      revenue: f.revenue || String(suggestRevenue(views)),
     }))
+    setForm((f) => {
+      const stats = generateVideoStats({
+        id: f.id || undefined,
+        title: f.title || 'video',
+        date: f.date || todayISO(),
+        duration: f.duration || undefined,
+      })
+      return {
+        ...f,
+        views: String(stats.views),
+        revenue: String(stats.revenue),
+      }
+    })
     showToast('Поля заполнены случайно')
   }
 
@@ -140,8 +171,10 @@ export default function Screen11Admin() {
       cover: form.cover,
       date: form.date || todayISO(),
       duration: form.duration || randomDuration(),
-      views: form.views === '' ? randomViews() : Math.max(0, parseInt(form.views, 10) || 0),
+      views: form.views === '' ? undefined : Math.max(0, parseInt(form.views, 10) || 0),
       revenue: form.revenue === '' ? undefined : Math.max(0, parseFloat(form.revenue) || 0),
+      autoViews: form.views === '',
+      autoRevenue: form.revenue === '',
     }
     if (isEditing) { update(form.id, payload); showToast('Видео обновлено') }
     else { add(payload); showToast('Видео добавлено') }
@@ -307,10 +340,6 @@ export default function Screen11Admin() {
               <select className={s.input} value={channel.country} onChange={(e) => onChannelField('country', e.target.value)}>
                 {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
               </select></div>
-            <div className={s.field}><label className={s.label}>RPM ($)</label>
-              <input type="number" min="0" step="0.1" className={s.input} value={channel.rpm} onChange={(e) => onChannelField('rpm', Math.max(0, parseFloat(e.target.value) || 0))}/></div>
-            <div className={s.field}><label className={s.label}>CPM ($)</label>
-              <input type="number" min="0" step="0.1" className={s.input} value={channel.cpm} onChange={(e) => onChannelField('cpm', Math.max(0, parseFloat(e.target.value) || 0))}/></div>
             <div className={s.field}><label className={s.label}>Создан</label>
               <input type="date" className={s.input} value={channel.joinDate} onChange={(e) => onChannelField('joinDate', e.target.value)}/></div>
             <div className={`${s.field} ${s.fieldToggle}`}>
@@ -355,7 +384,7 @@ export default function Screen11Admin() {
                 <div className={s.field}><label className={s.label}>Просмотры</label>
                   <input type="number" min="0" className={s.input} placeholder="случайное 1000–500 000" value={form.views} onChange={(e) => setField('views', e.target.value)}/></div>
                 <div className={s.field}><label className={s.label}>Доход за видео ($)</label>
-                  <input type="number" min="0" step="0.01" className={s.input} placeholder="авто из RPM × просмотры" value={form.revenue} onChange={(e) => setField('revenue', e.target.value)}/></div>
+                  <input type="number" min="0" step="0.01" className={s.input} placeholder="расчётный доход" value={form.revenue} onChange={(e) => setField('revenue', e.target.value)}/></div>
               </div>
               {computed ? (
                 <div className={s.previewBox}>

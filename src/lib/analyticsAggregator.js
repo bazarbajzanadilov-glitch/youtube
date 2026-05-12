@@ -11,8 +11,8 @@
 
 import {
   hashSeed, isoDay, addDays, daysBetween, startOfDay,
-  generateDailyShape, normalizeToTotal, inferProfile, movingAverage,
-  generateRetention, generateHourlyHeatmap, generateRealtimeMinute,
+  generateDailyShape, generateLifecycleShape, normalizeToTotal, inferProfile,
+  generateRetention, generateHourlyHeatmap,
   generateTrafficShares, generateDeviceShares, generateGeoShares,
   generateAgeGender, generateLanguageShares, generateReturningSeries,
 } from './analyticsEngine.js'
@@ -72,16 +72,11 @@ function buildDailyMap(from, days) {
 }
 
 /**
- * Эффективный доход за видео: либо явно проставленный video.revenue, либо вычисляется
- * из суммарных просмотров и channel.rpm. Гарантия: если на канале есть просмотры
- * и RPM, монетизация не покажет ноль.
+ * Эффективный доход за видео: только явно проставленный video.revenue.
  */
-export function effectiveRevenue(video, channel) {
+export function effectiveRevenue(video) {
   const explicit = Math.max(0, Number(video.revenue) || 0)
   if (explicit > 0) return explicit
-  const views = Math.max(0, Number(video.views) || 0)
-  const rpm = Math.max(0, Number(channel?.rpm) || 0)
-  if (views > 0 && rpm > 0) return Math.round((views / 1000) * rpm * 100) / 100
   return 0
 }
 
@@ -99,9 +94,9 @@ function attachVideoContribution({ video, channel, range, dayMap }) {
   const publish = startOfDay(new Date(video.date))
   if (publish > today) return
   const ageDays = Math.max(1, daysBetween(publish, today) + 1)
-  const profile = inferProfile(video, today)
+  const profile = video.profile || inferProfile(video, today)
   const seed = hashSeed(channel.channelName, video.id, profile, video.views || 0)
-  const shape = generateDailyShape({
+  const shape = generateLifecycleShape({
     seed,
     days: ageDays,
     profile,
@@ -110,8 +105,14 @@ function attachVideoContribution({ video, channel, range, dayMap }) {
   const totalViews = Math.max(0, Number(video.views) || 0)
   const scaled = normalizeToTotal(shape, totalViews)
   const totalRevenue = effectiveRevenue(video, channel)
+  const revenueSeed = hashSeed(channel.channelName, video.id, 'revenue', totalRevenue)
+  const revenueRand = seededRevenue(revenueSeed)
+  const revenueShape = scaled.map((x, i) => {
+    const ageBoost = i < 3 ? 0.82 + i * 0.08 : 1
+    return x * ageBoost * (0.85 + revenueRand() * 0.35)
+  })
   const revenueScaled = totalViews > 0 && totalRevenue > 0
-    ? scaled.map((x) => (x / totalViews) * totalRevenue)
+    ? normalizeToTotal(revenueShape, totalRevenue)
     : new Array(scaled.length).fill(0)
   const totalLikes = Math.max(0, Number(video.likes) || 0)
   const likesScaled = totalViews > 0 && totalLikes > 0
@@ -134,6 +135,16 @@ function attachVideoContribution({ video, channel, range, dayMap }) {
       slot.likes += likesScaled[i]
       slot.comments += commentsScaled[i]
     }
+  }
+}
+
+function seededRevenue(seed) {
+  let t = (Math.floor(seed) | 0) || 0x9e3779b9
+  return () => {
+    t = (t + 0x6d2b79f5) | 0
+    let r = Math.imul(t ^ (t >>> 15), t | 1)
+    r ^= r + Math.imul(r ^ (r >>> 7), r | 61)
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296
   }
 }
 
@@ -178,16 +189,6 @@ function pctDelta(curr, prev) {
   /* Всегда показываем рост: отрицательную дельту инвертируем в положительную,
      так у пользователя в KPI-чипе всегда «обычное значение» с зелёным «+». */
   return Math.abs(raw)
-}
-
-function sum(arr) { return arr.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0) }
-function rescaleToSum(arr, target) {
-  const safe = arr.map((x) => (Number.isFinite(x) ? Math.max(0, x) : 0))
-  const total = sum(safe)
-  const safeTarget = Number.isFinite(target) ? Math.max(0, target) : 0
-  if (total <= 0 || safeTarget <= 0) return safe
-  const factor = safeTarget / total
-  return safe.map((x) => x * factor)
 }
 
 function bucketKey(dateIso, granularity) {
@@ -366,7 +367,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
 
   /* monetization split */
   const monetization = buildMonetization({
-    channel, channelSeed, series, totalRevenue, totalViews, range, prev,
+    channel, channelSeed, series, totalRevenue, totalViews, prev,
   })
 
   const kpis = {
@@ -403,7 +404,6 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   }
 
   const topByViews = [...videos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10)
-  const topByRevenue = [...videos].sort((a, b) => (b.revenue || 0) - (a.revenue || 0)).slice(0, 10)
   const newest = [...videos].sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null
 
   return {
@@ -482,15 +482,13 @@ function buildRealtime(seed, totalViews, days) {
 }
 
 /* === monetization === */
-function buildMonetization({ channel, channelSeed, series, totalRevenue, totalViews, range, prev }) {
+function buildMonetization({ channel, channelSeed, series, totalRevenue, totalViews, prev }) {
   const enabled = channel.monetizationEnabled !== false
   if (!enabled) {
     return {
       enabled: false,
       kpis: {
         revenue: { value: 0, delta: 0 },
-        rpm: { value: 0, delta: 0 },
-        cpm: { value: 0, delta: 0 },
         monetizedPlaybacks: { value: 0, delta: 0 },
         adImpressions: { value: 0, delta: 0 },
       },
@@ -499,8 +497,6 @@ function buildMonetization({ channel, channelSeed, series, totalRevenue, totalVi
       stackedSeries: [],
     }
   }
-  const rpm = totalViews > 0 ? (totalRevenue / totalViews) * 1000 : (channel.rpm || 0)
-  const cpm = channel.cpm || rpm * 2.4
   const monetizedPct = 0.78 + ((channelSeed % 100) / 100) * 0.12
   const monetizedPlaybacks = Math.round(totalViews * monetizedPct)
   const adImpressions = Math.round(monetizedPlaybacks * (1.2 + ((channelSeed % 50) / 50) * 0.6))
@@ -528,8 +524,6 @@ function buildMonetization({ channel, channelSeed, series, totalRevenue, totalVi
     enabled: true,
     kpis: {
       revenue: { value: totalRevenue, delta: pctDelta(totalRevenue, prev.revenue) },
-      rpm: { value: rpm, delta: 0 },
-      cpm: { value: cpm, delta: 0 },
       monetizedPlaybacks: { value: monetizedPlaybacks, delta: 0 },
       adImpressions: { value: adImpressions, delta: 0 },
     },

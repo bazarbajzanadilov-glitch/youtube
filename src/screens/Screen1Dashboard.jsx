@@ -42,8 +42,6 @@ export default function Screen1Dashboard() {
   const { channel } = useChannel()
   const lastVideo = videos[0]
 
-  /* Если у видео нет явного revenue — добираем из views × channel.rpm,
-     чтобы показатели Dashboard ↔ Monetization не расходились. */
   const channelRevenue = useMemo(
     () => videos.reduce((sum, v) => sum + effectiveRevenue(v, channel), 0),
     [videos, channel],
@@ -53,7 +51,6 @@ export default function Screen1Dashboard() {
     [videos],
   )
   const lastVideoRevenue = lastVideo ? effectiveRevenue(lastVideo, channel) : 0
-  const channelRPM = totals.views > 0 ? (channelRevenue / totals.views) * 1000 : (channel?.rpm || 0)
 
   /* Sparkline-серия для блока «Аналитика по каналу» */
   const sparkSeries = useMemo(() => {
@@ -221,7 +218,6 @@ export default function Screen1Dashboard() {
                 </div>
               ) : null}
               <div className={s.divider}/>
-              <div className={s.summaryRow}>RPM<span className={s.num}>{totals.views > 0 ? formatMoney(channelRPM) : '—'}</span></div>
               <div className={s.summaryRow}>Видео в каталоге<span className={s.num}>{totals.count}</span></div>
               <div className={s.sectionSpacer}>
                 <button type="button" className={s.ghostPill} onClick={() => go('monetization')}>Перейти в монетизацию</button>

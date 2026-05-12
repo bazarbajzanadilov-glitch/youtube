@@ -19,7 +19,7 @@ export function useAnalytics(range) {
 
   const data = useMemo(
     () => build(videos, channel, range),
-    [videos, channel, range?.kind, range?.from, range?.to],
+    [videos, channel, range],
   )
 
   return { ...data, loading }

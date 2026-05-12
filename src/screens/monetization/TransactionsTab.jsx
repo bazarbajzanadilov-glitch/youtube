@@ -39,7 +39,6 @@ export default function MonetizationTransactionsTab({ data, onOpenAdmin }) {
               <th>Дата</th>
               <th className={s.right}>Просмотры</th>
               <th className={s.right}>Доход</th>
-              <th className={s.right}>RPM</th>
               <th className={s.right}>Статус</th>
             </tr>
           </thead>
@@ -58,7 +57,6 @@ export default function MonetizationTransactionsTab({ data, onOpenAdmin }) {
                 <td className={sx.txDate}>{formatDateLong(v.date)}</td>
                 <td className={s.right}>{formatNumberRu(v.views)}</td>
                 <td className={s.right}>{formatMoneyShort(v.revenue || 0)}</td>
-                <td className={s.right}>{v.views > 0 ? formatMoneyShort(((v.revenue || 0) / v.views) * 1000) : '—'}</td>
                 <td className={s.right}>
                   <span className={sx.statusOk}>Выплачено</span>
                 </td>

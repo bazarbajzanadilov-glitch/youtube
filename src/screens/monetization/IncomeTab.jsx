@@ -5,7 +5,7 @@ import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import StackedBarChart from '../../components/charts/StackedBarChart.jsx'
 import HorizontalBarChart from '../../components/charts/HorizontalBarChart.jsx'
-import { formatMoneyShort, formatPercent } from '../../lib/analyticsFormat.js'
+import { formatCompactNumber, formatMoneyShort, formatPercent } from '../../lib/analyticsFormat.js'
 import { CHART_COLORS, REVENUE_SOURCE_PALETTE } from '../../lib/chartColors.js'
 
 export default function MonetizationIncomeTab({ data, onOpenAdmin }) {
@@ -44,9 +44,8 @@ export default function MonetizationIncomeTab({ data, onOpenAdmin }) {
           format={formatMoneyShort}
           highlighted
         />
-        <KPICard label="RPM" value={monetization.kpis.rpm.value} format={formatMoneyShort} hint="на 1000 показов" />
-        <KPICard label="CPM" value={monetization.kpis.cpm.value} format={formatMoneyShort} hint="реклама" />
-        <KPICard label="Монетизированные показы" value={monetization.kpis.monetizedPlaybacks.value} />
+        <KPICard label="Показы рекламы" value={monetization.kpis.adImpressions.value} format={formatCompactNumber} />
+        <KPICard label="Монетизированные показы" value={monetization.kpis.monetizedPlaybacks.value} format={formatCompactNumber} />
       </div>
 
       <Card padding="lg" depth="lg">
