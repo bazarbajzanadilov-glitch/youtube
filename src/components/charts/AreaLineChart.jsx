@@ -81,7 +81,7 @@ export default function AreaLineChart({
             </linearGradient>
           </defs>
           {showGrid ? (
-            <CartesianGrid stroke={CHART_COLORS.gridSoft} strokeDasharray="3 6" vertical={false} />
+            <CartesianGrid stroke={CHART_COLORS.gridSoft} vertical={false} />
           ) : null}
           <XAxis
             dataKey={xKey}

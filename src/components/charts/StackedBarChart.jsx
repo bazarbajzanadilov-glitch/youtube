@@ -49,7 +49,7 @@ export default function StackedBarChart({
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
         <BarChart data={data} margin={{ top: 12, right: 12, left: 8, bottom: 4 }} barCategoryGap="28%">
           {showGrid ? (
-            <CartesianGrid stroke={CHART_COLORS.gridSoft} strokeDasharray="3 6" vertical={false} />
+            <CartesianGrid stroke={CHART_COLORS.gridSoft} vertical={false} />
           ) : null}
           <XAxis
             dataKey={xKey}
