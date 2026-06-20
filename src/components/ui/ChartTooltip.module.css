@@ -19,7 +19,7 @@
   letter-spacing: 0;
 }
 .value {
-  color: #41B3D8;
+  color: var(--chart-tooltip-accent, #39cfc2);
   font-size: 21px;
   font-weight: 600;
 }

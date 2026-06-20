@@ -53,10 +53,15 @@ function getScreenByRoute(route) {
   return SCREENS.find((screen) => screen.route === route) || SCREENS[0]
 }
 
+function shouldStartExpanded() {
+  if (typeof window === 'undefined') return true
+  return window.innerWidth >= 960
+}
+
 export default function App() {
   const [route, setRoute] = useState(() => normalizeHashRoute())
   const [toast, setToast] = useState(null)
-  const [sidebarExpanded, setSidebarExpanded] = useState(true)
+  const [sidebarExpanded, setSidebarExpanded] = useState(() => shouldStartExpanded())
   const toastTimer = useRef(null)
   const current = getScreenByRoute(route)
   const Current = current.Component
@@ -96,6 +101,19 @@ export default function App() {
       if (toastTimer.current) clearTimeout(toastTimer.current)
     }
   }, [])
+
+  useEffect(() => {
+    const onResize = () => {
+      setSidebarExpanded(window.innerWidth >= 960)
+    }
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [route])
 
   const contextValue = useMemo(() => ({ go, showToast, route, current, sidebarExpanded, toggleSidebar }), [go, showToast, route, current, sidebarExpanded, toggleSidebar])
 

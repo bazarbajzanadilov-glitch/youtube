@@ -25,7 +25,7 @@ export default function MonetizationTransactionsTab({ data, onOpenAdmin }) {
     .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
 
   return (
-    <div className={s.layoutSingle}>
+    <div className={sx.layoutSingle}>
       <Card padding="lg" depth="md">
         <div className={s.cardTitle}>Транзакции по видео</div>
         <div className={s.cardSub}>Сводка за выбранный период</div>
@@ -46,11 +46,11 @@ export default function MonetizationTransactionsTab({ data, onOpenAdmin }) {
             {sorted.map((v) => (
               <tr key={v.id}>
                 <td>
-                  <div className={s.popContent}>
-                    <div className={s.popThumb}>{v.cover ? <img src={v.cover} alt=""/> : <div className={s.thumbBlank}/>}</div>
+                  <div className={sx.popContent}>
+                    <div className={sx.popThumb}>{v.cover ? <img src={v.cover} alt=""/> : <div className={s.thumbBlank}/>}</div>
                     <div>
-                      <div className={s.popName}>{v.title}</div>
-                      <div className={s.popDate}>{v.duration}</div>
+                      <div className={sx.popName}>{v.title}</div>
+                      <div className={sx.popDate}>{v.duration}</div>
                     </div>
                   </div>
                 </td>

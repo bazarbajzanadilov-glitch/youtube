@@ -16,43 +16,64 @@
   filter: brightness(0.5);
   pointer-events: none;
 }
-.title { font-size: 24px; line-height: 32px; font-weight: 500; margin: 0 0 22px; }
 
-.tabs { display: flex; gap: 40px; border-bottom: 1px solid var(--studio-border); margin-bottom: 16px; }
-.tab {
-  padding: 12px 0;
-  color: var(--studio-text-muted);
-  font-size: 14px;
-  font-weight: 500;
-  position: relative;
-  border: none;
-  background: transparent;
-  font-family: inherit;
-  cursor: default;
-}
-.tabActive { color: var(--studio-text); }
-.tabActive::after {
-  content: '';
-  position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--studio-text);
+.backdropHeader,
+.backdropRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.barRow { display: flex; align-items: center; }
-.requestPill {
-  display: inline-flex; align-items: center;
-  height: 36px; padding: 0 16px; border-radius: 18px;
-  background: var(--studio-chip-bg);
-  color: var(--studio-text);
-  font-size: 13px; font-weight: 500;
-  border: 1px solid var(--studio-chip-border);
+.backdropHeader {
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
-.removePill {
-  margin-left: auto;
-  display: inline-flex; align-items: center;
-  height: 36px; padding: 0 16px; border-radius: 18px;
-  background: transparent;
-  border: 1px solid var(--studio-border);
-  color: var(--studio-text);
-  font-size: 13px;
+
+.backdropTitle,
+.backdropAction,
+.backdropTab,
+.backdropCard,
+.backdropTable {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.backdropTitle {
+  width: 268px;
+  height: 32px;
+}
+
+.backdropAction {
+  width: 172px;
+  height: 36px;
+  border-radius: 18px;
+}
+
+.backdropTabs {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.backdropTab {
+  height: 18px;
+}
+
+.backdropTabWide { width: 140px; }
+.backdropTabMedium { width: 108px; }
+.backdropTabNarrow { width: 84px; }
+
+.backdropRow {
+  margin-bottom: 20px;
+}
+
+.backdropCard {
+  flex: 1;
+  min-height: 180px;
+}
+
+.backdropTable {
+  height: 320px;
 }
 
 .scrim {

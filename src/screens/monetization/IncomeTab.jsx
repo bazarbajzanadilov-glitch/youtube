@@ -35,8 +35,8 @@ export default function MonetizationIncomeTab({ data, onOpenAdmin }) {
   }))
 
   return (
-    <div className={s.layoutSingle}>
-      <div className={s.kpiGrid}>
+    <div className={sx.layoutSingle}>
+      <div className={sx.kpiGrid}>
         <KPICard
           label="Доход"
           value={monetization.kpis.revenue.value}
@@ -51,7 +51,7 @@ export default function MonetizationIncomeTab({ data, onOpenAdmin }) {
       <Card padding="lg" depth="lg">
         <div className={s.cardTitle}>Доход по источникам</div>
         <div className={s.cardSub}>Стэк по дням периода</div>
-        <div className={s.spacer16}/>
+        <div className={sx.spacer16}/>
         <StackedBarChart
           data={monetization.stackedSeries}
           xKey="date"
@@ -62,11 +62,11 @@ export default function MonetizationIncomeTab({ data, onOpenAdmin }) {
         />
       </Card>
 
-      <div className={s.twoCol}>
+      <div className={sx.twoCol}>
         <Card padding="lg" depth="md">
           <div className={s.cardTitle}>Доли источников</div>
           <div className={s.cardSub}>За период</div>
-          <div className={s.spacer16}/>
+          <div className={sx.spacer16}/>
           <HorizontalBarChart
             data={sourceRows}
             formatValue={(v) => formatPercent(v * 100, 1)}

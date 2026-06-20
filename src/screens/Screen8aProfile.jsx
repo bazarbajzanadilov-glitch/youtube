@@ -7,13 +7,15 @@ import { CopyIcon, PlusIcon, HelpIcon } from './icons.jsx'
 import { useChannel } from '../storage/useChannel.js'
 
 const TABS = ['Профиль', 'Вкладка "Главная"']
+const DEFAULT_AVATAR = '/studio-assets/channel-avatar-reference.jpg'
 const LogoPlayer = () => <div className={s.logoGenerated}>SM</div>
 const BannerArt = ({ name }) => <div className={s.bannerGenerated}>{name}</div>
 
 export default function Screen8aProfile() {
-  const { showToast } = useContext(NavContext)
+  const { go, showToast } = useContext(NavContext)
   const { channel, update: updateChannel } = useChannel()
   const [activeTab, setActiveTab] = useState(0)
+  const avatarUrl = channel.avatar || DEFAULT_AVATAR
   return (
     <div className={s.page}>
       <TopBar/>
@@ -28,7 +30,19 @@ export default function Screen8aProfile() {
           </div>
         </div>
         <div className={s.tabs}>
-          {TABS.map((t, i) => <button key={t} type="button" className={`${s.tab} ${i === activeTab ? s.tabActive : ''}`} onClick={() => { setActiveTab(i); i === 1 && showToast('Откройте #/channel-home') }}>{t}</button>)}
+          {TABS.map((t, i) => (
+            <button
+              key={t}
+              type="button"
+              className={`${s.tab} ${i === activeTab ? s.tabActive : ''}`}
+              onClick={() => {
+                setActiveTab(i)
+                if (i === 1) go('channel-home')
+              }}
+            >
+              {t}
+            </button>
+          ))}
         </div>
 
         <div className={s.section}>
@@ -47,7 +61,10 @@ export default function Screen8aProfile() {
           <div className={s.sectionTitle}>Фото профиля</div>
           <div className={s.sectionDesc}>Это изображение показывается рядом с вашими видео и комментариями на YouTube.</div>
           <div className={s.row}>
-            <div className={s.profilePreview}/>
+            <div
+              className={s.profilePreview}
+              style={{ backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+            />
             <div>
               <div className={s.helperTextWide}>Рекомендуемое разрешение изображения — не менее 98 x 98 пикселей в формате PNG или GIF. Анимированные изображения не поддерживаются. Размер файла — не более 4 МБ.</div>
               <div className={s.inlineActionRow}>

@@ -13,7 +13,13 @@
   min-height: var(--studio-main-min-height);
   box-sizing: border-box;
 }
-.pageTitle { font-size: 24px; font-weight: 500; margin: 0 0 16px; color: var(--studio-text); }
+.pageTitle {
+  font-size: var(--studio-page-title-font-size);
+  font-weight: var(--studio-page-title-font-weight);
+  line-height: var(--studio-page-title-line-height);
+  margin: 0 0 16px;
+  color: var(--studio-text);
+}
 
 .tabs {
   display: flex;
@@ -24,6 +30,30 @@
   scrollbar-width: none;
 }
 .tabs::-webkit-scrollbar { display: none; }
+.infoBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--studio-border);
+  color: var(--studio-text);
+}
+.infoBannerIcon { color: var(--studio-text-muted); display: inline-flex; }
+.infoBannerText { font-size: 14px; line-height: 20px; }
+.infoBannerAction {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--studio-link);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.infoBannerAction:hover { text-decoration: underline; }
 .tab {
   padding: 12px 0;
   color: var(--studio-text-muted);
@@ -130,31 +160,15 @@
 .videoDesc { font-size: 12px; color: var(--studio-text-subtle); }
 
 .accessCell { display: flex; align-items: center; gap: 8px; color: var(--studio-text); font-size: 13px; }
+.notifyCell { display: flex; align-items: center; gap: 8px; color: var(--studio-text-muted); font-size: 13px; }
+.notifyIcon { display: inline-flex; color: var(--studio-text-subtle); }
+.notifyText { color: var(--studio-text-subtle); }
 .accessIcon { color: var(--studio-text-muted); display: flex; }
-.restriction { color: var(--studio-text); font-size: 13px; }
 
 .d { color: var(--studio-text); font-size: 13px; }
 .pub { font-size: 11px; color: var(--studio-text-subtle); margin-top: 2px; }
 
 .numCell { text-align: right; color: var(--studio-text); font-size: 13px; }
-.likeCell { text-align: right; }
-.likePct { color: var(--studio-text); font-size: 13px; }
-.likeBar {
-  width: 100%;
-  max-width: 120px;
-  height: 3px;
-  background: var(--studio-border-strong);
-  border-radius: 2px;
-  margin: 6px 0 4px auto;
-  overflow: hidden;
-}
-.likeBarFill {
-  width: 99%;
-  height: 100%;
-  background: #9e9e9e;
-  border-radius: 2px;
-}
-.likeCount { font-size: 11px; color: var(--studio-text-subtle); }
 
 .pagination {
   display: flex;

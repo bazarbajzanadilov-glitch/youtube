@@ -1,19 +1,7 @@
-import { useEffect, useState } from 'react'
-
 /**
- * Возвращает `true` после следующего frame после mount.
- * Используем перед монтированием Recharts ResponsiveContainer чтобы избежать
- * warning'а «width(-1) and height(-1)» при первом измерении внутри AnimatePresence.
+ * Графики монтируются сразу: вкладки аналитики больше не прячутся в AnimatePresence,
+ * поэтому отложенный mount может оставить chart пустым в фоновой панели браузера.
  */
 export function useDeferredMount() {
-  const [ready, setReady] = useState(false)
-  useEffect(() => {
-    if (typeof requestAnimationFrame !== 'undefined') {
-      const id = requestAnimationFrame(() => setReady(true))
-      return () => cancelAnimationFrame(id)
-    }
-    const id = setTimeout(() => setReady(true), 0)
-    return () => clearTimeout(id)
-  }, [])
-  return ready
+  return true
 }

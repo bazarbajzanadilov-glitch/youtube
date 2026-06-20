@@ -36,8 +36,8 @@ export default function MonetizationAdsTab({ data, onOpenAdmin }) {
   }))
 
   return (
-    <div className={s.layoutSingle}>
-      <div className={s.kpiGrid}>
+    <div className={sx.layoutSingle}>
+      <div className={sx.kpiGrid}>
         <KPICard label="Показы рекламы" value={monetization.kpis.adImpressions.value} format={formatCompactNumber} highlighted />
         <KPICard label="Fill rate" value={fillRate * 100} format={(n) => formatPercent(n, 0)} hint="доля заполненных мест" />
         <KPICard label="Монетизированные просмотры" value={monetization.kpis.monetizedPlaybacks.value} format={formatCompactNumber} />
@@ -46,7 +46,7 @@ export default function MonetizationAdsTab({ data, onOpenAdmin }) {
       <Card padding="lg" depth="lg">
         <div className={s.cardTitle}>Динамика показов рекламы</div>
         <div className={s.cardSub}>За период</div>
-        <div className={s.spacer16}/>
+        <div className={sx.spacer16}/>
         <AreaLineChart
           data={monetization.series.map((d) => ({ ...d, ads: Math.round(d.views * 1.4 * fillRate) }))}
           dataKey="ads"
@@ -59,11 +59,11 @@ export default function MonetizationAdsTab({ data, onOpenAdmin }) {
         />
       </Card>
 
-      <div className={s.twoCol}>
+      <div className={sx.twoCol}>
         <Card padding="lg" depth="md">
           <div className={s.cardTitle}>Форматы рекламы</div>
           <div className={s.cardSub}>Распределение показов</div>
-          <div className={s.spacer16}/>
+          <div className={sx.spacer16}/>
           <DonutChart
             data={formatData}
             height={240}

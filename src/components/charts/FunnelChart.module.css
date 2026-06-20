@@ -11,8 +11,8 @@
   width: 100%;
 }
 .band {
-  background: linear-gradient(90deg, rgba(88,145,176,0.30), rgba(88,145,176,0.18));
-  border: 1px solid rgba(88,145,176,0.45);
+  background: linear-gradient(90deg, rgba(62,166,255,0.30), rgba(62,166,255,0.18));
+  border: 1px solid rgba(62,166,255,0.45);
   border-radius: 6px;
   padding: 14px 16px;
   text-align: center;

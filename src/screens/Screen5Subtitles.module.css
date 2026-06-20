@@ -13,7 +13,12 @@
   min-height: var(--studio-main-min-height);
   box-sizing: border-box;
 }
-.title { font-size: 24px; font-weight: 500; margin: 0 0 24px; }
+.title {
+  font-size: var(--studio-page-title-font-size);
+  font-weight: var(--studio-page-title-font-weight);
+  line-height: var(--studio-page-title-line-height);
+  margin: 0 0 24px;
+}
 
 .tabs { display: flex; gap: 40px; border-bottom: 1px solid var(--studio-border); margin-bottom: 8px; }
 .tab {

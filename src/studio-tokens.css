@@ -1,29 +1,78 @@
+@font-face {
+  font-family: "YouTube Sans";
+  font-style: normal;
+  font-weight: 500;
+  src: url("/fonts/youtubesans-latin.woff2") format("woff2");
+  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "YouTube Sans";
+  font-style: normal;
+  font-weight: 500;
+  src: url("/fonts/youtubesans-cyrillic.woff2") format("woff2");
+  unicode-range: U+301, U+400-45F, U+490-491, U+4B0-4B1, U+2116;
+}
+
+@font-face {
+  font-family: "YouTube Sans";
+  font-style: normal;
+  font-weight: 600;
+  src: url("/fonts/youtubesans-latin.woff2") format("woff2");
+  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "YouTube Sans";
+  font-style: normal;
+  font-weight: 600;
+  src: url("/fonts/youtubesans-cyrillic.woff2") format("woff2");
+  unicode-range: U+301, U+400-45F, U+490-491, U+4B0-4B1, U+2116;
+}
+
+@font-face {
+  font-family: "YouTube Sans";
+  font-style: normal;
+  font-weight: 700;
+  src: url("/fonts/youtubesans-latin.woff2") format("woff2");
+  unicode-range: U+0-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "YouTube Sans";
+  font-style: normal;
+  font-weight: 700;
+  src: url("/fonts/youtubesans-cyrillic.woff2") format("woff2");
+  unicode-range: U+301, U+400-45F, U+490-491, U+4B0-4B1, U+2116;
+}
+
 :root {
-  --studio-font: Roboto, "Noto Sans", Arial, sans-serif;
-  --studio-bg: #282828;
-  --studio-canvas: #282828;
-  --studio-surface: #282828;
+  --studio-font: "YouTube Sans", Roboto, Arial, sans-serif;
+  --studio-bg: #0f0f0f;
+  --studio-canvas: #0f0f0f;
+  --studio-surface: #0f0f0f;
   --studio-surface-2: #1f1f1f;
   --studio-surface-3: #282828;
-  --studio-card-widget: #282828;
+  --studio-card-widget: #0f0f0f;
   --studio-search-bg: #121212;
   --studio-hover: #3f3f3f;
   --studio-hover-soft: rgba(255, 255, 255, 0.06);
-  --studio-border: #303030;
-  --studio-border-strong: #5f5f5f;
+  --studio-border: #3f3f3f;
+  --studio-border-strong: rgba(255, 255, 255, 0.2);
   --studio-row-separator: #3e3e3e;
   --studio-text: #f1f1f1;
   --studio-text-muted: #aaaaaa;
   --studio-text-subtle: #8d8d8d;
   --studio-text-disabled: #5f6368;
-  --studio-link: #41B3D8;
+  --studio-link: #3ea6ff;
   --studio-positive: #2ba640;
   --studio-icon-accent: var(--studio-positive);
-  --studio-chart-stroke: #41B3D8;
-  --studio-chart-fill-top: #2B363A;
-  --studio-chart-fill-bottom: #2B363A;
-  --studio-chart-bar: #41B3D8;
-  --studio-progress-fill: #41B3D8;
+  --studio-chart-stroke: #39cfc2;
+  --studio-chart-fill-top: rgba(57, 207, 194, 0.16);
+  --studio-chart-fill-bottom: rgba(57, 207, 194, 0.03);
+  --studio-chart-bar: #39cfc2;
+  --studio-analytics-chart-bar: #41b4d9;
+  --studio-progress-fill: #39cfc2;
   --studio-progress-track: #595959;
   --studio-nav-indicator: #ff0000;
   --studio-white: #ffffff;
@@ -33,17 +82,27 @@
   --studio-radius-md: 8px;
   --studio-radius-lg: 12px;
   --studio-radius-pill: 999px;
-  --studio-topbar-height: 56px;
+  --studio-topbar-height: 64px;
   --studio-sidebar-compact-width: 72px;
-  --studio-sidebar-expanded-width: 240px;
+  --studio-sidebar-expanded-width: 256px;
   --studio-main-min-height: calc(100vh - var(--studio-topbar-height));
   --studio-main-pad-y: 24px;
-  --studio-main-pad-x: 32px;
+  --studio-main-pad-x: 24px;
   --studio-main-pad-bottom: 48px;
   --studio-main-padding: var(--studio-main-pad-y) var(--studio-main-pad-x) var(--studio-main-pad-bottom);
+  --studio-analytics-kpi-value-font-size: 2.6rem;
+  --studio-analytics-kpi-value-font-weight: 700;
+  --studio-analytics-kpi-value-line-height: 1.15;
   --studio-chip-bg: #333333;
   --studio-chip-border: #3f3f3f;
   --studio-modal-menu-active: #3f3f3f;
   --studio-compact-canvas-width: 1920px;
   --studio-expanded-canvas-width: 1920px;
+  --ytcp-font-yt-headline1-font-weight: 700;
+  --ytcp-font-yt-headline1-font-size: 3.4rem;
+  --ytcp-font-yt-headline1-line-height: 4.6rem;
+  --studio-page-title-font-size: var(--ytcp-font-yt-headline1-font-size);
+  --studio-page-title-mobile-font-size: var(--ytcp-font-yt-headline1-font-size);
+  --studio-page-title-font-weight: var(--ytcp-font-yt-headline1-font-weight);
+  --studio-page-title-line-height: var(--ytcp-font-yt-headline1-line-height);
 }

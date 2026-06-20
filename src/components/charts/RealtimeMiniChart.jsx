@@ -43,9 +43,8 @@ export default function RealtimeMiniChart({
         })}
       </div>
       <div className={s.scaleRow}>
-        <span>−48ч</span>
-        <span>−24ч</span>
-        <span>сейчас</span>
+        <span>48 ч. назад</span>
+        <span>Сейчас</span>
       </div>
     </div>
   )

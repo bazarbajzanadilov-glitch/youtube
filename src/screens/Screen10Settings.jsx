@@ -40,6 +40,15 @@ const Select = ({ label, value }) => (
   </button>
 )
 
+const COUNTRY_LABELS = {
+  KZ: 'Казахстан',
+  RU: 'Россия',
+  US: 'США',
+  DE: 'Германия',
+  BR: 'Бразилия',
+  IN: 'Индия',
+}
+
 function PaneGeneral({ showToast }) {
   return (
     <>
@@ -54,19 +63,19 @@ function PaneGeneral({ showToast }) {
   )
 }
 
-function PaneChannel({ channelName, setChannelName }) {
+function PaneChannel({ channel, setChannelName }) {
   return (
     <>
       <Field label="Название канала">
         <input
           type="text"
           className={s.input}
-          value={channelName}
+          value={channel.channelName}
           onChange={(e) => setChannelName(e.target.value)}
         />
       </Field>
       <Field label="Страна проживания" hint="Выберите страну, в которой вы зарегистрированы как пользователь.">
-        <Select label="Страна" value="Казахстан"/>
+        <Select label="Страна" value={COUNTRY_LABELS[channel.country] || 'Казахстан'}/>
       </Field>
       <Field label="Ключевые слова" hint="Через запятую укажите слова, которые описывают содержание канала.">
         <input type="text" className={s.input} placeholder="Например, музыка, обзор, обучение" defaultValue="anime, ost, jujutsu kaisen"/>
@@ -158,21 +167,33 @@ export default function Screen10Settings() {
     holdLinks: false,
   })
   const modalTitleId = useId()
-  const closeModal = () => go('copyright')
+  const closeModal = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back()
+      return
+    }
+    go('dashboard')
+  }
 
   return (
     <div className={s.page}>
       <TopBar/>
-      <Sidebar active="copyright"/>
+      <Sidebar active="settings"/>
       <div className={s.main}>
-        <h1 className={s.title}>Обнаружение контента</h1>
-        <div className={s.tabs}>
-          <div className={`${s.tab} ${s.tabActive}`}>Авторские права</div>
+        <div className={s.backdropHeader}>
+          <div className={s.backdropTitle}/>
+          <div className={s.backdropAction}/>
         </div>
-        <div className={s.barRow}>
-          <button type="button" className={s.requestPill} onClick={() => showToast('Запросы на удаление')}>Запросы на удаление</button>
-          <button type="button" className={s.removePill} onClick={() => showToast('Запросить удаление')}>Запросить удаление</button>
+        <div className={s.backdropTabs}>
+          <span className={`${s.backdropTab} ${s.backdropTabWide}`}/>
+          <span className={`${s.backdropTab} ${s.backdropTabNarrow}`}/>
+          <span className={`${s.backdropTab} ${s.backdropTabMedium}`}/>
         </div>
+        <div className={s.backdropRow}>
+          <div className={s.backdropCard}/>
+          <div className={s.backdropCard}/>
+        </div>
+        <div className={s.backdropTable}/>
       </div>
 
       <div className={s.scrim} role="presentation" onClick={(e) => e.target === e.currentTarget && closeModal()}>
@@ -199,7 +220,7 @@ export default function Screen10Settings() {
             </div>
             <div className={s.modalRight}>
               {menuIdx === 0 && <PaneGeneral showToast={showToast}/>}
-              {menuIdx === 1 && <PaneChannel channelName={channelName} setChannelName={setChannelName}/>}
+              {menuIdx === 1 && <PaneChannel channel={channel} setChannelName={setChannelName}/>}
               {menuIdx === 2 && <PaneUpload settings={settings} setSettings={setSettings}/>}
               {menuIdx === 3 && <PanePermissions channelName={channelName}/>}
               {menuIdx === 4 && <PaneModeration settings={settings} setSettings={setSettings}/>}

@@ -9,7 +9,7 @@ import { useVideos } from '../storage/useVideos.js'
 const TABS = ['Профиль', 'Вкладка "Главная"']
 
 export default function Screen8bHomeTab() {
-  const { showToast } = useContext(NavContext)
+  const { go } = useContext(NavContext)
   const { videos } = useVideos()
   const [activeTab, setActiveTab] = useState(1)
   const previewVideos = videos.slice(0, 4)
@@ -27,7 +27,19 @@ export default function Screen8bHomeTab() {
           </div>
         </div>
         <div className={s.tabs}>
-          {TABS.map((t, i) => <button key={t} type="button" className={`${s.tab} ${i === activeTab ? s.tabActive : ''}`} onClick={() => { setActiveTab(i); i === 0 && showToast('Откройте #/channel-profile') }}>{t}</button>)}
+          {TABS.map((t, i) => (
+            <button
+              key={t}
+              type="button"
+              className={`${s.tab} ${i === activeTab ? s.tabActive : ''}`}
+              onClick={() => {
+                setActiveTab(i)
+                if (i === 0) go('channel-profile')
+              }}
+            >
+              {t}
+            </button>
+          ))}
         </div>
 
         <div className={s.toggleSection}>

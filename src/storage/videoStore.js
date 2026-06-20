@@ -13,9 +13,9 @@ import {
   estimateLifetimeRevenue,
 } from '../lib/analyticsEngine.js'
 
-const STORAGE_KEY = 'yt-studio-videos'
+const STORAGE_KEY = 'yt-studio-videos-v3'
 const STORAGE_EVENT = 'yt-studio-store-update'
-const BOOTSTRAP_FLAG = 'yt-studio-videos-bootstrapped'
+const BOOTSTRAP_FLAG = 'yt-studio-videos-bootstrapped-v3'
 const BOOTSTRAP_URL = './data/videos.json'
 
 /**
@@ -133,6 +133,18 @@ function seedForVideo({ id, title, date, duration } = {}) {
   return hashSeed(id || '', title || 'video', date || todayISO(), duration || '')
 }
 
+function normalizeType(type, duration) {
+  const allowed = new Set(['video', 'short', 'live'])
+  if (allowed.has(type)) return type
+  const parts = String(duration || '').split(':').map((x) => parseInt(x, 10) || 0)
+  const seconds = parts.length === 2
+    ? parts[0] * 60 + parts[1]
+    : parts.length === 3
+      ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+      : 0
+  return seconds > 0 && seconds <= 60 ? 'short' : 'video'
+}
+
 function pickProfileFromSeed(seed, ageDays) {
   const rand = seededRng(seed)
   if (ageDays < 4) return rand() > 0.8 ? 'viralSpike' : 'gradualGrowth'
@@ -192,6 +204,7 @@ export function normalizeVideo(input = {}, options = {}) {
   const title = input.title || base?.title || 'Без названия'
   const date = input.date || base?.date || todayISO()
   const duration = input.duration || base?.duration || randomDuration()
+  const type = normalizeType(input.type ?? base?.type, duration)
   const seed = seedForVideo({ id, title, date, duration })
   const generated = generateVideoStats({ id, title, date, duration, seed })
 
@@ -238,6 +251,7 @@ export function normalizeVideo(input = {}, options = {}) {
     cover: input.cover !== undefined ? input.cover : (base?.cover || null),
     date,
     duration,
+    type,
     views,
     likes,
     dislikes,

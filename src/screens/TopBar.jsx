@@ -1,7 +1,7 @@
 import { useContext, useRef } from 'react'
 import s from './TopBar.module.css'
 import { NavContext } from './NavContext.js'
-import { YTLogo, Hamburger, SearchIcon, HelpIcon, SparkleIcon, BellIcon, PlusBoxIcon } from './icons.jsx'
+import { YTLogo, Hamburger, SearchIcon, SupportChatIcon, HelpIcon, SparkleIcon, BellIcon, PlusBoxIcon } from './icons.jsx'
 import { useChannel } from '../storage/useChannel.js'
 import { beginDoubleHardReset } from '../lib/hardResetSite.js'
 
@@ -9,6 +9,7 @@ export default function TopBar() {
   const { showToast, toggleSidebar, go } = useContext(NavContext)
   const { channel } = useChannel()
   const searchRef = useRef(null)
+  const avatarUrl = channel.avatar || '/studio-assets/channel-avatar-reference.jpg'
 
   async function handleHardReset() {
     showToast('Сброс кеша сайта')
@@ -35,12 +36,13 @@ export default function TopBar() {
         />
       </div>
       <div className={s.topRight}>
-        <button type="button" className={s.iconBtn} onClick={() => showToast('Справка')} aria-label="Справка"><HelpIcon size={22}/></button>
-        <button type="button" className={`${s.iconBtn} ${s.sparkleBtn}`} onClick={() => showToast('Новые возможности')} aria-label="Новые возможности"><SparkleIcon size={22}/></button>
-        <button type="button" className={s.iconBtn} onClick={handleHardReset} aria-label="Уведомления"><BellIcon size={22}/></button>
-        <button type="button" className={s.createBtn} onClick={() => go('admin')}><PlusBoxIcon size={20}/>Создать</button>
+        <button type="button" className={s.iconBtn} onClick={() => showToast('Чат с командой поддержки авторов')} aria-label="Чат с командой поддержки авторов"><SupportChatIcon size={24}/></button>
+        <button type="button" className={s.iconBtn} onClick={() => showToast('Справка')} aria-label="Справка"><HelpIcon size={24}/></button>
+        <button type="button" className={`${s.iconBtn} ${s.sparkleBtn}`} onClick={() => showToast('Спросить у Студии')} aria-label="Спросить у Студии"><SparkleIcon size={24}/></button>
+        <button type="button" className={s.iconBtn} onClick={handleHardReset} aria-label="Уведомления"><BellIcon size={24}/></button>
+        <button type="button" className={s.createBtn} onClick={() => go('admin')}><PlusBoxIcon size={24}/>Создать</button>
         <button type="button" className={s.avatarBtn} onClick={() => showToast('Аккаунт')} aria-label="Аккаунт">
-          <div className={s.avatar} style={channel.avatar ? { backgroundImage: `url(${channel.avatar})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}/>
+          <div className={s.avatar} style={{ backgroundImage: `url(${avatarUrl})` }}/>
         </button>
       </div>
     </div>

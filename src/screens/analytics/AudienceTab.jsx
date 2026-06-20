@@ -1,289 +1,219 @@
-import { motion } from 'framer-motion'
-import s from './AnalyticsTabs.module.css'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
-import AnimatedCounter from '../../components/ui/AnimatedCounter.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
-import HorizontalBarChart from '../../components/charts/HorizontalBarChart.jsx'
 import Heatmap7x24 from '../../components/charts/Heatmap7x24.jsx'
-import { CHART_ANIMATION_SECONDS } from '../../components/charts/chartAnimation.js'
+import HorizontalBarChart from '../../components/charts/HorizontalBarChart.jsx'
+import clockIcon from '../../assets/clock.svg'
 import {
-  formatCompactNumber, formatNumberRu, formatPercent,
+  formatCompactNumber,
+  formatNumberRu,
+  formatPercent,
 } from '../../lib/analyticsFormat.js'
-import { CHART_COLORS } from '../../lib/chartColors.js'
-import { ArrowUpIcon } from '../icons.jsx'
+import s from './AnalyticsTabs.module.css'
+import {
+  ANALYTICS_PURPLE,
+  belowUsual,
+  signedNumber,
+  videoDate,
+} from './studioAnalyticsHelpers.js'
+import { KpiDownCircleIcon } from '../icons.jsx'
 
-const inlineKpiVariants = {
-  hidden: { opacity: 0, y: 8 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+function KpiCell({ label, value, note, active = false, clock = false }) {
+  return (
+    <div className={`${s.ytKpiCell} ${active ? s.ytKpiCellActive : ''}`}>
+      <div className={s.ytKpiLabel}>{label}{clock ? <img className={s.clockBadge} src={clockIcon} alt="" aria-hidden="true" /> : null}</div>
+      <div className={s.ytKpiValue}>{value}{!clock ? <span className={s.downMark}><KpiDownCircleIcon size={18} color="#909090" /></span> : null}</div>
+      <div className={s.ytKpiNote}>{note}</div>
+    </div>
+  )
 }
 
 export default function AudienceTab({ data, onOpenAdmin }) {
-  const { audience } = data
-  const kpis = audience.kpis
-  const ageRows = audience.ageGender.ages.map((a) => ({
-    label: a.label, share: a.share, color: CHART_COLORS.purple,
-  }))
-  const genderRows = audience.ageGender.genders.map((g) => ({
-    label: g.label, share: g.share, color: CHART_COLORS.purple,
-  }))
-  const deviceRows = audience.devices.map((d) => ({
-    label: d.label, share: d.share, color: CHART_COLORS.purple,
-  })).filter((d) => d.share > 0.001)
-  const langRows = audience.languages.slice(0, 5).map((l) => ({ label: l.label, share: l.share, color: CHART_COLORS.purple }))
-  const geoRows = audience.geography.slice(0, 5).map((g) => ({ label: g.label, share: g.share, color: CHART_COLORS.purple }))
+  const { audience, overview, range } = data
+  const monthlyViewers = Math.max(0, Math.round((audience.kpis.uniqueViewers.value || 0) * 0.85))
+  const topVideos = overview.topVideos || []
+  const segments = [
+    { label: 'Новые зрители', share: 0.918, color: 'rgba(169, 112, 255, 0.95)' },
+    { label: 'Случайные зрители', share: 0.082, color: 'rgba(169, 112, 255, 0.62)' },
+    { label: 'Постоянные зрители', share: 0.001, color: 'rgba(169, 112, 255, 0.34)' },
+  ]
+  const subscriptionStats = [
+    { label: 'Без подписки', share: 0.999, color: ANALYTICS_PURPLE },
+    { label: 'С подпиской', share: 0.001, color: ANALYTICS_PURPLE },
+  ]
+  const ageRows = audience.ageGender.ages.map((row) => ({ label: row.label, share: row.share, color: ANALYTICS_PURPLE }))
+  const genderRows = audience.ageGender.genders.map((row) => ({ label: row.label, share: row.share, color: ANALYTICS_PURPLE }))
+  const deviceRows = audience.devices.filter((row) => row.share > 0.001).map((row) => ({ label: row.label, share: row.share, color: ANALYTICS_PURPLE }))
+  const geoRows = audience.geography.slice(0, 5).map((row) => ({ label: row.label, share: row.share, color: ANALYTICS_PURPLE }))
+  const langRows = audience.languages.slice(0, 5).map((row) => ({ label: row.label, share: row.share, color: ANALYTICS_PURPLE }))
 
-  if (kpis.subscribers.absolute === 0 && audience.subscribers.length === 0) {
+  if (audience.kpis.subscribers.absolute === 0 && audience.subscribers.length === 0) {
     return (
       <EmptyState
         title="Аудитория ещё не сформирована"
         description="Добавьте видео и подписчиков в админке — здесь появится подробная разбивка."
-        action={<button type="button" className={s.linkBtn} onClick={onOpenAdmin}>Открыть админку →</button>}
+        action={<button type="button" className={s.linkBtn} onClick={onOpenAdmin}>Открыть админку</button>}
       />
     )
   }
 
-  /* PDF 33: 2 KPI cards at top — "Зрителей в месяц" + "Подписчики" */
-  const monthlyViewers = Math.round((kpis.uniqueViewers.value || 0) * 0.85)
-
-  /* Audience segments (PDF 33: Новые / Случайные / Постоянные) */
-  const segments = [
-    { label: 'Новые зрители', share: 0.69, color: CHART_COLORS.purple },
-    { label: 'Случайные зрители', share: 0.26, color: CHART_COLORS.purple },
-    { label: 'Постоянные зрители', share: 0.05, color: CHART_COLORS.purple },
-  ]
-
-  /* Watch time by subscription state */
-  const subscriptionStats = [
-    { label: 'Без подписки', share: 0.999, color: CHART_COLORS.purple },
-    { label: 'С подпиской', share: 0.001, color: CHART_COLORS.purple },
-  ]
-
   return (
-    <div className={s.audienceLayout}>
-      {/* Top row: 2 KPI cards per PDF 33 */}
-      <div className={s.audienceKpiRow}>
-        <Card padding="lg" depth="md" className={s.audienceKpi}>
-          <motion.div variants={inlineKpiVariants} initial="hidden" animate="show">
-            <div className={s.audienceKpiLabel}>
-              Зрителей в месяц
-              <span className={s.audienceKpiHelp}>ⓘ</span>
-            </div>
-            <div className={s.audienceKpiValue}>
-              <AnimatedCounter value={monthlyViewers} format={formatCompactNumber} />
-            </div>
-          </motion.div>
-        </Card>
-        <Card padding="lg" depth="md" className={s.audienceKpi}>
-          <motion.div variants={inlineKpiVariants} initial="hidden" animate="show">
-            <div className={s.audienceKpiLabel}>Подписчики</div>
-            <div className={s.audienceKpiValue}>
-              <AnimatedCounter
-                value={kpis.subscribers.value}
-                format={(n) => `${n >= 0 ? '+' : ''}${Math.round(n).toLocaleString('ru-RU')}`}
-              />
-              <ArrowUpIcon size={18} color="#2ba640"/>
-            </div>
-            <div className={s.audienceKpiHint}>На 50 % больше, чем за предыдущие 28 дней</div>
-          </motion.div>
-        </Card>
-      </div>
-
-      {/* Big purple chart — subscriber growth */}
-      <Card padding="lg" depth="lg" className={s.heroCardPdf}>
-        <AreaLineChart
-          data={audience.subscribers}
-          dataKey="subscribers"
-          xKey="date"
-          color={CHART_COLORS.purple}
-          height={210}
-          name="Подписчики"
-          formatY={formatCompactNumber}
-          formatTooltipValue={(v) => formatNumberRu(v)}
-        />
-        <div className={s.heroPdfFooter}>
-          <button type="button" className={s.detailsBtn}>Подробнее</button>
+    <div className={s.tabStack}>
+      <Card padding="none" depth="lg" className={s.ytHeroCard}>
+        <div className={`${s.ytKpiStrip} ${s.ytKpiStripTwo}`}>
+          <KpiCell
+            label="Зрителей в месяц"
+            value={formatCompactNumber(monthlyViewers)}
+            note="Обновляется каждый день"
+            active
+            clock
+          />
+          <KpiCell
+            label="Подписчики"
+            value={signedNumber(audience.kpis.subscribers.value)}
+            note={belowUsual(Math.abs(audience.kpis.subscribers.value) || 1)}
+          />
+        </div>
+        <div className={s.ytHeroChart}>
+          <AreaLineChart
+            data={audience.subscribers}
+            dataKey="subscribers"
+            xKey="date"
+            color={ANALYTICS_PURPLE}
+            height={242}
+            name="Подписчики"
+            formatY={formatCompactNumber}
+            formatTooltipValue={formatNumberRu}
+            yAxisOrientation="right"
+          />
+        </div>
+        <div className={s.ytHeroFooter}>
+          <button type="button" className={s.ytPillBtn}>Подробнее</button>
         </div>
       </Card>
 
-      {/* 2-col grid per PDF 33 */}
-      <div className={s.audienceGrid}>
-        {/* LEFT */}
-        <div className={s.audienceCol}>
-          <Card padding="lg" depth="md">
+      <div className={s.twoColumnGrid}>
+        <div className={s.sideStack}>
+          <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Сегменты аудитории по просмотрам вашего контента</div>
-            <div className={s.cardSub}>Зрителей в месяц · {data.range.label}</div>
-            <div className={s.spacer16} />
+            <div className={s.cardSub}>Зрителей в месяц · 14 июн. 2026 г.</div>
             <div className={s.segmentBar}>
-              {segments.map((seg, i) => (
-                <motion.div
-                  key={seg.label}
-                  className={s.segmentSlice}
-                  style={{ width: `${seg.share * 100}%`, background: lighten(seg.color, i) }}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${seg.share * 100}%` }}
-                  transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut', delay: i * 0.1 }}
-                />
+              {segments.map((segment) => (
+                <span key={segment.label} style={{ width: `${segment.share * 100}%`, background: segment.color }} />
               ))}
             </div>
-            <ul className={s.segmentList}>
-              {segments.map((seg, i) => (
-                <li key={seg.label} className={s.segmentRow}>
-                  <span className={s.segmentDot} style={{ background: lighten(seg.color, i) }} />
-                  <span className={s.segmentLabel}>{seg.label}</span>
-                  <span className={s.segmentValue}>{formatPercent(seg.share * 100, 1)}</span>
-                </li>
+            <div className={s.segmentRows}>
+              {segments.map((segment) => (
+                <div key={segment.label}>
+                  <span><i style={{ background: segment.color }} />{segment.label}</span>
+                  <strong>{segment.share < 0.01 ? '< 0,1 %' : formatPercent(segment.share * 100, 1)}</strong>
+                </div>
               ))}
-            </ul>
-            <button type="button" className={s.detailsBtn}>Подробнее</button>
+            </div>
           </Card>
 
-          <Card padding="lg" depth="md">
+          <Card padding="lg" depth="md" className={s.blockCard}>
+            <div className={s.cardTitle}>Видео, благодаря которым растет ваша аудитория</div>
+            <div className={s.cardSub}>Новые зрители · {range.label}</div>
+            <div className={s.compactVideoList}>
+              {topVideos.slice(0, 5).map((video) => (
+                <div className={s.compactVideoRow} key={video.id}>
+                  <div className={s.sideThumb}>
+                    {video.cover ? <img src={video.cover} alt="" /> : <div className={s.thumbBlank} />}
+                  </div>
+                  <div className={s.videoMeta}>
+                    <div className={s.videoTitle}>{video.title}</div>
+                    <div className={s.videoSub}>{videoDate(video)}</div>
+                  </div>
+                  <strong>{formatCompactNumber(Math.round(video.views * 0.62))}</strong>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Когда ваши зрители смотрят видео на YouTube</div>
-            <div className={s.cardSub}>Местное время (GMT +0500) · {data.range.label}</div>
-            <div className={s.spacer16} />
+            <div className={s.cardSub}>Местное время (GMT +0500) · {range.label}</div>
             <Heatmap7x24 matrix={audience.heatmap} />
-            <div className={s.cardFooterNote}>
-              ⓘ Эффективность видео в долгосрочной перспективе не зависит от времени публикации. <a href="#" className={s.linkInline}>Подробнее</a>
-            </div>
+            <div className={s.cardNote}>Эффективность видео в долгосрочной перспективе не зависит от времени публикации.</div>
           </Card>
 
-          <Card padding="lg" depth="md">
-            <div className={s.cardTitle}>Время просмотра подписчиками</div>
-            <div className={s.cardSub}>Время просмотра · {data.range.label}</div>
-            <div className={s.spacer16} />
-            <HorizontalBarChart data={subscriptionStats} formatValue={(v) => formatPercent(v * 100, 1)} />
-            <button type="button" className={s.detailsBtn}>Подробнее</button>
-          </Card>
-
-          <Card padding="lg" depth="md">
-            <div className={s.cardTitle}>Возраст и пол</div>
-            <div className={s.cardSub}>Просмотры · {data.range.label}</div>
-            <div className={s.spacer16} />
-            <HorizontalBarChart data={genderRows} formatValue={(v) => formatPercent(v * 100, 1)} />
-            <div className={s.divider} />
-            <HorizontalBarChart
-              data={ageRows.map((a) => ({ ...a, label: `Возраст: ${a.label}` }))}
-              formatValue={(v) => formatPercent(v * 100, 1)}
-            />
-            <div className={s.cardFooterNote}>
-              ⓘ Возраст зрителя определяется на основе возраста, который пользователь указывает при создании аккаунта.
-            </div>
-            <button type="button" className={s.detailsBtn}>Подробнее</button>
+          <Card padding="lg" depth="md" className={s.blockCard}>
+            <div className={s.cardTitle}>Значок колокольчика и уведомления о канале</div>
+            <div className={s.cardSub}>Подписчики, включившие все уведомления</div>
+            <div className={s.emptyBlock}>Недостаточно данных для сравнения с типичным каналом.</div>
           </Card>
         </div>
 
-        {/* RIGHT */}
-        <div className={s.audienceCol}>
-          <Card padding="lg" depth="md">
+        <div className={s.sideStack}>
+          <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Популярно у разных аудиторий</div>
-            <div className={s.cardSub}>Просмотры · {data.range.label}</div>
-
-            <div className={s.audienceTabs}>
-              {['Новые', 'Случайные', 'Постоянные'].map((t, i) => (
-                <button
-                  key={t}
-                  type="button"
-                  className={`${s.audienceTabBtn} ${i === 0 ? s.audienceTabActive : ''}`}
-                >{t}</button>
+            <div className={s.cardSub}>Просмотры · {range.label}</div>
+            <div className={s.innerTabs}>
+              {['Новые', 'Случайные', 'Постоянные'].map((tab, index) => (
+                <button key={tab} type="button" className={`${s.innerTab} ${index === 0 ? s.innerTabActive : ''}`}>{tab}</button>
               ))}
             </div>
-
-            <ul className={s.bestList}>
-              {data.overview.topVideos.slice(0, 4).map((v) => {
-                const pct = Math.min(100, (v.views / Math.max(1, data.overview.topVideos[0].views)) * 100)
-                return (
-                  <li key={v.id} className={s.bestRow}>
-                    <div className={s.bestThumb}>
-                      {v.cover ? <img src={v.cover} alt=""/> : <div className={s.thumbBlank}/>}
-                    </div>
-                    <span className={s.bestTitle} title={v.title}>{v.title}</span>
-                    <div className={s.bestBar}>
-                      <motion.div
-                        className={s.bestBarInner}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut' }}
-                      />
-                    </div>
-                    <span className={s.bestValue}>{formatCompactNumber(v.views)}</span>
-                  </li>
-                )
-              })}
-            </ul>
-            <button type="button" className={s.detailsBtn}>Подробнее</button>
+            <div className={s.compactVideoList}>
+              {topVideos.slice(0, 4).map((video) => (
+                <div className={s.compactVideoRow} key={video.id}>
+                  <div className={s.sideThumb}>
+                    {video.cover ? <img src={video.cover} alt="" /> : <div className={s.thumbBlank} />}
+                  </div>
+                  <div className={s.videoMeta}>
+                    <div className={s.videoTitle}>{video.title}</div>
+                    <div className={s.videoSub}>{formatCompactNumber(video.views)} просмотров</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </Card>
 
-          <Card padding="lg" depth="md">
-            <div className={s.cardTitle}>Каналы, которые смотрят ваши зрители</div>
-            <div className={s.cardSub}>{data.range.label}</div>
-            <div className={s.audienceEmpty}>Недостаточно данных. <a href="#" className={s.linkInline}>Подробнее...</a></div>
+          <Card padding="lg" depth="md" className={s.blockCard}>
+            <div className={s.cardTitle}>Время просмотра подписчиками</div>
+            <div className={s.cardSub}>Время просмотра · {range.label}</div>
+            <HorizontalBarChart data={subscriptionStats} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
           </Card>
 
-          <Card padding="lg" depth="md">
-            <div className={s.cardTitle}>Что смотрят ваши зрители</div>
-            <div className={s.cardSub}>Последние 7 дней</div>
-            <div className={s.audienceEmpty}>Недостаточно данных. <a href="#" className={s.linkInline}>Подробнее...</a></div>
+          <Card padding="lg" depth="md" className={s.blockCard}>
+            <div className={s.cardTitle}>Возраст и пол</div>
+            <div className={s.cardSub}>Просмотры · {range.label}</div>
+            <HorizontalBarChart data={genderRows} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
+            <div className={s.softDivider} />
+            <HorizontalBarChart data={ageRows} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
           </Card>
 
-          <Card padding="lg" depth="md">
+          <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Какие форматы выбирают ваши зрители на YouTube</div>
-            <div className={s.cardSub}>{data.range.label}</div>
-            <div className={s.spacer16} />
-            <div className={s.formatBlock}>
-              <div className={s.formatLabel}>Видео</div>
-              <div className={s.formatBar}>
-                <motion.div className={s.formatFill} style={{ width: '78%' }}
-                  initial={{ width: 0 }} animate={{ width: '78%' }} transition={{ duration: CHART_ANIMATION_SECONDS }} />
+            <div className={s.cardSub}>{range.label}</div>
+            {audience.formatShares.map((format) => (
+              <div className={s.formatRow} key={format.key}>
+                <span>{format.label}</span>
+                <div><i style={{ width: `${Math.max(4, format.score * 100)}%` }} /></div>
+                <small><span>Никто не смотрит</span><span>Смотрят все</span></small>
               </div>
-              <div className={s.formatScale}><span>Никто не смотрит</span><span>Смотрят все</span></div>
-            </div>
-            <div className={s.formatBlock}>
-              <div className={s.formatLabel}>Shorts</div>
-              <div className={s.formatBar}>
-                <motion.div className={s.formatFill} style={{ width: '32%' }}
-                  initial={{ width: 0 }} animate={{ width: '32%' }} transition={{ duration: CHART_ANIMATION_SECONDS, delay: 0.1 }} />
-              </div>
-              <div className={s.formatScale}><span>Никто не смотрит</span><span>Смотрят все</span></div>
-            </div>
-            <div className={s.formatBlock}>
-              <div className={s.formatLabel}>Трансляции</div>
-              <div className={s.formatBar}>
-                <motion.div className={s.formatFill} style={{ width: '45%' }}
-                  initial={{ width: 0 }} animate={{ width: '45%' }} transition={{ duration: CHART_ANIMATION_SECONDS, delay: 0.2 }} />
-              </div>
-              <div className={s.formatScale}><span>Никто не смотрит</span><span>Смотрят все</span></div>
-            </div>
+            ))}
           </Card>
 
-          <Card padding="lg" depth="md">
+          <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Тип устройства</div>
-            <div className={s.cardSub}>Время просмотра (часы) · {data.range.label}</div>
-            <div className={s.spacer16} />
-            <HorizontalBarChart data={deviceRows} formatValue={(v) => formatPercent(v * 100, 1)} />
-            <button type="button" className={s.detailsBtn}>Подробнее</button>
+            <div className={s.cardSub}>Время просмотра (часы) · {range.label}</div>
+            <HorizontalBarChart data={deviceRows} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
           </Card>
 
-          <Card padding="lg" depth="md">
+          <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Топ регионов</div>
-            <div className={s.cardSub}>Просмотры · {data.range.label}</div>
-            <div className={s.spacer16} />
-            <HorizontalBarChart data={geoRows} formatValue={(v) => formatPercent(v * 100, 1)} />
+            <div className={s.cardSub}>Просмотры · {range.label}</div>
+            <HorizontalBarChart data={geoRows} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
           </Card>
 
-          <Card padding="lg" depth="md">
+          <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Самые популярные языки субтитров</div>
-            <div className={s.cardSub}>Просмотры · {data.range.label}</div>
-            <div className={s.spacer16} />
-            <HorizontalBarChart data={langRows} formatValue={(v) => formatPercent(v * 100, 1)} />
+            <div className={s.cardSub}>Просмотры · {range.label}</div>
+            <HorizontalBarChart data={langRows} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
           </Card>
         </div>
       </div>
     </div>
   )
-}
-
-function lighten(color, idx) {
-  const opacity = 1 - idx * 0.25
-  return `rgba(139, 92, 246, ${Math.max(0.35, opacity)})`
 }

@@ -1,11 +1,12 @@
 .page {
   background: var(--studio-canvas);
   color: var(--studio-text);
-  min-height: 800px;
+  min-height: 100vh;
   width: 100%;
   font-family: var(--studio-font);
   position: relative;
 }
+
 .main {
   margin-left: var(--studio-current-sidebar-width, var(--studio-sidebar-compact-width));
   padding: var(--studio-main-padding);
@@ -13,75 +14,130 @@
   min-height: var(--studio-main-min-height);
   box-sizing: border-box;
 }
-.title { font-size: 24px; font-weight: 500; margin: 0 0 24px; }
 
-.tabs { display: flex; gap: 40px; border-bottom: 1px solid var(--studio-border); margin-bottom: 24px; }
+.title {
+  margin: 0;
+  min-height: 55px;
+  color: var(--studio-text);
+  font-family: "YouTube Sans", var(--studio-font);
+  font-size: var(--studio-page-title-font-size);
+  font-weight: var(--studio-page-title-font-weight);
+  line-height: var(--studio-page-title-line-height);
+}
+
+.tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 40px;
+  margin-top: 15px;
+  border-bottom: 1px solid var(--studio-border);
+}
+
 .tab {
-  padding: 12px 0;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
   color: var(--studio-text-muted);
+  font-family: inherit;
   font-size: 14px;
   font-weight: 500;
-  cursor: default;
-  position: relative;
-  border: none;
-  background: transparent;
-  font-family: inherit;
+  cursor: pointer;
 }
-.tabActive { color: var(--studio-text); }
+
+.tabActive {
+  color: var(--studio-text);
+}
+
 .tabActive::after {
   content: '';
-  position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--studio-text);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--studio-text);
+  border-radius: 1px;
 }
 
-.barRow { display: flex; align-items: center; }
-.requestPill {
+.betaBadge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 17px;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 16px;
+  border: 0;
   border-radius: 16px;
-  background: var(--studio-chip-bg);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--studio-text);
+  font-family: inherit;
   font-size: 13px;
   font-weight: 500;
-  border: 1px solid var(--studio-chip-border);
   cursor: pointer;
-  font-family: inherit;
 }
-.requestPill:hover { background: var(--studio-hover); }
-.removePill {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 16px;
-  background: transparent;
-  border: 1px solid var(--studio-border);
-  color: var(--studio-text);
-  font-size: 13px;
-  cursor: pointer;
-  font-family: inherit;
-}
-.removePill:hover { background: var(--studio-hover); }
 
-.empty {
+.filterChipActive {
+  background: #ffffff;
+  color: #0d0d0d;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 470px;
+  padding: 82px 0 0;
   text-align: center;
-  padding: 100px 0 0;
 }
-.illustration { margin: 0 auto 24px; }
-.emptyTitle { font-size: 16px; font-weight: 500; color: var(--studio-text); margin-bottom: 8px; }
-.emptyText { color: var(--studio-text-muted); font-size: 13px; line-height: 18px; }
-.emptyText a { color: var(--studio-link); text-decoration: none; cursor: pointer; }
-.textLink {
-  display: inline;
-  padding: 0;
-  margin: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  color: var(--studio-link);
-  cursor: pointer;
-  text-decoration: none;
+
+.emptyIcon {
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.88;
 }
-.textLink:hover { text-decoration: underline; }
+
+.emptyTitle {
+  margin-top: 22px;
+  color: var(--studio-text);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.emptyText {
+  max-width: 560px;
+  margin-top: 8px;
+  color: var(--studio-text-muted);
+  font-size: 14px;
+  line-height: 20px;
+}

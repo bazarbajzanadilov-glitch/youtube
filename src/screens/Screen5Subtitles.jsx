@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react'
+import { useMemo, useState, useContext } from 'react'
 import s from './Screen5Subtitles.module.css'
 import TopBar from './TopBar.jsx'
 import Sidebar from './Sidebar.jsx'
@@ -10,9 +10,18 @@ import { formatDate } from '../storage/videoStore.js'
 const TABS = ['Все', 'Черновики', 'Опубликованные']
 
 export default function Screen5Subtitles() {
-  const { showToast, go } = useContext(NavContext)
+  const { go } = useContext(NavContext)
   const { videos } = useVideos()
   const [activeTab, setActiveTab] = useState(0)
+  const filteredVideos = useMemo(() => {
+    if (activeTab === 1) return []
+    return videos
+  }, [videos, activeTab])
+
+  const isDraftsTab = activeTab === 1
+  const emptyLabel = isDraftsTab
+    ? 'В разделе «Черновики» пока нет сохраненных субтитров.'
+    : 'Нет видео для управления субтитрами.'
 
   return (
     <div className={s.page}>
@@ -22,16 +31,16 @@ export default function Screen5Subtitles() {
         <h1 className={s.title}>Субтитры к видео на канале</h1>
         <div className={s.tabs}>
           {TABS.map((t, i) => (
-            <button key={t} type="button" className={`${s.tab} ${i === activeTab ? s.tabActive : ''}`} onClick={() => { setActiveTab(i); showToast(t) }}>
+            <button key={t} type="button" className={`${s.tab} ${i === activeTab ? s.tabActive : ''}`} onClick={() => setActiveTab(i)}>
               {t}
             </button>
           ))}
         </div>
 
-        {videos.length === 0 ? (
+        {videos.length === 0 || filteredVideos.length === 0 ? (
           <div className={s.empty}>
-            Нет видео для управления субтитрами.{' '}
-            <button type="button" className={s.emptyLink} onClick={() => go('admin')}>Добавьте видео в админке →</button>
+            {emptyLabel}{' '}
+            {!isDraftsTab ? <button type="button" className={s.emptyLink} onClick={() => go('admin')}>Добавьте видео в админке →</button> : null}
           </div>
         ) : (
           <table className={s.table}>
@@ -43,7 +52,7 @@ export default function Screen5Subtitles() {
               </tr>
             </thead>
             <tbody>
-              {videos.map((v) => (
+              {filteredVideos.map((v) => (
                 <tr key={v.id} className={s.row}>
                   <td>
                     <div className={s.videoCell}>
@@ -53,11 +62,11 @@ export default function Screen5Subtitles() {
                       </div>
                       <div>
                         <div className={s.videoTitle}>{v.title}</div>
-                        <div className={s.videoDesc}>—</div>
+                        <div className={s.videoDesc}>Автоматические субтитры</div>
                       </div>
                     </div>
                   </td>
-                  <td><span className={s.langs}>0</span></td>
+                  <td><span className={s.langs}>Русский</span></td>
                   <td><span className={s.date}>{formatDate(v.date)}</span></td>
                 </tr>
               ))}
@@ -66,7 +75,7 @@ export default function Screen5Subtitles() {
         )}
 
         <div className={s.pagination}>
-          <span>1–{videos.length} из {videos.length}</span>
+          <span>{filteredVideos.length > 0 ? `1–${filteredVideos.length}` : '0'} из {filteredVideos.length}</span>
           <div className={s.pageNav}>
             <button type="button" className={s.pageBtn}><PageFirst/></button>
             <button type="button" className={s.pageBtn}><ChevronLeft/></button>

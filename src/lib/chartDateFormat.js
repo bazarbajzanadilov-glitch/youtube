@@ -18,11 +18,12 @@ export function formatChartDateLabel(label) {
 
   const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
   const parts = CHART_DATE_FORMAT.formatToParts(date)
-  const weekday = getPart(parts, 'weekday').replace(/\.$/, '')
+  const weekdayRaw = getPart(parts, 'weekday').replace(/\.$/, '')
   const day = getPart(parts, 'day')
   const month = getPart(parts, 'month')
   const year = getPart(parts, 'year')
+  const weekday = weekdayRaw ? `${weekdayRaw.slice(0, 1).toUpperCase()}${weekdayRaw.slice(1)}` : ''
 
   if (!weekday || !day || !month || !year) return label
-  return `${weekday}, ${day} ${month}, ${year}`
+  return `${weekday}, ${day} ${month} ${year} г.`
 }

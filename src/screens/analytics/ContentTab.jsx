@@ -1,242 +1,271 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import s from './AnalyticsTabs.module.css'
+import { useMemo, useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
-import AnimatedCounter from '../../components/ui/AnimatedCounter.jsx'
-import DeltaChip from '../../components/ui/DeltaChip.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
-import FunnelChart from '../../components/charts/FunnelChart.jsx'
-import { CHART_ANIMATION_SECONDS } from '../../components/charts/chartAnimation.js'
 import {
-  formatCompactNumber, formatNumberRu, formatPercent, formatSecondsAsClock,
+  formatCompactNumber,
+  formatNumberRu,
+  formatPercent,
+  formatSecondsAsClock,
 } from '../../lib/analyticsFormat.js'
-import { CHART_COLORS } from '../../lib/chartColors.js'
-import { CheckCircle } from '../icons.jsx'
+import s from './AnalyticsTabs.module.css'
+import {
+  ANALYTICS_PURPLE,
+  avgWatchPretty,
+  comparePreviousText,
+  ctrPretty,
+  videoDate,
+} from './studioAnalyticsHelpers.js'
+import { KpiDownCircleIcon } from '../icons.jsx'
 
+const TYPE_FILTERS = ['Все', 'Shorts', 'Прямой эфир']
 const TRAFFIC_TABS = ['Общие', 'Внешние источники', 'Поиск на YouTube', 'Рекомендуемые видео', 'Плейлисты']
+const TYPE_KEYS = ['all', 'short', 'live']
 
-const inlineKpiVariants = {
-  hidden: { opacity: 0, y: 8 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+function normalizeVideoType(video) {
+  if (['video', 'short', 'live'].includes(video?.type)) return video.type
+  const title = String(video?.title || '').toLowerCase()
+  if (title.includes('прямой эфир') || title.includes('live stream')) return 'live'
+  const parts = String(video?.duration || '0:00').split(':').map((part) => parseInt(part, 10) || 0)
+  const seconds = parts.length === 3
+    ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+    : (parts[0] || 0) * 60 + (parts[1] || 0)
+  if (seconds <= 60) return 'short'
+  return 'video'
 }
 
-function InlineKPI({ label, value, format, delta, hint, suffix, isFirst, mark = true }) {
+function averageDurationByViews(videos) {
+  const totalViews = videos.reduce((sum, video) => sum + (Number(video.views) || 0), 0)
+  if (totalViews <= 0) return 0
+  const totalSeconds = videos.reduce((sum, video) => {
+    const parts = String(video.duration || '0:00').split(':').map((part) => parseInt(part, 10) || 0)
+    const seconds = parts.length === 3
+      ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+      : (parts[0] || 0) * 60 + (parts[1] || 0)
+    return sum + (Number(video.views) || 0) * seconds * 0.45
+  }, 0)
+  return totalSeconds / totalViews
+}
+
+function KpiCell({ label, value, note, active = false }) {
   return (
-    <motion.div className={`${s.inlineKpi} ${isFirst ? '' : s.inlineKpiBordered}`} variants={inlineKpiVariants}>
-      <div className={s.inlineKpiLabel}>{label}</div>
-      <div className={s.inlineKpiValue}>
-        <AnimatedCounter value={Number(value) || 0} format={format} />
-        {suffix ? <span className={s.inlineKpiSuffix}>{suffix}</span> : null}
-        {mark ? <CheckCircle size={16} color="#2ba640" /> : null}
-      </div>
-      {Number.isFinite(delta) ? (
-        <div className={s.inlineKpiHint}>
-          <DeltaChip value={delta} />
-          {hint ? <span className={s.inlineKpiHintText}>{hint}</span> : null}
-        </div>
-      ) : (
-        <div className={s.inlineKpiHint}>
-          <span className={s.inlineKpiHintText}>{hint || 'Обычное значение'}</span>
-        </div>
-      )}
-    </motion.div>
+    <div className={`${s.ytKpiCell} ${active ? s.ytKpiCellActive : ''}`}>
+      <div className={s.ytKpiLabel}>{label}</div>
+      <div className={s.ytKpiValue}>{value}<span className={s.downMark}><KpiDownCircleIcon size={18} color="#909090" /></span></div>
+      <div className={s.ytKpiNote}>{note}</div>
+    </div>
   )
 }
 
 export default function ContentTab({ data, onOpenAdmin }) {
-  const { content } = data
-  const kpis = content.kpis
+  const { content, range } = data
   const [trafficTab, setTrafficTab] = useState(0)
+  const [activeType, setActiveType] = useState(null)
+  const defaultTypeIndex = useMemo(() => {
+    const resolvedTypes = (content.allVideos || []).map(normalizeVideoType)
+    if (resolvedTypes.includes('live')) return 2
+    if (resolvedTypes.includes('short')) return 1
+    return 0
+  }, [content.allVideos])
+  const selectedType = activeType ?? defaultTypeIndex
+  const typeKey = TYPE_KEYS[selectedType]
+  const filteredVideos = useMemo(() => (
+    (content.allVideos || []).filter((video) => (
+      typeKey === 'all' || normalizeVideoType(video) === typeKey
+    ))
+  ), [content.allVideos, typeKey])
+  const filteredTopVideos = useMemo(() => (
+    [...filteredVideos].sort((a, b) => (b.views || 0) - (a.views || 0))
+  ), [filteredVideos])
+  const filteredSeries = typeKey === 'all'
+    ? content.series
+    : (content.seriesByType?.[typeKey] || [])
+  const filteredViews = filteredVideos.reduce((sum, video) => sum + (Number(video.views) || 0), 0)
+  const fallbackCtr = content.kpis.ctr.value / 100
+  const filteredImpressions = filteredViews > 0 ? Math.round(filteredViews / Math.max(0.04, fallbackCtr)) : 0
+  const filteredCtr = filteredImpressions > 0 ? (filteredViews / filteredImpressions) * 100 : content.kpis.ctr.value
+  const filteredAvgDuration = averageDurationByViews(filteredVideos)
+  const trafficTitle = typeKey === 'live'
+    ? 'Как зрители находят ваши прямые трансляции'
+    : typeKey === 'short'
+      ? 'Как зрители находят ваши Shorts'
+      : 'Как зрители находят ваш контент'
+  const bestTitle = typeKey === 'live'
+    ? 'Лучшие трансляции'
+    : typeKey === 'short'
+      ? 'Лучшие Shorts'
+      : 'Самый популярный контент'
+  const trafficTotal = content.traffic.reduce((sum, item) => sum + item.share, 0) || 1
 
   if ((content.topVideos?.length || 0) === 0) {
     return (
       <EmptyState
         title="Пока нет данных по контенту"
-        description="Добавьте видео в админке — мы посчитаем CTR, показы и трафик."
-        action={<button type="button" className={s.linkBtn} onClick={onOpenAdmin}>Открыть админку →</button>}
+        description="Добавьте видео в админке — здесь появятся источники трафика, CTR и лучшие ролики."
+        action={<button type="button" className={s.linkBtn} onClick={onOpenAdmin}>Открыть админку</button>}
       />
     )
   }
 
-  /* PDF 22 traffic order: Поиск, Плейлисты, Функции выбора контента, Адресная строка, Внешние, Другое */
-  const traffic = content.traffic
-  const trafficTotal = traffic.reduce((s, x) => s + (x.share || 0), 0) || 1
-  const isLifetime = data.range.kind === 'lifetime'
-  const periodDelta = (d) => isLifetime ? undefined : d
-
-  /* Funnel data per PDF 22 */
-  const impressions = kpis.impressions.value
-  const ctrFraction = (kpis.ctr.value || 0) / 100
-  const viewsFromImpressions = Math.round(impressions * ctrFraction)
-  const avgWatchSec = Math.round((kpis.avgDuration.value || 0) * 0.45)
-  const watchTimeMins = Math.round((viewsFromImpressions * avgWatchSec) / 60)
-  const funnelSteps = [
-    {
-      label: 'Показы',
-      value: formatCompactNumber(impressions),
-      note: `В ${formatPercent((Math.round((Math.min(1, viewsFromImpressions / Math.max(1, impressions))) * 100)) , 1)} случаев значки были показаны в рекомендациях`,
-    },
-    {
-      label: 'Просмотры по показам значков',
-      value: formatCompactNumber(viewsFromImpressions),
-      note: `Среднее время просмотра — ${formatSecondsAsClock(avgWatchSec)}`,
-    },
-    {
-      label: 'Время просмотра в результате показа значков (часы)',
-      value: formatCompactNumber(Math.round(watchTimeMins / 60)),
-      note: null,
-    },
-  ]
-
   return (
-    <div className={s.contentLayout}>
-      {/* 4 separate KPI cards per PDF 22 */}
-      <Card padding="none" depth="md" className={s.contentKpiBlock}>
-        <motion.div
-          className={s.contentKpiRow}
-          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
-          initial="hidden"
-          animate="show"
-        >
-          <InlineKPI
-            label="Просмотры"
-            value={kpis.views.value}
-            format={formatCompactNumber}
-            delta={periodDelta(kpis.views.delta)}
-            hint="Обычное значение"
-            isFirst
-          />
-          <InlineKPI
-            label="Показы"
-            value={kpis.impressions.value}
-            format={formatCompactNumber}
-            delta={periodDelta(kpis.impressions.delta)}
-            hint="На 27 % выше, чем за предыдущие 28 дней"
-          />
-          <InlineKPI
-            label="CTR для значков видео"
-            value={kpis.ctr.value}
-            format={(n) => formatPercent(n, 1)}
-            mark={false}
-            hint=""
-          />
-          <InlineKPI
-            label="Средняя продолжительность просмотра"
-            value={kpis.avgDuration.value}
-            format={formatSecondsAsClock}
-            mark={false}
-            hint=""
-          />
-        </motion.div>
-      </Card>
+    <div className={s.tabStack}>
+      <div className={s.filterChips}>
+        {TYPE_FILTERS.map((item, index) => (
+              <button
+                key={item}
+                type="button"
+                className={`${s.filterChip} ${selectedType === index ? s.filterChipActive : ''}`}
+                onClick={() => setActiveType(index)}
+              >
+                {item}
+          </button>
+        ))}
+      </div>
 
-      {/* Big chart per PDF 22 */}
-      <Card padding="lg" depth="lg" className={s.heroCardPdf}>
-        <AreaLineChart
-          data={content.series}
-          dataKey="views"
-          xKey="date"
-          color={CHART_COLORS.primary}
-          height={210}
-          name="Просмотры"
-          formatY={formatCompactNumber}
-          formatTooltipValue={(v) => formatNumberRu(v)}
-        />
-        <div className={s.heroPdfFooter}>
-          <button type="button" className={s.detailsBtn}>Подробнее</button>
+      <Card padding="none" depth="lg" className={s.ytHeroCard}>
+        <div className={s.ytKpiStrip}>
+          <KpiCell
+            label="Просмотры"
+            value={formatCompactNumber(filteredViews)}
+            note={comparePreviousText()}
+            active
+          />
+          <KpiCell
+            label="Показы"
+            value={formatCompactNumber(filteredImpressions)}
+            note={comparePreviousText()}
+          />
+          <KpiCell
+            label="CTR для значков видео"
+            value={formatPercent(filteredCtr, 1)}
+            note="Обычное значение"
+          />
+          <KpiCell
+            label="Средняя продолжительность просмотра"
+            value={formatSecondsAsClock(filteredAvgDuration)}
+            note="Обычное значение"
+          />
+        </div>
+        <div className={s.ytHeroChart}>
+          <AreaLineChart
+            data={filteredSeries}
+            dataKey="views"
+            xKey="date"
+            color={ANALYTICS_PURPLE}
+            height={242}
+            name="Просмотры"
+            formatY={formatCompactNumber}
+            formatTooltipValue={formatNumberRu}
+            yAxisOrientation="right"
+          />
+        </div>
+        <div className={s.ytHeroFooter}>
+          <button type="button" className={s.ytPillBtn}>Подробнее</button>
         </div>
       </Card>
 
-      {/* 2-col grid per PDF 22 */}
-      <div className={s.contentGrid}>
-        <Card padding="lg" depth="md">
-          <div className={s.cardTitle}>Как зрители находят ваши видео</div>
-          <div className={s.cardSub}>Количество просмотров · {data.range.label}</div>
-
-          <div className={s.trafficTabs}>
-            {TRAFFIC_TABS.map((t, i) => (
+      <div className={s.twoColumnGrid}>
+        <Card padding="lg" depth="md" className={s.blockCard}>
+          <div className={s.cardTitle}>{trafficTitle}</div>
+          <div className={s.cardSub}>Количество просмотров · {range.label}</div>
+          <div className={s.innerTabs}>
+            {TRAFFIC_TABS.map((tab, index) => (
               <button
-                key={t}
+                key={tab}
                 type="button"
-                className={`${s.trafficTab} ${i === trafficTab ? s.trafficTabActive : ''}`}
-                onClick={() => setTrafficTab(i)}
+                className={`${s.innerTab} ${trafficTab === index ? s.innerTabActive : ''}`}
+                onClick={() => setTrafficTab(index)}
               >
-                {t}
+                {tab}
               </button>
             ))}
           </div>
-
-          <div className={s.trafficList}>
-            {traffic.map((row) => {
-              const pct = (row.share / trafficTotal) * 100
+          <div className={s.trafficRows}>
+            {content.traffic.slice(0, 7).map((row) => {
+              const percent = (row.share / trafficTotal) * 100
               return (
-                <div key={row.key} className={s.trafficRow}>
-                  <span className={s.trafficLabel}>{row.label}</span>
-                  <div className={s.trafficBarOuter}>
-                    <motion.div
-                      className={s.trafficBar}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut' }}
-                    />
-                  </div>
-                  <span className={s.trafficValue}>{formatPercent(pct, 1)}</span>
+                <div className={s.trafficRow} key={row.key}>
+                  <span>{row.label}</span>
+                  <div><span style={{ width: `${percent}%` }} /></div>
+                  <strong>{formatPercent(percent, 1)}</strong>
                 </div>
               )
             })}
           </div>
-
-          <div style={{ marginTop: 16 }}>
-            <button type="button" className={s.detailsBtn}>Подробнее</button>
-          </div>
+          <button type="button" className={s.ytTextBtn}>Подробнее</button>
         </Card>
 
-        <div className={s.contentRightCol}>
-          <Card padding="lg" depth="md">
-            <div className={s.cardTitle}>Лучшие видео</div>
-            <div className={s.cardSub}>Просмотры · {data.range.label}</div>
-            <ul className={s.bestList}>
-              {content.topVideos.slice(0, 5).map((v) => {
-                const pct = Math.min(100, (v.views / Math.max(1, content.topVideos[0].views)) * 100)
-                return (
-                  <li key={v.id} className={s.bestRow}>
-                    <div className={s.bestThumb}>
-                      {v.cover ? <img src={v.cover} alt=""/> : <div className={s.thumbBlank}/>}
+        <div className={s.sideStack}>
+          <Card padding="lg" depth="md" className={s.blockCard}>
+            <div className={s.cardTitle}>{bestTitle}</div>
+            <div className={s.cardSub}>Просмотры · {range.label}</div>
+            {filteredTopVideos.length > 0 ? (
+              <div className={s.compactVideoList}>
+                {filteredTopVideos.slice(0, 5).map((video) => (
+                  <div className={s.compactVideoRow} key={video.id}>
+                    <div className={s.sideThumb}>
+                      {video.cover ? <img src={video.cover} alt="" /> : <div className={s.thumbBlank} />}
                     </div>
-                    <span className={s.bestTitle} title={v.title}>{v.title}</span>
-                    <div className={s.bestBar}>
-                      <motion.div
-                        className={s.bestBarInner}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ duration: CHART_ANIMATION_SECONDS, ease: 'easeOut' }}
-                      />
+                    <div className={s.videoMeta}>
+                      <div className={s.videoTitle}>{video.title}</div>
+                      <div className={s.videoSub}>{videoDate(video)}</div>
                     </div>
-                    <span className={s.bestValue}>{formatCompactNumber(v.views)}</span>
-                  </li>
-                )
-              })}
-            </ul>
-            <div style={{ marginTop: 12 }}>
-              <button type="button" className={s.detailsBtn}>Подробнее</button>
-            </div>
+                    <strong>{formatCompactNumber(video.views)}</strong>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={s.emptyBlock}>Нет данных для выбранного типа контента.</div>
+            )}
+            <button type="button" className={s.ytTextBtn}>Подробнее</button>
           </Card>
 
-          <Card padding="lg" depth="md">
-            <div className={s.cardTitle}>Топ по ремиксам</div>
-            <div className={s.cardSub}>Ваш контент, который добавляли в Shorts · {data.range.label}</div>
-            <div className={s.remixesEmpty}>Нет данных за выбранный диапазон дат.</div>
-            <button type="button" className={s.detailsBtn}>Подробнее</button>
+          <Card padding="lg" depth="md" className={s.blockCard}>
+            <div className={s.cardTitle}>Одновременные просмотры</div>
+            <div className={s.cardSub}>Прямые трансляции · {range.label}</div>
+            <div className={s.emptyBlock}>Недостаточно данных за выбранный период.</div>
           </Card>
         </div>
       </div>
 
-      {/* Funnel per PDF 22 */}
-      <Card padding="lg" depth="md">
-        <div className={s.cardTitle}>Показы значков и время просмотра видео</div>
-        <div className={s.cardSub}>Данные за период · {data.range.label}</div>
-        <FunnelChart steps={funnelSteps} />
+      <Card padding="none" depth="md" className={s.tableCard}>
+        <div className={s.tableHeader}>
+          <div>
+            <div className={s.cardTitle}>Самый популярный контент</div>
+            <div className={s.cardSub}>Видео и трансляции · {range.label}</div>
+          </div>
+        </div>
+        <table className={s.ytTable}>
+          <thead>
+            <tr>
+              <th>Контент</th>
+              <th>CTR для значков видео</th>
+              <th>Средняя продолжительность просмотра</th>
+              <th className={s.right}>Просмотры</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredTopVideos.map((video, index) => (
+              <tr key={video.id}>
+                <td>
+                  <div className={s.videoCell}>
+                    <span className={s.rank}>{index + 1}</span>
+                    <div className={s.videoThumb}>
+                      {video.cover ? <img src={video.cover} alt="" /> : <div className={s.thumbBlank} />}
+                    </div>
+                    <div className={s.videoMeta}>
+                      <div className={s.videoTitle}>{video.title}</div>
+                      <div className={s.videoSub}>{videoDate(video)}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>{ctrPretty(video)}</td>
+                <td>{avgWatchPretty(video)}</td>
+                <td className={s.right}>{formatNumberRu(video.views)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </Card>
     </div>
   )

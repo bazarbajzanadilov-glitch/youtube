@@ -16,7 +16,12 @@
 }
 
 .headerRow { display: flex; align-items: center; margin-bottom: 16px; }
-.title { font-size: 24px; line-height: 32px; font-weight: 500; margin: 0; }
+.title {
+  font-size: var(--studio-page-title-font-size);
+  line-height: var(--studio-page-title-line-height);
+  font-weight: var(--studio-page-title-font-weight);
+  margin: 0;
+}
 
 .actionsRight { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 .linkBtn {

@@ -26,9 +26,9 @@
 }
 .highlighted {
   background:
-    radial-gradient(120% 90% at 0% 0%, rgba(65, 179, 216, 0.18), transparent 60%),
+    radial-gradient(120% 90% at 0% 0%, rgba(62, 166, 255, 0.18), transparent 60%),
     var(--studio-card-widget);
-  border-color: rgba(65, 179, 216, 0.4);
+  border-color: rgba(62, 166, 255, 0.4);
 }
 
 .label {

@@ -12,54 +12,62 @@
   background: var(--studio-canvas);
   min-height: var(--studio-main-min-height);
   box-sizing: border-box;
-  max-width: 1640px;
+  max-width: none;
 }
 
-.headerRow { display: flex; align-items: center; }
-.title { font-size: 26px; font-weight: 500; margin: 0; letter-spacing: -0.02em; }
+.headerRow { display: flex; align-items: center; min-height: 38px; }
+.title {
+  font-family: "YouTube Sans", var(--studio-font);
+  font-size: var(--studio-page-title-font-size);
+  font-weight: var(--studio-page-title-font-weight);
+  line-height: var(--studio-page-title-line-height);
+  margin: 0;
+  letter-spacing: 0;
+}
 
 .advanced {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  height: 34px;
+  height: 36px;
   padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid var(--studio-border);
-  background: transparent;
+  border-radius: 18px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.1);
   color: var(--studio-text);
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
   font-family: inherit;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease;
 }
-.advanced:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
+.advanced:hover { background: rgba(255,255,255,0.16); }
 
 .suggestRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 18px 0;
+  gap: 16px;
+  padding: 14px 0 18px 24px;
   flex-wrap: wrap;
 }
 .suggestion {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 38px;
-  padding: 0 18px;
-  border-radius: 999px;
-  border: 1px solid var(--studio-border);
-  background: transparent;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 18px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.1);
   color: var(--studio-text);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
   white-space: nowrap;
 }
-.suggestion:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); transform: translateY(-1px); }
+.suggestion:hover { background: rgba(255,255,255,0.16); transform: none; }
 .suggestion svg { color: var(--studio-text-muted); }
 .kebab {
   width: 36px; height: 36px;
@@ -80,12 +88,24 @@
   top: var(--studio-topbar-height);
   background: var(--studio-canvas);
   z-index: 5;
-  margin-bottom: 16px;
+  margin: 0 -24px 16px;
+  padding: 0 24px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
+.controlRow::-webkit-scrollbar { display: none; }
 .dateWrap { margin-left: auto; padding-left: 16px; }
 
 @media (max-width: 720px) {
-  .title { font-size: 22px; }
+  .headerRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 0;
+  }
+  .advanced { margin-left: 0; }
+  .title { font-size: var(--studio-page-title-mobile-font-size); }
   .suggestRow { gap: 8px; padding: 14px 0; overflow-x: auto; flex-wrap: nowrap; }
   .controlRow { flex-direction: column; align-items: flex-start; gap: 4px; padding-bottom: 8px; position: static; }
   .dateWrap { margin-left: 0; padding-left: 0; }

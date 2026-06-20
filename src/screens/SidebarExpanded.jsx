@@ -22,10 +22,11 @@ const ITEMS = [
 export default function SidebarExpanded({ active = 'monetize' }) {
   const { go, showToast } = useContext(NavContext)
   const { channel } = useChannel()
+  const avatarUrl = channel.avatar || '/studio-assets/channel-avatar-reference.jpg'
   return (
     <div className={s.sidebar}>
       <div className={s.channel}>
-        <div className={s.channelAvatar} style={channel.avatar ? { backgroundImage: `url(${channel.avatar})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}/>
+        <div className={s.channelAvatar} style={{ backgroundImage: `url(${avatarUrl})` }}/>
         <div className={s.channelName}>Ваш канал</div>
         <div className={s.channelHandle}>{channel.channelName}</div>
       </div>

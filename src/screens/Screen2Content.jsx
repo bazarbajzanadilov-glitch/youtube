@@ -1,11 +1,12 @@
-import { useState, useContext } from 'react'
+import { useMemo, useState, useContext } from 'react'
 import s from './Screen2Content.module.css'
 import TopBar from './TopBar.jsx'
 import Sidebar from './Sidebar.jsx'
 import { NavContext } from './NavContext.js'
-import { FilterIcon, ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast } from './icons.jsx'
+import { FilterIcon, ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast, BellIcon, InfoIcon } from './icons.jsx'
 import { useVideos } from '../storage/useVideos.js'
-import { formatDate, formatNumber, formatLikePct } from '../storage/videoStore.js'
+import { formatDate, formatNumber } from '../storage/videoStore.js'
+import { effectiveComments } from '../lib/analyticsAggregator.js'
 
 const GlobeIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -16,10 +17,28 @@ const GlobeIcon = () => (
 
 const TABS = ['Видео', 'Shorts', 'Трансляции', 'Записи', 'Плейлисты', 'Подкасты', 'Курсы', 'Рекламные кампании', 'Коллаборации']
 
+function formatRevenue(value) {
+  const amount = (Number(value) || 0) * 512
+  return `${amount.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₸`
+}
+
+function matchesTab(video, tabIndex) {
+  const type = video?.type || 'video'
+  if (tabIndex === 0) return type === 'video'
+  if (tabIndex === 1) return type === 'short'
+  if (tabIndex === 2) return type === 'live'
+  return false
+}
+
 export default function Screen2Content() {
   const { showToast, go } = useContext(NavContext)
   const { videos } = useVideos()
   const [activeTab, setActiveTab] = useState(0)
+  const filteredVideos = useMemo(
+    () => videos.filter((video) => matchesTab(video, activeTab)),
+    [videos, activeTab],
+  )
+  const activeLabel = TABS[activeTab]
 
   return (
     <div className={s.page}>
@@ -33,11 +52,16 @@ export default function Screen2Content() {
               key={t}
               type="button"
               className={`${s.tab} ${i === activeTab ? s.tabActive : ''}`}
-              onClick={() => { setActiveTab(i); showToast(t) }}
+              onClick={() => setActiveTab(i)}
             >
               {t}
             </button>
           ))}
+        </div>
+        <div className={s.infoBanner}>
+          <span className={s.infoBannerIcon}><InfoIcon size={18} /></span>
+          <span className={s.infoBannerText}>Новый способ проверять статус видео</span>
+          <button type="button" className={s.infoBannerAction} onClick={() => showToast('Подробнее')}>Подробнее</button>
         </div>
         <div className={s.filterRow}>
           <button type="button" className={s.filterIcon} onClick={() => showToast('Фильтр')} aria-label="Фильтр"><FilterIcon/></button>
@@ -49,22 +73,27 @@ export default function Screen2Content() {
             На канале пока нет видео.{' '}
             <button type="button" className={s.emptyLink} onClick={() => go('admin')}>Добавьте первое в админке →</button>
           </div>
+        ) : filteredVideos.length === 0 ? (
+          <div className={s.empty}>
+            В разделе «{activeLabel}» пока нет материалов.{' '}
+            <button type="button" className={s.emptyLink} onClick={() => go('admin')}>Откройте админку и добавьте нужный тип →</button>
+          </div>
         ) : (
           <table className={s.table}>
             <thead className={s.thead}>
               <tr>
                 <th className={s.checkCol}><div className={s.checkbox}/></th>
                 <th>Видео</th>
+                <th>Уведомления</th>
                 <th>Доступ</th>
-                <th>Ограничения</th>
                 <th className={s.thDate}>Дата ↓</th>
                 <th className={s.right}>Просмотры</th>
+                <th className={s.right}>Расчетный доход</th>
                 <th className={s.right}>Комментарии</th>
-                <th className={s.right}>% «Нравится»</th>
               </tr>
             </thead>
             <tbody>
-              {videos.map((v) => (
+              {filteredVideos.map((v) => (
                 <tr key={v.id} className={s.row}>
                   <td className={s.checkCol}><div className={s.checkbox}/></td>
                   <td>
@@ -80,12 +109,17 @@ export default function Screen2Content() {
                     </div>
                   </td>
                   <td>
+                    <div className={s.notifyCell}>
+                      <span className={s.notifyIcon}><BellIcon size={18} /></span>
+                      <span className={s.notifyText}>Откл.</span>
+                    </div>
+                  </td>
+                  <td>
                     <div className={s.accessCell}>
                       <span className={s.accessIcon}><GlobeIcon/></span>
                       Для всех
                     </div>
                   </td>
-                  <td><span className={s.restriction}>Нет</span></td>
                   <td>
                     <div className={s.dateCell}>
                       <div className={s.d}>{formatDate(v.date)}</div>
@@ -93,20 +127,8 @@ export default function Screen2Content() {
                     </div>
                   </td>
                   <td className={s.numCell}>{formatNumber(v.views)}</td>
-                  <td className={s.numCell}>0</td>
-                  <td className={s.likeCell}>
-                    {v.likePct == null ? (
-                      <div className={s.likePct}>—</div>
-                    ) : (
-                      <>
-                        <div className={s.likePct}>{formatLikePct(v.likePct)}</div>
-                        <div className={s.likeBar}>
-                          <div className={s.likeBarFill} style={{ width: `${(v.likePct * 100).toFixed(0)}%` }}/>
-                        </div>
-                        <div className={s.likeCount}>{formatNumber(v.likes)} отметок «Нравится»</div>
-                      </>
-                    )}
-                  </td>
+                  <td className={s.numCell}>{formatRevenue(v.revenue)}</td>
+                  <td className={s.numCell}>{formatNumber(effectiveComments(v))}</td>
                 </tr>
               ))}
             </tbody>
@@ -118,7 +140,7 @@ export default function Screen2Content() {
             <span>Строк на странице:</span>
             <span className={s.perPageVal}>30 <ChevronDown size={14}/></span>
           </div>
-          <span>1–{videos.length} из {videos.length}</span>
+          <span>{filteredVideos.length > 0 ? `1–${filteredVideos.length}` : '0'} из {filteredVideos.length}</span>
           <div className={s.pageNav}>
             <button type="button" className={s.pageBtn} onClick={() => showToast('Первая страница')} aria-label="Первая страница"><PageFirst/></button>
             <button type="button" className={s.pageBtn} onClick={() => showToast('Назад')} aria-label="Назад"><ChevronLeft/></button>

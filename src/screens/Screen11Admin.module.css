@@ -16,7 +16,12 @@
 }
 
 .headerRow { display: flex; align-items: center; margin-bottom: 24px; }
-.title { font-size: 24px; font-weight: 500; margin: 0; line-height: 32px; }
+.title {
+  font-size: var(--studio-page-title-font-size);
+  font-weight: var(--studio-page-title-font-weight);
+  margin: 0;
+  line-height: var(--studio-page-title-line-height);
+}
 .dangerBtn {
   margin-left: auto;
   height: 36px;
@@ -155,9 +160,93 @@
 .toggleLabel strong { color: var(--studio-text); font-size: 13px; font-weight: 500; }
 .toggleHint { color: var(--studio-text-muted); font-size: 12px; }
 
+.dashboardDataHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  border-top: 1px solid var(--studio-row-separator);
+  margin-top: 20px;
+  padding-top: 20px;
+}
+.dashboardDataHead > div { flex: 1; min-width: 0; }
+.subFormTitle {
+  margin: 0;
+  color: var(--studio-text);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 500;
+}
+.dashboardDataGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+.inlineEditor {
+  border: 1px solid var(--studio-border);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.12);
+}
+.inlineEditorTitle {
+  margin: 0 0 12px;
+  color: var(--studio-text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+.inlineEditorRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 96px auto;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--studio-row-separator);
+}
+.inlineEditorRow:first-of-type { border-top: 0; padding-top: 0; }
+.inlineEditorRow:last-child { padding-bottom: 0; }
+.fieldWide { grid-column: 1 / -1; }
+.textarea {
+  min-height: 58px;
+  resize: vertical;
+  line-height: 18px;
+}
+.colorInput {
+  min-height: 40px;
+  padding: 4px;
+}
+.inlineEditorActions {
+  display: flex;
+  align-items: flex-end;
+}
+.inlineRemoveBtn {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 20px;
+  border: 1px solid #ff6b6b;
+  background: transparent;
+  color: #ff6b6b;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.inlineRemoveBtn:hover {
+  background: rgba(255, 107, 107, 0.1);
+}
+.inlineEditorTools {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+.inlineEditorEmpty {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 @media (max-width: 900px) {
   .channelGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .fieldToggle { grid-column: span 2; }
+  .dashboardDataGrid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 560px) {
   .channelGrid { grid-template-columns: minmax(0, 1fr); }

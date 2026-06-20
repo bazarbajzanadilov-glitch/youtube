@@ -23,13 +23,32 @@ export const RANGE_OPTIONS = [
   { kind: '7d', label: 'Последние 7 дней', days: 7 },
   { kind: '28d', label: 'Последние 28 дней', days: 28 },
   { kind: '90d', label: 'Последние 90 дней', days: 90 },
-  { kind: '365d', label: 'Последний год', days: 365 },
-  { kind: 'lifetime', label: 'За всё время', days: null },
-  { kind: 'custom', label: 'Свой диапазон', days: null },
+  { kind: '365d', label: 'Последние 365 дней', days: 365 },
+  { kind: 'lifetime', label: 'Все время', days: null },
+  { kind: 'custom', label: 'Другой диапазон дат', days: null },
 ]
 
 export function resolveRange(range, videos, today = new Date()) {
   const todayD = startOfDay(today)
+  const yearMatch = /^year-(\d{4})$/.exec(range?.kind || '')
+  if (yearMatch) {
+    const year = Number(yearMatch[1])
+    const from = startOfDay(new Date(year, 0, 1))
+    const end = startOfDay(new Date(year, 11, 31))
+    const to = end > todayD && from <= todayD ? todayD : end
+    const days = Math.max(1, daysBetween(from, to) + 1)
+    return { from, to, days, kind: range.kind, label: String(year) }
+  }
+  const monthMatch = /^month-(\d{4})-(\d{2})$/.exec(range?.kind || '')
+  if (monthMatch) {
+    const year = Number(monthMatch[1])
+    const month = Number(monthMatch[2]) - 1
+    const from = startOfDay(new Date(year, month, 1))
+    const end = startOfDay(new Date(year, month + 1, 0))
+    const to = end > todayD && from <= todayD ? todayD : end
+    const days = Math.max(1, daysBetween(from, to) + 1)
+    return { from, to, days, kind: range.kind, label: range.label || `${year}-${monthMatch[2]}` }
+  }
   if (range?.kind === 'custom' && range.from && range.to) {
     const from = startOfDay(new Date(range.from))
     const to = startOfDay(new Date(range.to))
@@ -156,6 +175,14 @@ function parseDuration(d) {
   return parseInt(d, 10) || 60
 }
 
+function resolveVideoType(video) {
+  if (['video', 'short', 'live'].includes(video?.type)) return video.type
+  const title = String(video?.title || '').toLowerCase()
+  if (title.includes('прямой эфир') || title.includes('live stream')) return 'live'
+  if (parseDuration(video?.duration) <= 60) return 'short'
+  return 'video'
+}
+
 /* === KPI delta vs previous period === */
 
 function buildPrevSeries(videos, channel, range) {
@@ -235,6 +262,24 @@ function bucketSeries(series, granularity) {
     ...b,
     revenue: +b.revenue.toFixed(2),
   }))
+}
+
+function buildSeriesForVideos(videos, channel, range, granularity) {
+  const { dates, map } = buildDailyMap(range.from, range.days)
+  videos.forEach((video) => attachVideoContribution({ video, channel, range, dayMap: map }))
+  const dailySeries = dates.map(({ date, weekday }) => {
+    const slot = map.get(date)
+    return {
+      date,
+      weekday,
+      views: +slot.views.toFixed(3),
+      watchTime: +slot.watchTime.toFixed(3),
+      revenue: +slot.revenue.toFixed(2),
+      likes: +slot.likes.toFixed(3),
+      comments: +slot.comments.toFixed(3),
+    }
+  })
+  return bucketSeries(dailySeries, granularity)
 }
 
 /**
@@ -327,6 +372,17 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const allWatchSec = videos.reduce((s, v) => s + (v.views || 0) * parseDuration(v.duration) * 0.45, 0)
   const avgDurationSec = allViewsForDuration > 0 ? allWatchSec / allViewsForDuration : 0
 
+  const videosByType = {
+    video: videos.filter((video) => resolveVideoType(video) === 'video'),
+    short: videos.filter((video) => resolveVideoType(video) === 'short'),
+    live: videos.filter((video) => resolveVideoType(video) === 'live'),
+  }
+  const seriesByType = {
+    video: buildSeriesForVideos(videosByType.video, channel, range, granularity),
+    short: buildSeriesForVideos(videosByType.short, channel, range, granularity),
+    live: buildSeriesForVideos(videosByType.live, channel, range, granularity),
+  }
+
   const prev = buildPrevSeries(videos, channel, range)
   const prevWatchHours = prev.watch / 3600
   const subscribersDaily = buildSubscriberSeries(channel, channelSeed, dates)
@@ -404,7 +460,9 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   }
 
   const topByViews = [...videos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10)
-  const newest = [...videos].sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null
+  const recentVideos = [...videos].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10)
+  const newest = recentVideos[0] || null
+  const formatShares = buildFormatShares(videos)
 
   return {
     range,
@@ -413,12 +471,15 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     overview: {
       kpis: kpis.overview,
       series,
+      recentVideos,
       topVideos: topByViews,
       newest,
     },
     content: {
+      allVideos: videos,
       kpis: kpis.content,
       series,
+      seriesByType,
       traffic,
       topVideos: topByViews.slice(0, 5),
       impressionsTotal: impressions,
@@ -432,6 +493,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       devices,
       geography,
       languages,
+      formatShares,
     },
     retention: {
       channel: channelRetention,
@@ -440,6 +502,24 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     realtime,
     monetization,
   }
+}
+
+function buildFormatShares(videos) {
+  const totals = {
+    video: 0,
+    short: 0,
+    live: 0,
+  }
+  for (const video of videos) {
+    const type = resolveVideoType(video)
+    totals[type] += Math.max(0, Number(video.views) || 0)
+  }
+  const max = Math.max(1, totals.video, totals.short, totals.live)
+  return [
+    { key: 'video', label: 'Видео', score: totals.video / max },
+    { key: 'short', label: 'Shorts', score: totals.short / max },
+    { key: 'live', label: 'Трансляции', score: totals.live / max },
+  ]
 }
 
 /* === subscribers === */

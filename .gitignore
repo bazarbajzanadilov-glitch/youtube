@@ -26,5 +26,8 @@ dist-ssr
 # Local artefacts and large reference material
 dev.log
 reference/
+tmp/
+codex-shots/
+tmp-*.png
 *.pdf
 .claude/worktrees/

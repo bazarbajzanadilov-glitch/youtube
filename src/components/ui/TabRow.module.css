@@ -1,14 +1,17 @@
 .row {
   display: flex;
-  gap: 28px;
+  gap: 40px;
   align-items: stretch;
   position: relative;
 }
 .tab {
   position: relative;
+  display: inline-flex;
+  align-items: center;
   background: transparent;
   border: none;
-  padding: 12px 2px;
+  height: 48px;
+  padding: 0 2px;
   color: var(--studio-text-muted);
   font-size: 14px;
   font-weight: 500;
@@ -17,6 +20,12 @@
   transition: color 0.16s ease;
 }
 .tab:hover { color: var(--studio-text); }
+.tab:focus { outline: none; }
+.tab:focus-visible .label {
+  outline: 1px solid var(--studio-text-muted);
+  outline-offset: 6px;
+  border-radius: 2px;
+}
 .label { position: relative; z-index: 1; }
 .active { color: var(--studio-text); }
 .indicator {
@@ -30,5 +39,5 @@
 }
 @media (max-width: 720px) {
   .row { gap: 16px; overflow-x: auto; }
-  .tab { white-space: nowrap; padding: 10px 2px; font-size: 13px; }
+  .tab { white-space: nowrap; height: 44px; padding: 0 2px; font-size: 13px; }
 }

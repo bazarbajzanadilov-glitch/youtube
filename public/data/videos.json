@@ -1,1 +1,42 @@
-[]
+[
+  {
+    "id": "itadori-toudou-hanami-ost",
+    "title": "Itadori and Toudou vs Hanami OST song",
+    "cover": "/studio-assets/anime-thumb.png",
+    "date": "2026-05-08",
+    "duration": "2:14",
+    "views": 2504,
+    "revenue": 146.8,
+    "profile": "steady"
+  },
+  {
+    "id": "samruk-med-rus",
+    "title": "Samruk Med RUS",
+    "cover": "/studio-assets/samruk-thumb.png",
+    "date": "2026-05-19",
+    "duration": "1:04",
+    "views": 6,
+    "revenue": 12.4,
+    "profile": "gradualGrowth"
+  },
+  {
+    "id": "samruk-med-kaz",
+    "title": "Samruk Med KAZ",
+    "cover": "/studio-assets/samruk-thumb.png",
+    "date": "2026-05-21",
+    "duration": "0:03",
+    "views": 3,
+    "revenue": 5.75,
+    "profile": "gradualGrowth"
+  },
+  {
+    "id": "samruk-med-eng",
+    "title": "Samruk Med ENG",
+    "cover": "/studio-assets/samruk-thumb.png",
+    "date": "2026-05-24",
+    "duration": "0:01",
+    "views": 1,
+    "revenue": 2.25,
+    "profile": "gradualGrowth"
+  }
+]

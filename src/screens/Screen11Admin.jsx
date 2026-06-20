@@ -10,6 +10,7 @@ import {
 } from '../storage/videoStore.js'
 import { useVideos } from '../storage/useVideos.js'
 import { useChannel } from '../storage/useChannel.js'
+import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
 
 const COUNTRIES = [
   { code: 'RU', label: 'Россия' },
@@ -20,10 +21,17 @@ const COUNTRIES = [
   { code: 'KZ', label: 'Казахстан' },
 ]
 
+const CONTENT_TYPES = [
+  { value: 'video', label: 'Видео' },
+  { value: 'short', label: 'Shorts' },
+  { value: 'live', label: 'Трансляция' },
+]
+
 const todayISO = () => new Date().toISOString().slice(0, 10)
+const DEFAULT_AVATAR = '/studio-assets/channel-avatar-reference.jpg'
 const blankForm = () => ({
   id: null, title: '', cover: null, date: todayISO(),
-  duration: '', views: '', revenue: '',
+  duration: '', type: 'video', views: '', revenue: '',
 })
 
 function fileToBase64(file) {
@@ -35,20 +43,50 @@ function fileToBase64(file) {
   })
 }
 
+function typeLabel(type) {
+  return CONTENT_TYPES.find((item) => item.value === type)?.label || 'Видео'
+}
+
+function makeAdminId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+}
+
+function downloadJsonFile(filename, value) {
+  const data = JSON.stringify(value, null, 2)
+  const blob = new Blob([data], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 export default function Screen11Admin() {
   const { showToast } = useContext(NavContext)
   const {
     videos, totals, add, update, remove, clear,
     removeMany, bulkAddRandom, importVideos, exportToFile, resetToBundled,
   } = useVideos()
-  const { channel, update: updateChannel, reset: resetChannel } = useChannel()
+  const { channel, update: updateChannel, replace: replaceChannel, reset: resetChannel } = useChannel()
   const [form, setForm] = useState(blankForm())
   const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [bulkCount, setBulkCount] = useState('5')
   const fileInputRef = useRef(null)
+  const projectFileInputRef = useRef(null)
   const [confirmState, setConfirmState] = useState(null)
   const [confirmChecked, setConfirmChecked] = useState(false)
+
+  const dashboardComments = Array.isArray(channel.dashboardComments)
+    ? channel.dashboardComments
+    : CHANNEL_DEFAULTS.dashboardComments
+  const recentSubscribers = Array.isArray(channel.recentSubscribers)
+    ? channel.recentSubscribers
+    : CHANNEL_DEFAULTS.recentSubscribers
+  const avatarUrl = channel.avatar || DEFAULT_AVATAR
 
   function askConfirm({ title, message, onConfirm }) {
     setConfirmChecked(false)
@@ -109,6 +147,29 @@ export default function Screen11Admin() {
       onConfirm: () => { resetChannel(); showToast('Настройки канала сброшены') },
     })
   }
+  function listSource(key, fallback) {
+    return Array.isArray(channel[key]) ? channel[key] : fallback
+  }
+  function updateListItem(key, fallback, index, patch) {
+    const source = listSource(key, fallback)
+    const next = source.map((item, i) => (i === index ? { ...item, ...patch } : { ...item }))
+    updateChannel({ [key]: next })
+  }
+  function addListItem(key, fallback, item) {
+    const source = listSource(key, fallback)
+    updateChannel({ [key]: [...source.map((entry) => ({ ...entry })), item] })
+  }
+  function removeListItem(key, fallback, index) {
+    const source = listSource(key, fallback)
+    updateChannel({ [key]: source.filter((_, i) => i !== index).map((item) => ({ ...item })) })
+  }
+  function onResetDashboardBlocks() {
+    updateChannel({
+      dashboardComments: CHANNEL_DEFAULTS.dashboardComments.map((item) => ({ ...item })),
+      recentSubscribers: CHANNEL_DEFAULTS.recentSubscribers.map((item) => ({ ...item })),
+    })
+    showToast('Блоки главной сброшены')
+  }
 
   async function onCoverChange(e) {
     const file = e.target.files?.[0]
@@ -157,7 +218,7 @@ export default function Screen11Admin() {
   function onEdit(v) {
     setForm({
       id: v.id, title: v.title, cover: v.cover, date: v.date,
-      duration: v.duration, views: String(v.views), revenue: String(v.revenue),
+      duration: v.duration, type: v.type || 'video', views: String(v.views), revenue: String(v.revenue),
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -171,6 +232,7 @@ export default function Screen11Admin() {
       cover: form.cover,
       date: form.date || todayISO(),
       duration: form.duration || randomDuration(),
+      type: form.type || 'video',
       views: form.views === '' ? undefined : Math.max(0, parseInt(form.views, 10) || 0),
       revenue: form.revenue === '' ? undefined : Math.max(0, parseFloat(form.revenue) || 0),
       autoViews: form.views === '',
@@ -245,6 +307,9 @@ export default function Screen11Admin() {
   function onImportClick() {
     fileInputRef.current?.click()
   }
+  function onImportProjectClick() {
+    projectFileInputRef.current?.click()
+  }
   async function onImportFile(e) {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -266,6 +331,31 @@ export default function Screen11Admin() {
       showToast('Не удалось прочитать JSON')
     }
   }
+  async function onImportProjectFile(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const text = await file.text()
+      const parsed = JSON.parse(text)
+      if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.videos) || typeof parsed.channel !== 'object') {
+        throw new Error('invalid project json')
+      }
+      askConfirm({
+        title: 'Импортировать весь проект?',
+        message: 'Будут заменены видео, настройки канала, комментарии и новые подписчики.',
+        onConfirm: () => {
+          importVideos(parsed.videos)
+          replaceChannel(parsed.channel)
+          setSelected(new Set())
+          setForm(blankForm())
+          showToast('Проект импортирован')
+        },
+      })
+    } catch {
+      showToast('Не удалось прочитать JSON проекта')
+    }
+  }
   function onReset() {
     askConfirm({
       title: 'Сбросить к версии из кода?',
@@ -277,6 +367,27 @@ export default function Screen11Admin() {
       },
     })
   }
+  function onResetProject() {
+    askConfirm({
+      title: 'Сбросить весь проект?',
+      message: 'Будут сброшены и видео, и настройки канала, и блоки главной Studio.',
+      onConfirm: async () => {
+        await resetToBundled()
+        resetChannel()
+        setSelected(new Set())
+        setForm(blankForm())
+        showToast('Проект сброшен')
+      },
+    })
+  }
+  function onExportProject() {
+    downloadJsonFile('youtube-studio-project.json', {
+      channel,
+      videos,
+      exportedAt: new Date().toISOString(),
+    })
+    showToast('Скачивается проект JSON')
+  }
 
   return (
     <div className={s.page}>
@@ -284,17 +395,16 @@ export default function Screen11Admin() {
       <Sidebar active="admin"/>
       <div className={`${s.main} ${s.adminMain}`}>
         <div className={s.headerRow}>
-          <h1 className={s.title}>Админка · фейк-видео</h1>
+          <h1 className={s.title}>Админка проекта</h1>
           <button type="button" className={s.dangerBtn} onClick={onClearAll} disabled={videos.length === 0}>
             Удалить все ({videos.length})
           </button>
         </div>
 
         <div className={s.helpNote}>
-          Видео хранятся в <code>localStorage</code>, а стартовый набор лежит в <code>public/data/videos.json</code>.
-          Кнопка <b>«Экспорт JSON»</b> скачивает текущее состояние — положите этот файл в <code>public/data/videos.json</code> вашего репо,
-          и при следующем «чистом» открытии сайта (или после кнопки <b>«Сбросить к коду»</b>) он подгрузится заново.
-          Папка <code>public/data/</code> при обновлении кода не трогается — добавленные видео не удаляются.
+          Админка — это источник данных для всего проекта: видео, канал, комментарии на главной, новые подписчики и аналитика.
+          <b> «Экспорт проекта»</b> сохраняет всё текущее состояние целиком, <b>«Импорт проекта»</b> восстанавливает его одним файлом.
+          Отдельный <b>«Экспорт JSON»</b> ниже сохраняет только массив видео для <code>public/data/videos.json</code>.
         </div>
 
         <div className={s.statsRow}>
@@ -315,7 +425,7 @@ export default function Screen11Admin() {
           <div className={s.avatarRow}>
             <div
               className={s.avatarPreview}
-              style={channel.avatar ? { backgroundImage: `url(${channel.avatar})` } : undefined}
+              style={{ backgroundImage: `url(${avatarUrl})` }}
               aria-label="Аватар канала"
             />
             <div className={s.avatarLabelBlock}>
@@ -350,6 +460,79 @@ export default function Screen11Admin() {
               </label>
             </div>
           </div>
+
+          <div className={s.dashboardDataHead}>
+            <div>
+              <h3 className={s.subFormTitle}>Главная Studio</h3>
+              <p className={s.channelSub}>Эти строки попадают в блоки «Комментарии» и «Новые подписчики» на панели управления.</p>
+            </div>
+            <button type="button" className={s.ghostBtn} onClick={onResetDashboardBlocks}>Сбросить блоки</button>
+          </div>
+          <div className={s.dashboardDataGrid}>
+            <section className={s.inlineEditor}>
+              <h4 className={s.inlineEditorTitle}>Комментарии</h4>
+              {dashboardComments.length > 0 ? dashboardComments.map((comment, index) => (
+                <div className={s.inlineEditorRow} key={comment.id || index}>
+                  <div className={s.field}><label className={s.label}>Автор</label>
+                    <input type="text" className={s.input} value={comment.author || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { author: e.target.value })}/></div>
+                  <div className={s.field}><label className={s.label}>Возраст</label>
+                    <input type="text" className={s.input} value={comment.age || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { age: e.target.value })}/></div>
+                  <div className={s.field}><label className={s.label}>Цвет аватара</label>
+                    <input type="color" className={`${s.input} ${s.colorInput}`} value={comment.avatarColor || '#525252'} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { avatarColor: e.target.value })}/></div>
+                  <div className={s.inlineEditorActions}>
+                    <button type="button" className={s.inlineRemoveBtn} onClick={() => removeListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index)}>Удалить</button>
+                  </div>
+                  <div className={`${s.field} ${s.fieldWide}`}><label className={s.label}>Текст</label>
+                    <textarea className={`${s.input} ${s.textarea}`} value={comment.text || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { text: e.target.value })}/></div>
+                </div>
+              )) : <div className={s.inlineEditorEmpty}>Список пуст. Добавьте комментарий ниже.</div>}
+              <div className={s.inlineEditorTools}>
+                <button
+                  type="button"
+                  className={s.ghostBtn}
+                  onClick={() => addListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, {
+                    id: makeAdminId('comment'),
+                    author: '@new.comment',
+                    age: 'только что',
+                    text: '',
+                    avatarColor: '#525252',
+                  })}
+                >
+                  Добавить комментарий
+                </button>
+              </div>
+            </section>
+            <section className={s.inlineEditor}>
+              <h4 className={s.inlineEditorTitle}>Новые подписчики</h4>
+              {recentSubscribers.length > 0 ? recentSubscribers.map((subscriber, index) => (
+                <div className={s.inlineEditorRow} key={subscriber.id || index}>
+                  <div className={s.field}><label className={s.label}>Имя</label>
+                    <input type="text" className={s.input} value={subscriber.name || ''} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { name: e.target.value })}/></div>
+                  <div className={s.field}><label className={s.label}>Подпись</label>
+                    <input type="text" className={s.input} value={subscriber.count || ''} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { count: e.target.value })}/></div>
+                  <div className={s.field}><label className={s.label}>Цвет аватара</label>
+                    <input type="color" className={`${s.input} ${s.colorInput}`} value={subscriber.avatarColor || '#525252'} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { avatarColor: e.target.value })}/></div>
+                  <div className={s.inlineEditorActions}>
+                    <button type="button" className={s.inlineRemoveBtn} onClick={() => removeListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index)}>Удалить</button>
+                  </div>
+                </div>
+              )) : <div className={s.inlineEditorEmpty}>Список пуст. Добавьте подписчика ниже.</div>}
+              <div className={s.inlineEditorTools}>
+                <button
+                  type="button"
+                  className={s.ghostBtn}
+                  onClick={() => addListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, {
+                    id: makeAdminId('subscriber'),
+                    name: 'Новый подписчик',
+                    count: '0 подписчиков',
+                    avatarColor: '#525252',
+                  })}
+                >
+                  Добавить подписчика
+                </button>
+              </div>
+            </section>
+          </div>
         </section>
 
         <form className={s.form} onSubmit={onSubmit}>
@@ -379,6 +562,16 @@ export default function Screen11Admin() {
                   <input type="date" className={s.input} value={form.date} onChange={(e) => setField('date', e.target.value)}/></div>
                 <div className={s.field}><label className={s.label}>Длительность</label>
                   <input type="text" className={s.input} placeholder="например 4:06" value={form.duration} onChange={(e) => setField('duration', e.target.value)}/></div>
+              </div>
+              <div className={s.fieldRow}>
+                <div className={s.field}><label className={s.label}>Тип контента</label>
+                  <select className={s.input} value={form.type} onChange={(e) => setField('type', e.target.value)}>
+                    {CONTENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+                  </select></div>
+                <div className={s.field}><label className={s.label}>Статус</label>
+                  <select className={s.input} value="public" disabled>
+                    <option value="public">Опубликовано</option>
+                  </select></div>
               </div>
               <div className={s.fieldRow}>
                 <div className={s.field}><label className={s.label}>Просмотры</label>
@@ -413,10 +606,14 @@ export default function Screen11Admin() {
           <input type="number" min="1" max="500" className={s.bulkInput} value={bulkCount} onChange={(e) => setBulkCount(e.target.value)}/>
           <button type="button" className={s.toolbarBtn} onClick={onBulkAdd}>+ Случайных</button>
           <span className={s.toolbarSpacer}/>
+          <button type="button" className={`${s.toolbarBtn} ${s.toolbarBtnPrimary}`} onClick={onExportProject}>⬇ Экспорт проекта</button>
+          <button type="button" className={`${s.toolbarBtn} ${s.toolbarBtnPrimary}`} onClick={onImportProjectClick}>⬆ Импорт проекта</button>
+          <button type="button" className={s.toolbarBtn} onClick={onResetProject}>⟲ Сбросить проект</button>
           <button type="button" className={s.toolbarBtn} onClick={onExport}>⬇ Экспорт JSON</button>
           <button type="button" className={s.toolbarBtn} onClick={onImportClick}>⬆ Импорт JSON</button>
           <button type="button" className={s.toolbarBtn} onClick={onReset}>⟲ Сбросить к коду</button>
           <input type="file" accept="application/json,.json" ref={fileInputRef} className={s.inlineFile} onChange={onImportFile}/>
+          <input type="file" accept="application/json,.json" ref={projectFileInputRef} className={s.inlineFile} onChange={onImportProjectFile}/>
         </div>
 
         {videos.length === 0 ? (
@@ -433,6 +630,7 @@ export default function Screen11Admin() {
                   </th>
                   <th>Видео</th>
                   <th>Дата</th>
+                  <th>Тип</th>
                   <th className={s.right}>Просмотры</th>
                   <th className={s.right}>Лайки</th>
                   <th className={s.right}>«Нравится»</th>
@@ -459,6 +657,7 @@ export default function Screen11Admin() {
                       </div>
                     </td>
                     <td>{formatDate(v.date)}</td>
+                    <td>{typeLabel(v.type)}</td>
                     <td className={s.right}>{formatNumber(v.views)}</td>
                     <td className={s.right}>{formatNumber(v.likes)}</td>
                     <td className={s.right}>{formatLikePct(v.likePct)}</td>

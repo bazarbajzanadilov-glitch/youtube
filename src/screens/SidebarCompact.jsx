@@ -1,6 +1,7 @@
 import { useContext } from 'react'
 import s from './SidebarCompact.module.css'
 import { NavContext } from './NavContext.js'
+import { useChannel } from '../storage/useChannel.js'
 import {
   SideHome, SideContent, SideAnalytics, SideCommunity, SideSubtitles,
   SideCopyright, SideMonetize, SideMagic, SideAudio, SideSettings, SideFeedback,
@@ -20,9 +21,11 @@ const ITEMS = [
 
 export default function SidebarCompact({ active = 'home' }) {
   const { go, showToast } = useContext(NavContext)
+  const { channel } = useChannel()
+  const avatarUrl = channel.avatar || '/studio-assets/channel-avatar-reference.jpg'
   return (
     <div className={s.sidebar}>
-      <div className={s.sideAvatar}/>
+      <div className={s.sideAvatar} style={{ backgroundImage: `url(${avatarUrl})` }}/>
       <div className={s.sideScroll}>
         {ITEMS.map(({ key, label, Icon }) => (
           <button

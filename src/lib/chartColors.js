@@ -1,35 +1,39 @@
 /**
- * Палитра графиков. Все оттенки — производные от основного синего
- * `--studio-chart-stroke` (#41B3D8), чтобы все чарты в приложении
- * выглядели единым синим цветом.
+ * Палитра графиков в темной теме YouTube Studio.
  */
 
-const BLUE = '#41B3D8'
-const BLUE_DARK = '#3296b6'
-const BLUE_DEEP = '#287a96'
-const BLUE_LIGHT = '#70c7e2'
-const BLUE_LIGHTER = '#9edbef'
-const BLUE_PALE = '#c9eef7'
+const BLUE = '#39cfc2'
+const BLUE_DARK = '#2aa79b'
+const BLUE_LIGHT = '#7edfd7'
+const PURPLE = '#a970ff'
+const PURPLE_LIGHT = '#c4a7ff'
+const GREEN = '#39cfc2'
+const GREEN_DARK = '#2aa79b'
+const GREEN_LIGHT = '#7edfd7'
+const AMBER = '#f9ab00'
+const RED = '#ff6d6d'
 
 export const CHART_COLORS = {
   primary: BLUE,
-  primarySoft: 'rgba(65, 179, 216, 0.32)',
-  primaryGhost: 'rgba(65, 179, 216, 0.08)',
-  areaFill: '#2B363A',
+  primarySoft: 'rgba(57, 207, 194, 0.32)',
+  primaryGhost: 'rgba(57, 207, 194, 0.08)',
+  areaFill: 'rgba(57, 207, 194, 0.12)',
   secondary: BLUE_LIGHT,
-  purple: BLUE_DEEP,
-  purpleSoft: 'rgba(65, 179, 216, 0.32)',
-  purpleGhost: 'rgba(65, 179, 216, 0.08)',
-  green: BLUE,
-  greenSoft: 'rgba(65, 179, 216, 0.32)',
-  red: BLUE_DARK,
-  redSoft: 'rgba(65, 179, 216, 0.32)',
-  amber: BLUE_LIGHT,
-  amberSoft: 'rgba(65, 179, 216, 0.32)',
-  pink: BLUE_LIGHTER,
+  purple: PURPLE,
+  purpleSoft: 'rgba(169, 112, 255, 0.32)',
+  purpleGhost: 'rgba(169, 112, 255, 0.08)',
+  green: GREEN,
+  greenSoft: 'rgba(57, 207, 194, 0.28)',
+  revenue: GREEN,
+  revenueSoft: 'rgba(57, 207, 194, 0.18)',
+  red: RED,
+  redSoft: 'rgba(255, 109, 109, 0.26)',
+  amber: AMBER,
+  amberSoft: 'rgba(249, 171, 0, 0.28)',
+  pink: PURPLE_LIGHT,
   cyan: BLUE_LIGHT,
   grid: '#2a2a2a',
-  gridSoft: 'rgba(255, 255, 255, 0.04)',
+  gridSoft: 'rgba(255, 255, 255, 0.08)',
   axis: '#5a5a5a',
   text: '#f1f1f1',
   textMuted: '#aaaaaa',
@@ -40,41 +44,41 @@ export const PALETTE_5 = [
   BLUE,
   BLUE_DARK,
   BLUE_LIGHT,
-  BLUE_DEEP,
-  BLUE_LIGHTER,
+  PURPLE,
+  GREEN,
 ]
 
 export const PALETTE_6 = [
   BLUE,
   BLUE_DARK,
   BLUE_LIGHT,
-  BLUE_DEEP,
-  BLUE_LIGHTER,
-  BLUE_PALE,
+  PURPLE,
+  GREEN,
+  AMBER,
 ]
 
 export const TRAFFIC_PALETTE = {
   search: BLUE,
   playlists: BLUE_DARK,
   suggested: BLUE_LIGHT,
-  external: BLUE_DEEP,
-  direct: BLUE_LIGHTER,
+  external: PURPLE,
+  direct: PURPLE_LIGHT,
   other: CHART_COLORS.textSubtle,
 }
 
 export const REVENUE_SOURCE_PALETTE = {
-  ads: BLUE,
-  premium: BLUE_DARK,
-  memberships: BLUE_LIGHT,
-  supers: BLUE_DEEP,
-  shopping: BLUE_LIGHTER,
+  ads: GREEN,
+  premium: GREEN_DARK,
+  memberships: GREEN_LIGHT,
+  supers: AMBER,
+  shopping: BLUE_LIGHT,
 }
 
 export const HEATMAP_RAMP = [
-  'rgba(65, 179, 216, 0.04)',
-  'rgba(65, 179, 216, 0.18)',
-  'rgba(65, 179, 216, 0.36)',
-  'rgba(65, 179, 216, 0.54)',
-  'rgba(65, 179, 216, 0.72)',
-  'rgba(65, 179, 216, 0.92)',
+  'rgba(169, 112, 255, 0.06)',
+  'rgba(169, 112, 255, 0.18)',
+  'rgba(169, 112, 255, 0.34)',
+  'rgba(169, 112, 255, 0.52)',
+  'rgba(169, 112, 255, 0.72)',
+  'rgba(169, 112, 255, 0.92)',
 ]
