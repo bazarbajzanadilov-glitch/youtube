@@ -7,7 +7,7 @@
   width: var(--studio-sidebar-expanded-width);
   display: flex;
   flex-direction: column;
-  padding: 16px 0 12px;
+  padding: 10px 0 12px;
   background: var(--studio-bg);
   overflow: hidden;
 }
@@ -15,7 +15,8 @@
 .channel {
   flex: 0 0 auto;
   text-align: center;
-  padding: 12px 0 18px;
+  padding: 12px 0 14px;
+  transform: translateX(-10px);
 }
 
 .channelAvatar {
@@ -48,10 +49,10 @@
 .itemsScroll {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
-.itemsScroll::-webkit-scrollbar { width: 6px; }
-.itemsScroll::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 3px; }
+.itemsScroll::-webkit-scrollbar { display: none; }
 
 .items {
   display: flex;
@@ -80,7 +81,7 @@
 .item::before {
   content: '';
   position: absolute;
-  inset: 0 36px 0 12px;
+  inset: 0 29px 0 12px;
   border-radius: 8px;
   background: #3f3f3f;
   opacity: 0;

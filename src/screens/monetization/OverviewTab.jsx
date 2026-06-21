@@ -40,7 +40,7 @@ export default function MonetizationOverviewTab({ activeSection = 'Обзор', 
     <div className={sx.partnerPage} data-active-section={activeSection}>
       <main className={sx.partnerMain}>
         <section className={sx.partnerIntro}>
-          <h2>Вы - партнер YouTube</h2>
+          <h2>Вы – партнер YouTube</h2>
         </section>
 
         <section className={sx.partnerSection}>

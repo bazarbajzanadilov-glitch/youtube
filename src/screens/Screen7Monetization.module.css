@@ -6,10 +6,23 @@
   font-family: var(--studio-font);
   position: relative;
 }
+
+.page::before {
+  content: '';
+  position: fixed;
+  left: 0;
+  top: var(--studio-topbar-height);
+  bottom: 0;
+  z-index: 99;
+  width: 10px;
+  background: var(--studio-bg);
+  pointer-events: none;
+}
+
 .main {
   --monetize-pad-x: 16px;
   margin-left: var(--studio-current-sidebar-width, var(--studio-sidebar-compact-width));
-  padding: 78px var(--monetize-pad-x) var(--studio-main-pad-bottom);
+  padding: 16px var(--monetize-pad-x) var(--studio-main-pad-bottom);
   background: var(--studio-canvas);
   min-height: var(--studio-main-min-height);
   box-sizing: border-box;
@@ -21,13 +34,13 @@
   align-items: flex-start;
   min-height: 52px;
   margin-bottom: 14px;
-  padding-left: 10px;
+  padding-left: 8px;
 }
 .title {
   font-family: "YouTube Sans", var(--studio-font);
-  font-size: 2.2rem;
+  font-size: 3.45rem;
   font-weight: var(--studio-page-title-font-weight);
-  line-height: 3.2rem;
+  line-height: var(--studio-page-title-line-height);
   margin: 4px 0 0;
   letter-spacing: 0;
 }
@@ -106,11 +119,12 @@
 
 .monetizeTabs {
   gap: 40px;
+  transform: translate(-3px, -3px);
 }
 
 .monetizeTabs button {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 @media (max-width: 720px) {
