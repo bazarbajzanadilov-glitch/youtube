@@ -31,7 +31,13 @@ export default function Screen7Monetization() {
         </div>
 
         <div className={s.controlRow}>
-          <TabRow tabs={TABS} active={activeTab} onChange={setActiveTab} layoutId="monetize-tab-underline" />
+          <TabRow
+            tabs={TABS}
+            active={activeTab}
+            onChange={setActiveTab}
+            layoutId="monetize-tab-underline"
+            className={s.monetizeTabs}
+          />
         </div>
 
         <AnimatePresence mode="wait">

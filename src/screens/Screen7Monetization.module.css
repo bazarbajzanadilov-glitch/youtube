@@ -21,13 +21,14 @@
   align-items: flex-start;
   min-height: 52px;
   margin-bottom: 14px;
+  padding-left: 10px;
 }
 .title {
   font-family: "YouTube Sans", var(--studio-font);
   font-size: 2.2rem;
   font-weight: var(--studio-page-title-font-weight);
   line-height: 3.2rem;
-  margin: 0;
+  margin: 4px 0 0;
   letter-spacing: 0;
 }
 
@@ -94,14 +95,23 @@
   top: var(--studio-topbar-height);
   background: var(--studio-canvas);
   z-index: 5;
-  margin: 0 calc(var(--monetize-pad-x) * -1) 20px;
-  padding: 0 var(--monetize-pad-x);
+  margin: 0 calc(var(--monetize-pad-x) * -1) 20px -26px;
+  padding: 0 var(--monetize-pad-x) 0 36px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
 }
 .controlRow::-webkit-scrollbar { display: none; }
 .dateWrap { margin-left: auto; padding-left: 16px; }
+
+.monetizeTabs {
+  gap: 40px;
+}
+
+.monetizeTabs button {
+  font-size: 16px;
+  font-weight: 600;
+}
 
 @media (max-width: 720px) {
   .headerRow {

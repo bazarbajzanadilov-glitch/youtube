@@ -60,6 +60,7 @@
 }
 
 .item {
+  position: relative;
   height: 48px;
   display: flex;
   align-items: center;
@@ -76,15 +77,25 @@
   flex-shrink: 0;
 }
 
-.item:hover {
+.item::before {
+  content: '';
+  position: absolute;
+  inset: 0 36px 0 12px;
+  border-radius: 8px;
   background: #3f3f3f;
+  opacity: 0;
+  pointer-events: none;
 }
-.active {
-  background: #3f3f3f;
+
+.item:hover::before,
+.active::before {
+  opacity: 1;
 }
 .active .itemLabel { font-weight: 500; }
 
 .itemIcon {
+  position: relative;
+  z-index: 1;
   width: 24px;
   height: 24px;
   flex: 0 0 24px;
@@ -100,6 +111,8 @@
 }
 
 .itemLabel {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   overflow: hidden;
   color: inherit;
