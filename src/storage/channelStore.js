@@ -37,7 +37,7 @@ const DEFAULT_RECENT_SUBSCRIBERS = [
 ]
 
 const DEFAULT_CHANNEL = {
-  channelName: 'Trading1',
+  channelName: 'PRENTOSOV',
   country: 'KZ',
   subscriberCount: 79,
   monetizationEnabled: true,
@@ -53,7 +53,7 @@ function cloneList(list) {
   return Array.isArray(list) ? list.map((item) => ({ ...item })) : []
 }
 
-const LEGACY_CHANNEL_NAMES = new Set(['rest' + 'sheets', 'rest' + 'shits'])
+const LEGACY_CHANNEL_NAMES = new Set(['rest' + 'sheets', 'rest' + 'shits', 'trading1'])
 
 function normalizeChannel(value = {}) {
   const rawChannelName = typeof value.channelName === 'string' ? value.channelName.trim() : value.channelName

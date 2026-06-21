@@ -1,12 +1,12 @@
-import sx from './MonetizationExtras.module.css'
 import Card from '../../components/ui/Card.jsx'
+import sx from './MonetizationExtras.module.css'
 
 const revenueSources = [
-  { title: 'Реклама на странице просмотра', tone: 'orange', icon: 'ad' },
-  { title: 'Реклама в ленте Shorts', tone: 'yellow', icon: 'sh' },
-  { title: 'Спонсорство', tone: 'green', icon: 'sp' },
-  { title: 'Подарки', tone: 'teal', icon: 'gi' },
-  { title: 'Supers', tone: 'purple', icon: 'su' },
+  { title: 'Реклама на странице просмотра', tone: 'orange', icon: 'watch' },
+  { title: 'Реклама в ленте Shorts', tone: 'yellow', icon: 'shorts' },
+  { title: 'Спонсорство', tone: 'green', icon: 'sponsor' },
+  { title: 'Подарки', tone: 'teal', icon: 'gift' },
+  { title: 'Supers', tone: 'purple', icon: 'super' },
 ]
 
 const creatorTools = [
@@ -48,7 +48,7 @@ export default function MonetizationOverviewTab({ activeSection = 'Обзор', 
           <Card padding="none" depth="md" className={sx.sourceCard}>
             {revenueSources.map((source) => (
               <div className={sx.sourceRow} key={source.title}>
-                <span className={`${sx.sourceIcon} ${sx[source.tone]}`}>{source.icon}</span>
+                <RevenueIcon icon={source.icon} tone={source.tone} />
                 <span>{source.title}</span>
               </div>
             ))}
@@ -176,5 +176,39 @@ export default function MonetizationOverviewTab({ activeSection = 'Обзор', 
         </Card>
       </aside>
     </div>
+  )
+}
+
+function RevenueIcon({ icon, tone }) {
+  return (
+    <span className={`${sx.sourceIcon} ${sx[tone]}`} aria-hidden="true">
+      {icon === 'watch' && (
+        <svg viewBox="0 0 40 40" focusable="false">
+          <path d="M11.5 28.5 15.2 11l10.6-3.1 2.7 1.6-4.1 18.6-10 4.2-2.9-3.8Z" />
+          <path d="m18.2 12.7 5.8-1.8-2.8 13.4-5.7 2.4 2.7-14Z" />
+          <path d="M23.7 15.7h6.1l-2.9 12.7-6.1 2.4 2.9-15.1Z" />
+        </svg>
+      )}
+      {icon === 'shorts' && (
+        <svg viewBox="0 0 40 40" focusable="false">
+          <path d="M21.7 4 8 20.2h9.4L14.8 36 32 15.5h-9.8L24.9 4h-3.2Z" />
+        </svg>
+      )}
+      {icon === 'sponsor' && (
+        <svg viewBox="0 0 40 40" focusable="false">
+          <path d="m20 5 4.4 9 9.9 1.4-7.2 7 1.7 9.8L20 27.6l-8.8 4.6 1.7-9.8-7.2-7 9.9-1.4L20 5Z" />
+        </svg>
+      )}
+      {icon === 'gift' && (
+        <svg viewBox="0 0 40 40" focusable="false">
+          <path d="M8 17h24v17H8V17Zm3-8.2c0-2.1 1.8-3.8 4-3.8 2.5 0 4.2 2.2 5 4.4.8-2.2 2.5-4.4 5-4.4 2.2 0 4 1.7 4 3.8 0 1.5-.8 2.8-2 3.5h6V17H7v-4.7h6c-1.2-.7-2-2-2-3.5Zm6.1 3.5c-.4-1.9-1.1-3.1-2.1-3.1-.7 0-1.3.5-1.3 1.2s.5 1.3 1.4 1.6l2 .3Zm5.8 0 2-.3c.9-.3 1.4-.9 1.4-1.6s-.6-1.2-1.3-1.2c-1 0-1.7 1.2-2.1 3.1ZM18 17h4v17h-4V17Z" />
+        </svg>
+      )}
+      {icon === 'super' && (
+        <svg viewBox="0 0 40 40" focusable="false">
+          <path d="M20 7c6.2 0 11.3 4.2 11.3 9.5 0 3.2-1.9 6.1-4.8 7.8v6.2L20.4 26H20C13.8 26 8.7 21.8 8.7 16.5S13.8 7 20 7Zm-5.5 9.5c1.8 2.6 3.6 3.9 5.5 3.9s3.7-1.3 5.5-3.9h-4.2l-1.3 2-1.3-2h-4.2Z" />
+        </svg>
+      )}
+    </span>
   )
 }

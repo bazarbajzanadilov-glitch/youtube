@@ -7,20 +7,26 @@
   position: relative;
 }
 .main {
+  --monetize-pad-x: 16px;
   margin-left: var(--studio-current-sidebar-width, var(--studio-sidebar-compact-width));
-  padding: var(--studio-main-padding);
+  padding: 78px var(--monetize-pad-x) var(--studio-main-pad-bottom);
   background: var(--studio-canvas);
   min-height: var(--studio-main-min-height);
   box-sizing: border-box;
   max-width: none;
 }
 
-.headerRow { display: flex; align-items: center; min-height: 38px; }
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  min-height: 52px;
+  margin-bottom: 14px;
+}
 .title {
   font-family: "YouTube Sans", var(--studio-font);
-  font-size: var(--studio-page-title-font-size);
+  font-size: 2.2rem;
   font-weight: var(--studio-page-title-font-weight);
-  line-height: var(--studio-page-title-line-height);
+  line-height: 3.2rem;
   margin: 0;
   letter-spacing: 0;
 }
@@ -88,8 +94,8 @@
   top: var(--studio-topbar-height);
   background: var(--studio-canvas);
   z-index: 5;
-  margin: 0 -24px 16px;
-  padding: 0 24px;
+  margin: 0 calc(var(--monetize-pad-x) * -1) 20px;
+  padding: 0 var(--monetize-pad-x);
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
