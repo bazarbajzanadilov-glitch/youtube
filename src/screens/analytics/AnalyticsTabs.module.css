@@ -126,13 +126,14 @@ button.ytKpiCell {
   width: 16px;
   height: 16px;
   object-fit: contain;
+  opacity: 1;
 }
 
 .clockBadgeSmall {
   width: 16px;
   height: 16px;
   object-fit: contain;
-  opacity: 0.9;
+  opacity: 1;
 }
 
 .ytHeroChart {

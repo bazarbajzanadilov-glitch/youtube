@@ -114,7 +114,6 @@ export default function RevenueTab({ data }) {
           <div className={`${s.ytKpiCell} ${s.ytKpiCellActive}`}>
             <div className={s.ytKpiLabel}>Расчетный доход <img className={s.clockBadge} src={clockIcon} alt="" aria-hidden="true" /></div>
             <div className={s.ytKpiValue}>{formatTenge(revenue)}</div>
-            <div className={s.ytKpiNote}>Итоговая сумма может измениться.</div>
           </div>
         </div>
         <div className={s.ytHeroChart}>

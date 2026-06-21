@@ -90,8 +90,8 @@
   --studio-main-pad-x: 24px;
   --studio-main-pad-bottom: 48px;
   --studio-main-padding: var(--studio-main-pad-y) var(--studio-main-pad-x) var(--studio-main-pad-bottom);
-  --studio-analytics-kpi-value-font-size: 2.6rem;
-  --studio-analytics-kpi-value-font-weight: 700;
+  --studio-analytics-kpi-value-font-size: 2.4rem;
+  --studio-analytics-kpi-value-font-weight: 600;
   --studio-analytics-kpi-value-line-height: 1.15;
   --studio-chip-bg: #333333;
   --studio-chip-border: #3f3f3f;
