@@ -18,7 +18,6 @@ import {
   ChevronRight,
   InfoIcon,
   KpiDownCircleIcon,
-  SparkleIcon,
   ThumbDownIcon,
   ThumbUpIcon,
 } from '../icons.jsx'
@@ -35,6 +34,29 @@ import {
   signedNumber,
   videoDate,
 } from './studioAnalyticsHelpers.js'
+
+function StudioAiSparkle({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="studioAiSparkleGradient" x1="4" y1="3" x2="20" y2="21" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#f7c6ff" />
+          <stop offset="0.42" stopColor="#bd73ff" />
+          <stop offset="1" stopColor="#5ea8ff" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M12 2.8l1.82 5.08L19 9.75l-5.18 1.87L12 16.8l-1.82-5.18L5 9.75l5.18-1.87L12 2.8z"
+        fill="url(#studioAiSparkleGradient)"
+      />
+      <path
+        d="M5.7 15.35l.84 2.1 2.1.84-2.1.84-.84 2.1-.84-2.1-2.1-.84 2.1-.84.84-2.1zm12.4-1.7l.68 1.7 1.7.68-1.7.68-.68 1.7-.68-1.7-1.7-.68 1.7-.68.68-1.7z"
+        fill="url(#studioAiSparkleGradient)"
+        opacity="0.95"
+      />
+    </svg>
+  )
+}
 
 function KpiCell({
   label,
@@ -279,7 +301,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
         </Card>
 
         <Card padding="lg" depth="md" className={`${s.aiCard} ${s.overviewAICard} ${s.overviewInset}`}>
-          <div className={s.aiIcon}><SparkleIcon size={20} /></div>
+          <div className={s.aiIcon}><StudioAiSparkle size={22} /></div>
           <div className={s.aiBody}>
             <div className={s.aiTitle}>Основные показатели канала</div>
             <div className={s.aiWarn}>ИИ может ошибаться. Перепроверяйте ответы.</div>
@@ -295,10 +317,10 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               <button type="button" className={s.ytPillBtn}>Спросить у Студии</button>
               <div className={s.aiFeedback}>
                 <button type="button" className={s.aiFeedbackButton} aria-label="Нравится">
-                  <ThumbUpIcon size={20} />
+                  <ThumbUpIcon size={22} />
                 </button>
                 <button type="button" className={s.aiFeedbackButton} aria-label="Не нравится">
-                  <ThumbDownIcon size={20} />
+                  <ThumbDownIcon size={22} />
                 </button>
               </div>
             </div>
@@ -413,11 +435,11 @@ export default function OverviewTab({ data, onOpenAdmin }) {
             {newestPool.length > 1 ? (
               <div className={s.pager}>
                 <button type="button" onClick={() => setNewestIdx((i) => Math.max(0, i - 1))} aria-label="Предыдущее" disabled={!canGoPrev}>
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={30} />
                 </button>
                 <span>{newestIdx + 1} из {newestPool.length}</span>
                 <button type="button" onClick={() => setNewestIdx((i) => Math.min(newestPool.length - 1, i + 1))} aria-label="Следующее" disabled={!canGoNext}>
-                  <ChevronRight size={16} />
+                  <ChevronRight size={30} />
                 </button>
               </div>
             ) : null}

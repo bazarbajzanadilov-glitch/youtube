@@ -394,6 +394,10 @@ button.ytKpiCell {
   text-align: center;
 }
 
+.overviewMain .sectionTitle {
+  font-weight: 700;
+}
+
 .overviewSectionBreak {
   display: flex;
   align-items: center;
@@ -738,6 +742,7 @@ button.ytKpiCell {
   min-height: 108px;
   padding: 17px 18px 11px;
   background: #0f0f0f;
+  overflow: hidden;
   transition: background-color 120ms ease;
 }
 
@@ -751,7 +756,7 @@ button.ytKpiCell {
 }
 
 .overviewHeroCard .ytKpiCellActive .ytKpiLabel {
-  color: #f1f1f1;
+  color: #aaa;
 }
 
 .overviewHeroCard .ytKpiCellActive .ytKpiValue {
@@ -768,9 +773,12 @@ button.ytKpiCell {
 }
 
 .overviewHeroCard .ytKpiNote {
+  width: 100%;
   font-size: 12px;
   line-height: 16px;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  white-space: normal;
 }
 
 .overviewHeroCard .ytKpiCell:last-child .ytKpiNote {
@@ -812,6 +820,8 @@ button.ytKpiCell {
 }
 
 .overviewAICard {
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 0 10px;
   min-height: 344px;
   border-radius: 12px;
   border-color: rgba(255, 255, 255, 0.2);
@@ -827,17 +837,46 @@ button.ytKpiCell {
 
 .overviewAICard .aiIcon,
 .overviewAICard .aiIcon svg {
-  color: #fff;
+  color: #bd73ff;
+}
+
+.overviewAICard .aiBody {
+  display: contents;
+}
+
+.overviewAICard .aiTitle {
+  align-self: end;
+}
+
+.overviewAICard .aiWarn {
+  grid-column: 2;
+  margin-top: -2px;
+}
+
+.overviewAICard .aiParagraphs {
+  grid-column: 1 / -1;
+  margin-top: 12px;
 }
 
 .overviewAICard .aiActions {
-  width: calc(100% + 46px);
+  grid-column: 1 / -1;
+  width: 100%;
   margin-top: 14px;
-  margin-left: -46px;
+  margin-left: 0;
 }
 
 .overviewAICard .aiParagraphs p {
   margin: 8px 0;
+}
+
+.overviewAICard .aiFeedbackButton {
+  width: 38px;
+  height: 38px;
+}
+
+.overviewAICard .aiFeedbackButton svg {
+  width: 22px;
+  height: 22px;
 }
 
 .overviewSideCard {
@@ -924,7 +963,7 @@ button.ytKpiCell {
 
 .overviewNewVideoCard .ytWideBtn {
   width: auto;
-  margin: 0 0 12px 8px;
+  margin: 0 0 4px 8px;
   min-height: 36px;
   padding: 0 16px;
   align-self: flex-start;
@@ -943,10 +982,36 @@ button.ytKpiCell {
 }
 
 .overviewNewVideoCard .pager {
-  gap: 12px;
-  margin-top: auto;
-  padding-top: 8px;
-  margin: auto 16px 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 0;
+  width: calc(100% - 32px);
+  margin: 2px 16px 0;
+  padding-top: 6px;
+}
+
+.overviewNewVideoCard .pager span {
+  justify-self: center;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.overviewNewVideoCard .pager button {
+  width: 44px;
+  height: 44px;
+}
+
+.overviewNewVideoCard .pager button:first-child {
+  justify-self: start;
+}
+
+.overviewNewVideoCard .pager button:last-child {
+  justify-self: end;
+}
+
+.overviewNewVideoCard .pager button svg {
+  width: 30px;
+  height: 30px;
 }
 
 .overviewNewVideoCard .metricRow strong {
