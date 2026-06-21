@@ -62,7 +62,7 @@
   margin: 0;
   padding: 2px 0 18px;
   color: #f1f1f1;
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
   font-size: 18px;
   font-weight: 500;
   line-height: 26px;
@@ -179,7 +179,7 @@
 .sectionTitle {
   margin: 6px 0 0;
   color: #f1f1f1;
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
   font-size: 18px;
   font-weight: 500;
   line-height: 24px;
@@ -270,7 +270,7 @@
 
 .sideTitle {
   color: #f1f1f1;
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
   font-size: 16px;
   font-weight: 500;
   line-height: 22px;
@@ -511,7 +511,7 @@
 .sidePanel h3 {
   margin: 0;
   color: var(--studio-text);
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
   font-size: 20px;
   font-weight: 700;
   line-height: 28px;
@@ -525,7 +525,7 @@
 .partnerSection h3 {
   margin: 0;
   color: var(--studio-text);
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
   font-size: 17px;
   font-weight: 700;
   line-height: 24px;
@@ -551,21 +551,27 @@
 }
 
 .sourceRow {
+  position: relative;
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   min-height: 73px;
   padding: 0 25px;
-  border-bottom: 1px solid var(--studio-row-separator);
   color: var(--studio-text);
   font-size: 17px;
   font-weight: 600;
   line-height: 25px;
 }
 
-.sourceRow:last-child {
-  border-bottom: 0;
+.sourceRow:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 30px;
+  bottom: 0;
+  left: 30px;
+  height: 1px;
+  background: var(--studio-row-separator);
 }
 
 .sourceRow > span {

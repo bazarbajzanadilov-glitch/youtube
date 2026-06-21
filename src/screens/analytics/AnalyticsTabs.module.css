@@ -323,7 +323,7 @@ button.ytKpiCell {
 .aiTitle {
   font-size: 18px;
   line-height: 26px;
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
 }
 
 .cardTitleInline {
@@ -387,7 +387,7 @@ button.ytKpiCell {
   min-height: 44px;
   margin: 0 0 6px;
   color: #f1f1f1;
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
   font-size: 18px;
   font-weight: 500;
   line-height: 24px;
@@ -760,9 +760,9 @@ button.ytKpiCell {
 
 .overviewHeroCard .ytKpiValue {
   gap: 6px;
-  font-family: var(--studio-font);
-  font-size: var(--studio-analytics-kpi-value-font-size);
-  font-weight: var(--studio-analytics-kpi-value-font-weight);
+  font-family: sans-serif;
+  font-size: 2.4rem;
+  font-weight: 700;
   line-height: var(--studio-analytics-kpi-value-line-height);
   white-space: nowrap;
 }
@@ -848,7 +848,7 @@ button.ytKpiCell {
 }
 
 .overviewSideCard .sideTitle {
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
 }
 
 .overviewNewVideoCard {
@@ -860,7 +860,7 @@ button.ytKpiCell {
 }
 
 .overviewNewVideoCard .sideTitle {
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
   font-size: 18px;
   line-height: 24px;
   padding: 14px 16px 10px;

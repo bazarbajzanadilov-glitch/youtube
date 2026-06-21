@@ -25,7 +25,7 @@
 .title {
   display: flex;
   align-items: flex-start;
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
   font-size: var(--studio-page-title-font-size);
   font-weight: var(--studio-page-title-font-weight);
   line-height: var(--studio-page-title-line-height);

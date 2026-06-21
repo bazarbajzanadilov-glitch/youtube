@@ -37,7 +37,7 @@
   padding-left: 8px;
 }
 .title {
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
   font-size: 3.45rem;
   font-weight: var(--studio-page-title-font-weight);
   line-height: var(--studio-page-title-line-height);

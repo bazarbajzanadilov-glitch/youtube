@@ -19,7 +19,7 @@
   margin: 0;
   min-height: 55px;
   color: var(--studio-text);
-  font-family: "YouTube Sans", var(--studio-font);
+  font-family: var(--studio-font);
   font-size: var(--studio-page-title-font-size);
   font-weight: var(--studio-page-title-font-weight);
   line-height: var(--studio-page-title-line-height);

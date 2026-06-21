@@ -47,7 +47,7 @@
 }
 
 :root {
-  --studio-font: "YouTube Sans", Roboto, Arial, sans-serif;
+  --studio-font: Roboto, Arial, sans-serif;
   --studio-bg: #0f0f0f;
   --studio-canvas: #0f0f0f;
   --studio-surface: #0f0f0f;
