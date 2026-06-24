@@ -28,8 +28,12 @@ export const RANGE_OPTIONS = [
   { kind: 'custom', label: 'Другой диапазон дат', days: null },
 ]
 
+export function getAnalyticsEndDate(today = new Date()) {
+  return startOfDay(addDays(today, -1))
+}
+
 export function resolveRange(range, videos, today = new Date()) {
-  const todayD = startOfDay(today)
+  const todayD = getAnalyticsEndDate(today)
   const yearMatch = /^year-(\d{4})$/.exec(range?.kind || '')
   if (yearMatch) {
     const year = Number(yearMatch[1])

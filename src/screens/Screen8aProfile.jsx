@@ -7,8 +7,8 @@ import { CopyIcon, PlusIcon, HelpIcon } from './icons.jsx'
 import { useChannel } from '../storage/useChannel.js'
 
 const TABS = ['Профиль', 'Вкладка "Главная"']
-const DEFAULT_AVATAR = '/studio-assets/channel-avatar-reference.jpg'
-const LogoPlayer = () => <div className={s.logoGenerated}>SM</div>
+const DEFAULT_AVATAR = '/studio-assets/trading-avatar.svg'
+const LogoPlayer = () => <div className={s.logoGenerated}>TI</div>
 const BannerArt = ({ name }) => <div className={s.bannerGenerated}>{name}</div>
 
 export default function Screen8aProfile() {
@@ -94,7 +94,7 @@ export default function Screen8aProfile() {
 
         <div className={s.section}>
           <div className={s.sectionTitle}>Описание канала</div>
-          <textarea className={s.textarea} defaultValue="-"/>
+          <textarea className={s.textarea} defaultValue="Разборы сделок, риск-менеджмент и дневник дохода от трейдинга."/>
           <button type="button" className={s.addPill}><PlusIcon size={14}/>Добавить перевод</button>
         </div>
 

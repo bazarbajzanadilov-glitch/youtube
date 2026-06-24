@@ -9,7 +9,7 @@ export default function TopBar() {
   const { showToast, toggleSidebar, go } = useContext(NavContext)
   const { channel } = useChannel()
   const searchRef = useRef(null)
-  const avatarUrl = channel.avatar || '/studio-assets/channel-avatar-reference.jpg'
+  const avatarUrl = channel.avatar || '/studio-assets/trading-avatar.svg'
 
   async function handleHardReset() {
     showToast('Сброс кеша сайта')

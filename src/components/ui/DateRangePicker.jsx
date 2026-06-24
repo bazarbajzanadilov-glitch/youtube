@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import s from './DateRangePicker.module.css'
 import { ChevronDown } from '../../screens/icons.jsx'
-import { RANGE_OPTIONS } from '../../lib/analyticsAggregator.js'
+import { RANGE_OPTIONS, getAnalyticsEndDate } from '../../lib/analyticsAggregator.js'
 
 const RU_MONTHS = ['янв.','февр.','мар.','апр.','мая','июн.','июл.','авг.','сент.','окт.','нояб.','дек.']
 const RU_MONTH_LABELS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
@@ -39,14 +39,18 @@ function formatDateRangeSub(range) {
   const opt = RANGE_OPTIONS.find((r) => r.kind === range.kind)
   const days = opt?.days
   if (!days) return 'Выбранный период'
-  const to = new Date()
+  const to = getAnalyticsEndDate()
   const from = new Date(to)
   from.setDate(to.getDate() - (days - 1))
   return formatDateRange(from, to)
 }
 
-function isoToday() {
-  return new Date().toISOString().slice(0, 10)
+function isoDate(date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
+}
+
+function isoReportingEnd() {
+  return isoDate(getAnalyticsEndDate())
 }
 
 function formatDateRange(from, to) {
@@ -54,7 +58,7 @@ function formatDateRange(from, to) {
 }
 
 function getFixedRange(range, today = new Date()) {
-  const todayD = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const todayD = getAnalyticsEndDate(today)
   const yearMatch = /^year-(\d{4})$/.exec(range?.kind || '')
   if (yearMatch) {
     const year = Number(yearMatch[1])
@@ -105,8 +109,8 @@ function buildMenuGroups(today = new Date()) {
 export default function DateRangePicker({ value, onChange }) {
   const [open, setOpen] = useState(false)
   const [showCustom, setShowCustom] = useState(false)
-  const [customFrom, setCustomFrom] = useState(value?.from || isoToday())
-  const [customTo, setCustomTo] = useState(value?.to || isoToday())
+  const [customFrom, setCustomFrom] = useState(value?.from || isoReportingEnd())
+  const [customTo, setCustomTo] = useState(value?.to || isoReportingEnd())
   const ref = useRef(null)
 
   useEffect(() => {
@@ -197,7 +201,7 @@ export default function DateRangePicker({ value, onChange }) {
                 </label>
                 <label className={s.customField}>
                   <span>По</span>
-                  <input type="date" value={customTo} min={customFrom} max={isoToday()} onChange={(e) => setCustomTo(e.target.value)} />
+                  <input type="date" value={customTo} min={customFrom} max={isoReportingEnd()} onChange={(e) => setCustomTo(e.target.value)} />
                 </label>
                 <div className={s.customActions}>
                   <button type="button" className={s.cancelBtn} onClick={() => setShowCustom(false)}>Назад</button>

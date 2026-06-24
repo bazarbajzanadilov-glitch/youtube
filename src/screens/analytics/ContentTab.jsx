@@ -61,12 +61,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
   const { content, range } = data
   const [trafficTab, setTrafficTab] = useState(0)
   const [activeType, setActiveType] = useState(null)
-  const defaultTypeIndex = useMemo(() => {
-    const resolvedTypes = (content.allVideos || []).map(normalizeVideoType)
-    if (resolvedTypes.includes('live')) return 2
-    if (resolvedTypes.includes('short')) return 1
-    return 0
-  }, [content.allVideos])
+  const defaultTypeIndex = 0
   const selectedType = activeType ?? defaultTypeIndex
   const typeKey = TYPE_KEYS[selectedType]
   const filteredVideos = useMemo(() => (
@@ -152,7 +147,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
             dataKey="views"
             xKey="date"
             color={ANALYTICS_PURPLE}
-            height={242}
+            height={174}
             name="Просмотры"
             formatY={formatCompactNumber}
             formatTooltipValue={formatNumberRu}

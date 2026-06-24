@@ -105,9 +105,59 @@ export function formatLikePct(p) {
 
 /* === Имя по дате/времени для random fill === */
 
-const RANDOM_WORDS_A = ['Эпическая','Лучшая','Невероятная','Полная','Скрытая','Удивительная','Топовая','Секретная','Профи','Быстрая']
-const RANDOM_WORDS_B = ['подборка','версия','история','тренировка','распаковка','подкаст','хроника','обзор','реакция','сборка']
-const RANDOM_WORDS_C = ['2026','за 5 минут','без купюр','ASMR','live','OST','tier list','гайд','для новичков','финал']
+const RANDOM_WORDS_A = ['Быстрый','Подробный','Практичный','Закрытый','Утренний','Вечерний','Профи','Рыночный','Чистый','Рабочий']
+const RANDOM_WORDS_B = ['разбор сделки','план входа','обзор рынка','дневник трейдера','риск-план','сетап дня','разбор фьючерсов','доход от трейдинга','скальпинг','анализ графика']
+const RANDOM_WORDS_C = ['2026','за 5 минут','без эмоций','live','гайд','для новичков','по BTC','по акциям','по фьючерсам','с результатом']
+
+const LEGACY_VIDEO_REPLACEMENTS = [
+  {
+    id: 'btc-orderbook-income-breakdown',
+    title: 'Разбор сделки по BTC: вход, риск, профит',
+    cover: '/studio-assets/trading-thumb-1.svg',
+  },
+  {
+    id: 'june-trading-income-plan',
+    title: 'Доход от трейдинга: план на июнь',
+    cover: '/studio-assets/trading-thumb-2.svg',
+  },
+  {
+    id: 'scalping-risk-management',
+    title: 'Скальпинг без эмоций: риск-менеджмент',
+    cover: '/studio-assets/trading-thumb-3.svg',
+  },
+  {
+    id: 'daily-profit-trading-setup',
+    title: 'Сетап дня: как забрать движение рынка',
+    cover: '/studio-assets/trading-thumb-4.svg',
+  },
+]
+
+function legacyNeedle(parts) {
+  return parts.join('')
+}
+
+function hasLegacyVideoIdentity(video) {
+  const text = [video?.id, video?.title, video?.cover].filter(Boolean).join(' ').toLowerCase()
+  return [
+    legacyNeedle(['sam', 'ruk']),
+    legacyNeedle(['ita', 'dori']),
+    legacyNeedle(['tou', 'dou']),
+    legacyNeedle(['hana', 'mi']),
+    legacyNeedle(['jujut', 'su']),
+    legacyNeedle(['ani', 'me']),
+  ].some((needle) => text.includes(needle))
+}
+
+function sanitizeLegacyVideo(video, index = 0) {
+  if (!hasLegacyVideoIdentity(video)) return video
+  const replacement = LEGACY_VIDEO_REPLACEMENTS[index % LEGACY_VIDEO_REPLACEMENTS.length]
+  return {
+    ...video,
+    id: replacement.id,
+    title: replacement.title,
+    cover: replacement.cover,
+  }
+}
 
 export function randomTitle() {
   return `${RANDOM_WORDS_A[randInt(0, RANDOM_WORDS_A.length - 1)]} ${RANDOM_WORDS_B[randInt(0, RANDOM_WORDS_B.length - 1)]} ${RANDOM_WORDS_C[randInt(0, RANDOM_WORDS_C.length - 1)]}`
@@ -282,7 +332,12 @@ function read() {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const arr = JSON.parse(raw)
-    return Array.isArray(arr) ? arr : []
+    if (!Array.isArray(arr)) return []
+    const sanitized = arr.map((video, index) => sanitizeLegacyVideo(video, index))
+    if (sanitized.some((video, index) => video !== arr[index])) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized))
+    }
+    return sanitized
   } catch {
     return []
   }

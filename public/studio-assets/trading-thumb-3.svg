@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Risk management trading">
+  <rect width="1280" height="720" fill="#081313"/>
+  <rect x="86" y="82" width="1108" height="556" rx="34" fill="#102223"/>
+  <g stroke="#284345" stroke-width="2">
+    <path d="M170 178h940M170 278h940M170 378h940M170 478h940"/>
+    <path d="M250 150v380M430 150v380M610 150v380M790 150v380M970 150v380"/>
+  </g>
+  <path d="M176 486c88-14 137-75 224-80 78-5 126 52 196 25 90-35 122-178 218-178 80 0 118 94 180 84 45-8 68-64 112-82" fill="none" stroke="#56b0aa" stroke-width="15" stroke-linecap="round"/>
+  <rect x="704" y="194" width="122" height="284" rx="16" fill="#1b3435" stroke="#56b0aa" stroke-width="5"/>
+  <text x="742" y="348" fill="#f1f1f1" font-family="Arial, sans-serif" font-size="46" font-weight="700">SL</text>
+  <text x="108" y="128" fill="#f1f1f1" font-family="Arial, sans-serif" font-size="58" font-weight="700">NO EMOTION</text>
+  <text x="108" y="604" fill="#56b0aa" font-family="Arial, sans-serif" font-size="58" font-weight="700">RISK CONTROL</text>
+</svg>

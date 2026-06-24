@@ -78,7 +78,7 @@ function PaneChannel({ channel, setChannelName }) {
         <Select label="Страна" value={COUNTRY_LABELS[channel.country] || 'Казахстан'}/>
       </Field>
       <Field label="Ключевые слова" hint="Через запятую укажите слова, которые описывают содержание канала.">
-        <input type="text" className={s.input} placeholder="Например, музыка, обзор, обучение" defaultValue="anime, ost, jujutsu kaisen"/>
+        <input type="text" className={s.input} placeholder="Например, трейдинг, рынок, доход" defaultValue="trading, income, market breakdown"/>
       </Field>
     </>
   )
@@ -110,7 +110,7 @@ function PanePermissions({ channelName }) {
           <div className={s.userAvatar}/>
           <div className={s.userInfo}>
             <div className={s.userName}>{channelName}</div>
-            <div className={s.userEmail}>reli.sheets1@gmail.com</div>
+            <div className={s.userEmail}>creator@trading.local</div>
           </div>
           <span className={s.userRole}>Владелец</span>
         </div>

@@ -104,7 +104,7 @@
 .dateWrap { margin-left: auto; padding-left: 24px; padding-right: 0; }
 .controlRowTrends {
   margin-top: 0;
-  margin-bottom: 22px;
+  margin-bottom: 56px;
 }
 
 .headerRowOverview,
@@ -129,30 +129,6 @@
   margin-right: 0;
   padding-left: 24px;
   padding-right: 16px;
-}
-
-.headerRowRail {
-  padding-left: 79px;
-  padding-right: 34px;
-  box-sizing: border-box;
-}
-
-.suggestRowRail {
-  padding-left: 103px;
-  padding-right: 34px;
-  box-sizing: border-box;
-}
-
-.controlRowRail {
-  margin-left: 0;
-  margin-right: 0;
-  padding-left: 103px;
-  padding-right: 34px;
-  box-sizing: border-box;
-}
-
-.dateWrapRail {
-  padding-right: 0;
 }
 
 .advancedOverlay {
@@ -318,13 +294,6 @@
 
   .dateWrap {
     padding-right: 0;
-  }
-
-  .headerRowRail,
-  .suggestRowRail,
-  .controlRowRail {
-    padding-left: 24px;
-    padding-right: 24px;
   }
 
   .headerRowOverview,

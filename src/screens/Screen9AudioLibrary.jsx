@@ -72,7 +72,7 @@ export default function Screen9AudioLibrary() {
       <TopBar/>
       <Sidebar active="audio"/>
       <div className={s.main}>
-        <h1 className={s.title}>Фонотека</h1>
+        <h1 className={s.title}>Creator Music (бета)</h1>
 
         <div className={s.hScroll} ref={tableScrollRef} onScroll={() => syncScroll(tableScrollRef, fixedScrollRef)}>
           <div className={s.contentRail}>
@@ -145,7 +145,7 @@ export default function Screen9AudioLibrary() {
             <div className={s.pagination}>
               <div className={s.footerLinks}>
                 <button type="button" className={s.footerLink} onClick={() => showToast('Условия использования')}>Условия использования</button>
-                <button type="button" className={s.footerLink} onClick={() => showToast('Отзыв о Фонотеке')}>Отзыв о Фонотеке</button>
+                <button type="button" className={s.footerLink} onClick={() => showToast('Отзыв о Creator Music')}>Отзыв о Creator Music</button>
               </div>
               <div className={s.paginationRight}>
                 <div className={s.perPage}>

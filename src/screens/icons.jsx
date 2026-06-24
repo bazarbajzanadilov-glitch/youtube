@@ -168,12 +168,6 @@ export const AvatarCircle = ({ size = 32, color = '#000000' }) => (
   <svg width={size} height={size} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill={color}/></svg>
 )
 
-/* SM thumbnail (Samruk Med) */
-export const SMThumb = ({ width = '100%', height }) => (
-  <img src="/studio-assets/samruk-thumb.png" alt="" width={width} height={height} style={{ width, height, display: 'block', objectFit: 'cover' }} />
-)
-
-/* Anime thumbnail (Itadori) */
-export const AnimeThumb = ({ width = '100%', height }) => (
-  <img src="/studio-assets/anime-thumb.png" alt="" width={width} height={height} style={{ width, height, display: 'block', objectFit: 'cover' }} />
+export const TradingThumb = ({ width = '100%', height }) => (
+  <img src="/studio-assets/trading-thumb-1.svg" alt="" width={width} height={height} style={{ width, height, display: 'block', objectFit: 'cover' }} />
 )

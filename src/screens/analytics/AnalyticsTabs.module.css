@@ -68,7 +68,7 @@ button.ytKpiCell {
 }
 
 .ytKpiCellActive {
-  background: #282828;
+  background: transparent;
 }
 
 .ytKpiLabel {
@@ -96,11 +96,15 @@ button.ytKpiCell {
 }
 
 .ytKpiNote {
+  align-self: stretch;
   margin-top: 0;
   color: #aaa;
   font-size: 12px;
   font-style: italic;
   line-height: 16px;
+  overflow-wrap: break-word;
+  text-align: center;
+  white-space: normal;
 }
 
 .downMark {
@@ -137,7 +141,7 @@ button.ytKpiCell {
 }
 
 .ytHeroChart {
-  padding: 10px 22px 0;
+  padding: 10px 0 0;
 }
 
 .revenueHeroTooltip {
@@ -151,15 +155,15 @@ button.ytKpiCell {
 
 .revenueHeroTooltipLabel {
   margin-bottom: 10px;
-  color: #f1f1f1;
-  font-size: 15px;
+  color: #c8c8c8;
+  font-size: 10px;
   font-weight: 500;
-  line-height: 22px;
+  line-height: 17px;
   text-transform: none;
 }
 
 .revenueHeroTooltipValue {
-  color: var(--studio-analytics-chart-bar);
+  color: #56b0aa;
   font-size: 22px;
   font-weight: 500;
   line-height: 30px;
@@ -773,20 +777,14 @@ button.ytKpiCell {
 }
 
 .overviewHeroCard .ytKpiNote {
-  width: 100%;
   font-size: 12px;
   line-height: 16px;
-  overflow-wrap: anywhere;
-  text-wrap: balance;
-  white-space: normal;
-}
-
-.overviewHeroCard .ytKpiCell:last-child .ytKpiNote {
+  overflow-wrap: break-word;
   white-space: normal;
 }
 
 .overviewHeroCard .ytHeroChart {
-  padding: 16px 16px 0;
+  padding: 16px 0 0;
 }
 
 .overviewHeroCard .ytHeroFooter {
@@ -805,10 +803,10 @@ button.ytKpiCell {
 
 .overviewHeroTooltipLabel {
   margin-bottom: 10px;
-  color: #f1f1f1;
-  font-size: 15px;
+  color: #c8c8c8;
+  font-size: 10px;
   font-weight: 500;
-  line-height: 22px;
+  line-height: 17px;
   text-transform: none;
 }
 
@@ -1099,8 +1097,10 @@ button.ytKpiCell {
 }
 
 .revenueRail {
-  width: 1264px;
-  padding: 0 34px 32px 79px;
+  --studio-analytics-chart-bar: #56b0aa;
+  width: 100%;
+  max-width: 1264px;
+  padding: 0 24px 32px;
   box-sizing: border-box;
 }
 
@@ -1181,7 +1181,6 @@ button.ytKpiCell {
   }
 
   .revenueRail {
-    width: auto;
     padding: 0 24px;
   }
 }
@@ -1608,8 +1607,9 @@ button.ytKpiCell {
 }
 
 .trendsPage {
-  width: 1264px;
-  padding: 8px 34px 32px 79px;
+  width: 100%;
+  max-width: 1264px;
+  padding: 8px 24px 32px;
   box-sizing: border-box;
 }
 
@@ -1617,6 +1617,7 @@ button.ytKpiCell {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
   margin-bottom: 24px;
 }
 

@@ -80,7 +80,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
             dataKey="subscribers"
             xKey="date"
             color={ANALYTICS_PURPLE}
-            height={242}
+            height={174}
             name="Подписчики"
             formatY={formatCompactNumber}
             formatTooltipValue={formatNumberRu}

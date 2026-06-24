@@ -47,8 +47,10 @@
 }
 
 .searchWrap {
-  flex: 0 0 768px;
-  margin: 0 28px 0 444px;
+  flex: 1 1 520px;
+  max-width: 720px;
+  min-width: 180px;
+  margin: 0 16px 0 auto;
   height: 40px;
   display: flex;
   align-items: center;
@@ -87,7 +89,7 @@
   display: flex;
   align-items: center;
   gap: 0;
-  margin-left: auto;
+  margin-left: 0;
   flex-shrink: 0;
 }
 

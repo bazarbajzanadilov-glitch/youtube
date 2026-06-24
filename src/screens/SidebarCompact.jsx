@@ -16,13 +16,13 @@ const ITEMS = [
   { key: 'copyright', label: 'Обнаружение контента', Icon: SideCopyright },
   { key: 'monetize', label: 'Монетизация', Icon: SideMonetize },
   { key: 'channel', label: 'Настройка канала', Icon: SideMagic },
-  { key: 'audio', label: 'Фонотека', Icon: SideAudio },
+  { key: 'audio', label: 'Creator Music (бета)', Icon: SideAudio },
 ]
 
 export default function SidebarCompact({ active = 'home' }) {
   const { go, showToast } = useContext(NavContext)
   const { channel } = useChannel()
-  const avatarUrl = channel.avatar || '/studio-assets/channel-avatar-reference.jpg'
+  const avatarUrl = channel.avatar || '/studio-assets/trading-avatar.svg'
   return (
     <div className={s.sidebar}>
       <div className={s.sideAvatar} style={{ backgroundImage: `url(${avatarUrl})` }}/>
@@ -42,7 +42,7 @@ export default function SidebarCompact({ active = 'home' }) {
         ))}
       </div>
       <div className={s.sideBottom}>
-        <button type="button" className={s.sideItem} onClick={() => go('settings')} aria-label="Настройки" title="Настройки">
+        <button type="button" className={`${s.sideItem} ${active === 'settings' ? s.sideActive : ''}`} onClick={() => go('settings')} aria-label="Настройки" title="Настройки">
           <SideSettings/>
         </button>
         <button

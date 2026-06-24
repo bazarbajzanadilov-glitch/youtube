@@ -8,36 +8,36 @@ const STORAGE_EVENT = 'yt-studio-channel-update'
 
 const DEFAULT_DASHBOARD_COMMENTS = [
   {
-    id: 'comment-tvman',
-    author: '@tvman-q2s',
-    age: '4 месяца назад',
-    text: 'Ты сканер я проверил код не работает',
-    avatarColor: '#4a4a4a',
+    id: 'comment-risk-plan',
+    author: '@risk.plan',
+    age: '2 дня назад',
+    text: 'Разбор по риску понятный, жду продолжение по входам.',
+    avatarColor: '#245c5a',
   },
   {
-    id: 'comment-titah',
-    author: '@titahhdjdjdj',
-    age: '4 месяца назад',
-    text: 'Я',
-    avatarColor: '#6a4c33',
+    id: 'comment-market-watch',
+    author: '@market.watch',
+    age: '5 дней назад',
+    text: 'Сетап отработал почти по плану, спасибо за уровни.',
+    avatarColor: '#3b5f38',
   },
   {
-    id: 'comment-anime',
-    author: '@love.anime.19',
-    age: '5 месяцев назад',
-    text: 'Твой код не работает:(',
-    avatarColor: '#6f2727',
+    id: 'comment-profit-log',
+    author: '@profit.log',
+    age: '1 неделю назад',
+    text: 'Формат с доходом за неделю заходит лучше всего.',
+    avatarColor: '#625527',
   },
 ]
 
 const DEFAULT_RECENT_SUBSCRIBERS = [
-  { id: 'sub-nurbolat', name: 'Нурболат777', count: '3,24 тыс. подписчиков', avatarColor: '#545454' },
-  { id: 'sub-azizbek', name: 'az1zbek_me', count: '105 подписчиков', avatarColor: '#6e4f36' },
-  { id: 'sub-football', name: 'respect football', count: '23 подписчика', avatarColor: '#6f2727' },
+  { id: 'sub-scalper', name: 'Scalper KZ', count: '3,24 тыс. подписчиков', avatarColor: '#245c5a' },
+  { id: 'sub-crypto-desk', name: 'Crypto Desk', count: '105 подписчиков', avatarColor: '#4a5f36' },
+  { id: 'sub-futures-room', name: 'Futures Room', count: '23 подписчика', avatarColor: '#625527' },
 ]
 
 const DEFAULT_CHANNEL = {
-  channelName: 'PRENTOSOV',
+  channelName: 'TRADING INSIDER',
   country: 'KZ',
   subscriberCount: 79,
   monetizationEnabled: true,
@@ -53,10 +53,32 @@ function cloneList(list) {
   return Array.isArray(list) ? list.map((item) => ({ ...item })) : []
 }
 
-const LEGACY_CHANNEL_NAMES = new Set(['rest' + 'sheets', 'rest' + 'shits', 'trading1'])
+const LEGACY_CHANNEL_NAMES = new Set([
+  ['rest', 'sheets'].join(''),
+  ['rest', 'shits'].join(''),
+  'trading1',
+  ['pren', 'tosov'].join(''),
+])
+
+function hasLegacyDashboardContent(list) {
+  const text = cloneList(list)
+    .map((item) => Object.values(item).join(' '))
+    .join(' ')
+    .toLowerCase()
+  return [
+    ['ani', 'me'].join(''),
+    'tvman',
+    'titah',
+    'football',
+    'nurbolat',
+    'az1zbek',
+    'сканер',
+    'код не работает',
+  ].some((needle) => text.includes(needle))
+}
 
 function normalizeChannel(value = {}) {
-  const rawChannelName = typeof value.channelName === 'string' ? value.channelName.trim() : value.channelName
+  const rawChannelName = typeof value.channelName === 'string' ? value.channelName : value.channelName
   const compactChannelName = typeof rawChannelName === 'string'
     ? rawChannelName.toLowerCase().replace(/\s+/g, '')
     : ''
@@ -64,16 +86,25 @@ function normalizeChannel(value = {}) {
     ? DEFAULT_CHANNEL.channelName
     : rawChannelName
 
+  const dashboardComments = Array.isArray(value.dashboardComments)
+    ? cloneList(value.dashboardComments)
+    : cloneList(DEFAULT_DASHBOARD_COMMENTS)
+  const recentSubscribers = Array.isArray(value.recentSubscribers)
+    ? cloneList(value.recentSubscribers)
+    : cloneList(DEFAULT_RECENT_SUBSCRIBERS)
+
   return {
     ...DEFAULT_CHANNEL,
     ...value,
-    channelName: channelName || DEFAULT_CHANNEL.channelName,
-    dashboardComments: Array.isArray(value.dashboardComments)
-      ? cloneList(value.dashboardComments)
-      : cloneList(DEFAULT_DASHBOARD_COMMENTS),
-    recentSubscribers: Array.isArray(value.recentSubscribers)
-      ? cloneList(value.recentSubscribers)
-      : cloneList(DEFAULT_RECENT_SUBSCRIBERS),
+    channelName: typeof channelName === 'string' && channelName.trim() === ''
+      ? DEFAULT_CHANNEL.channelName
+      : (channelName || DEFAULT_CHANNEL.channelName),
+    dashboardComments: hasLegacyDashboardContent(dashboardComments)
+      ? cloneList(DEFAULT_DASHBOARD_COMMENTS)
+      : dashboardComments,
+    recentSubscribers: hasLegacyDashboardContent(recentSubscribers)
+      ? cloneList(DEFAULT_RECENT_SUBSCRIBERS)
+      : recentSubscribers,
   }
 }
 
@@ -93,7 +124,11 @@ function read() {
     const raw = ls.getItem(STORAGE_KEY)
     if (!raw) return normalizeChannel(DEFAULT_CHANNEL)
     const parsed = JSON.parse(raw)
-    return normalizeChannel(parsed)
+    const normalized = normalizeChannel(parsed)
+    if (JSON.stringify(parsed) !== JSON.stringify(normalized)) {
+      ls.setItem(STORAGE_KEY, JSON.stringify(normalized))
+    }
+    return normalized
   } catch {
     return normalizeChannel(DEFAULT_CHANNEL)
   }

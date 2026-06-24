@@ -6,7 +6,7 @@ import { NavContext } from './NavContext.js'
 import {
   randomTitle, randomDuration,
   suggestRevenue, computeMetrics, generateVideoStats,
-  formatNumber, formatMoney, formatLikePct, formatDate,
+  formatNumber, formatMoney, formatLikePct,
 } from '../storage/videoStore.js'
 import { useVideos } from '../storage/useVideos.js'
 import { useChannel } from '../storage/useChannel.js'
@@ -28,10 +28,16 @@ const CONTENT_TYPES = [
 ]
 
 const todayISO = () => new Date().toISOString().slice(0, 10)
-const DEFAULT_AVATAR = '/studio-assets/channel-avatar-reference.jpg'
+const DEFAULT_AVATAR = '/studio-assets/trading-avatar.svg'
 const blankForm = () => ({
-  id: null, title: '', cover: null, date: todayISO(),
-  duration: '', type: 'video', views: '', revenue: '',
+  id: null,
+  title: '',
+  cover: null,
+  date: todayISO(),
+  duration: '',
+  type: 'video',
+  views: '',
+  revenue: '',
 })
 
 function fileToBase64(file) {
@@ -41,10 +47,6 @@ function fileToBase64(file) {
     reader.onerror = reject
     reader.readAsDataURL(file)
   })
-}
-
-function typeLabel(type) {
-  return CONTENT_TYPES.find((item) => item.value === type)?.label || 'Видео'
 }
 
 function makeAdminId(prefix) {
@@ -64,6 +66,16 @@ function downloadJsonFile(filename, value) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+function parseCount(value) {
+  if (value === '' || value == null) return undefined
+  return Math.max(0, parseInt(value, 10) || 0)
+}
+
+function parseRevenue(value) {
+  if (value === '' || value == null) return undefined
+  return Math.max(0, parseFloat(value) || 0)
+}
+
 export default function Screen11Admin() {
   const { showToast } = useContext(NavContext)
   const {
@@ -75,10 +87,10 @@ export default function Screen11Admin() {
   const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [bulkCount, setBulkCount] = useState('5')
-  const fileInputRef = useRef(null)
-  const projectFileInputRef = useRef(null)
   const [confirmState, setConfirmState] = useState(null)
   const [confirmChecked, setConfirmChecked] = useState(false)
+  const fileInputRef = useRef(null)
+  const projectFileInputRef = useRef(null)
 
   const dashboardComments = Array.isArray(channel.dashboardComments)
     ? channel.dashboardComments
@@ -87,21 +99,6 @@ export default function Screen11Admin() {
     ? channel.recentSubscribers
     : CHANNEL_DEFAULTS.recentSubscribers
   const avatarUrl = channel.avatar || DEFAULT_AVATAR
-
-  function askConfirm({ title, message, onConfirm }) {
-    setConfirmChecked(false)
-    setConfirmState({ title, message, onConfirm })
-  }
-  function closeConfirm() {
-    setConfirmState(null)
-    setConfirmChecked(false)
-  }
-  function runConfirm() {
-    if (!confirmChecked || !confirmState) return
-    const fn = confirmState.onConfirm
-    closeConfirm()
-    fn()
-  }
 
   const isEditing = form.id !== null
   const allSelected = videos.length > 0 && selected.size === videos.length
@@ -112,18 +109,35 @@ export default function Screen11Admin() {
     return computeMetrics(v, 0.5)
   }, [form.views])
 
+  function askConfirm({ title, message, onConfirm }) {
+    setConfirmChecked(false)
+    setConfirmState({ title, message, onConfirm })
+  }
+
+  function closeConfirm() {
+    setConfirmState(null)
+    setConfirmChecked(false)
+  }
+
+  function runConfirm() {
+    if (!confirmChecked || !confirmState) return
+    const fn = confirmState.onConfirm
+    closeConfirm()
+    fn()
+  }
+
   function setField(name, value) {
-    setForm((f) => {
-      const next = { ...f, [name]: value }
-      if (name === 'date' && (f.views === '' || f.revenue === '')) {
+    setForm((current) => {
+      const next = { ...current, [name]: value }
+      if (name === 'date' && (current.views === '' || current.revenue === '')) {
         const stats = generateVideoStats({
-          id: f.id || undefined,
+          id: current.id || undefined,
           title: next.title || 'video',
           date: value || todayISO(),
           duration: next.duration || undefined,
         })
-        if (f.views === '') next.views = String(stats.views)
-        if (f.revenue === '') {
+        if (current.views === '') next.views = String(stats.views)
+        if (current.revenue === '') {
           const revenueViews = next.views === '' ? stats.views : Math.max(0, parseInt(next.views, 10) || 0)
           next.revenue = String(suggestRevenue({
             views: revenueViews,
@@ -137,42 +151,27 @@ export default function Screen11Admin() {
     })
   }
 
-  function onChannelField(name, value) {
-    updateChannel({ [name]: value })
-  }
-  function onResetChannel() {
-    askConfirm({
-      title: 'Сбросить настройки канала?',
-      message: 'Название, страна и другие параметры вернутся к значениям по умолчанию.',
-      onConfirm: () => { resetChannel(); showToast('Настройки канала сброшены') },
+  function onRandomFill() {
+    setForm((current) => {
+      const base = {
+        ...current,
+        title: current.title || randomTitle(),
+        date: current.date || todayISO(),
+        duration: current.duration || randomDuration(),
+      }
+      const stats = generateVideoStats({
+        id: base.id || undefined,
+        title: base.title || 'video',
+        date: base.date || todayISO(),
+        duration: base.duration || undefined,
+      })
+      return { ...base, views: String(stats.views), revenue: String(stats.revenue) }
     })
-  }
-  function listSource(key, fallback) {
-    return Array.isArray(channel[key]) ? channel[key] : fallback
-  }
-  function updateListItem(key, fallback, index, patch) {
-    const source = listSource(key, fallback)
-    const next = source.map((item, i) => (i === index ? { ...item, ...patch } : { ...item }))
-    updateChannel({ [key]: next })
-  }
-  function addListItem(key, fallback, item) {
-    const source = listSource(key, fallback)
-    updateChannel({ [key]: [...source.map((entry) => ({ ...entry })), item] })
-  }
-  function removeListItem(key, fallback, index) {
-    const source = listSource(key, fallback)
-    updateChannel({ [key]: source.filter((_, i) => i !== index).map((item) => ({ ...item })) })
-  }
-  function onResetDashboardBlocks() {
-    updateChannel({
-      dashboardComments: CHANNEL_DEFAULTS.dashboardComments.map((item) => ({ ...item })),
-      recentSubscribers: CHANNEL_DEFAULTS.recentSubscribers.map((item) => ({ ...item })),
-    })
-    showToast('Блоки главной сброшены')
   }
 
   async function onCoverChange(e) {
     const file = e.target.files?.[0]
+    e.target.value = ''
     if (!file) return
     setField('cover', await fileToBase64(file))
   }
@@ -181,48 +180,12 @@ export default function Screen11Admin() {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    /* Старая аватарка просто перезаписывается — base64 живёт только
-       в одном поле channel.avatar, история не сохраняется. */
-    const b64 = await fileToBase64(file)
-    updateChannel({ avatar: b64 })
-    showToast('Аватар обновлён')
+    updateChannel({ avatar: await fileToBase64(file) })
   }
+
   function onAvatarRemove() {
     updateChannel({ avatar: null })
-    showToast('Аватар удалён')
   }
-
-  function onRandomFill() {
-    setForm((f) => ({
-      ...f,
-      title: f.title || randomTitle(),
-      date: f.date || todayISO(),
-      duration: f.duration || randomDuration(),
-    }))
-    setForm((f) => {
-      const stats = generateVideoStats({
-        id: f.id || undefined,
-        title: f.title || 'video',
-        date: f.date || todayISO(),
-        duration: f.duration || undefined,
-      })
-      return {
-        ...f,
-        views: String(stats.views),
-        revenue: String(stats.revenue),
-      }
-    })
-    showToast('Поля заполнены случайно')
-  }
-
-  function onEdit(v) {
-    setForm({
-      id: v.id, title: v.title, cover: v.cover, date: v.date,
-      duration: v.duration, type: v.type || 'video', views: String(v.views), revenue: String(v.revenue),
-    })
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-  function onCancelEdit() { setForm(blankForm()) }
 
   function onSubmit(e) {
     e.preventDefault()
@@ -233,41 +196,75 @@ export default function Screen11Admin() {
       date: form.date || todayISO(),
       duration: form.duration || randomDuration(),
       type: form.type || 'video',
-      views: form.views === '' ? undefined : Math.max(0, parseInt(form.views, 10) || 0),
-      revenue: form.revenue === '' ? undefined : Math.max(0, parseFloat(form.revenue) || 0),
+      views: parseCount(form.views),
+      revenue: parseRevenue(form.revenue),
       autoViews: form.views === '',
       autoRevenue: form.revenue === '',
     }
-    if (isEditing) { update(form.id, payload); showToast('Видео обновлено') }
-    else { add(payload); showToast('Видео добавлено') }
+    if (isEditing) {
+      update(form.id, payload)
+      showToast('Видео обновлено')
+    } else {
+      add(payload)
+      showToast('Видео добавлено')
+    }
     setForm(blankForm())
     setSaving(false)
   }
 
+  function onEdit(video) {
+    setForm({
+      id: video.id,
+      title: video.title,
+      cover: video.cover,
+      date: video.date,
+      duration: video.duration,
+      type: video.type || 'video',
+      views: String(video.views),
+      revenue: String(video.revenue),
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function onCancelEdit() {
+    setForm(blankForm())
+  }
+
+  function updateVideoField(video, patch) {
+    update(video.id, patch)
+  }
+
   function onDelete(id) {
-    const v = videos.find((x) => x.id === id)
+    const video = videos.find((item) => item.id === id)
     askConfirm({
       title: 'Удалить видео?',
-      message: v ? `«${v.title}». Это действие нельзя отменить.` : 'Это действие нельзя отменить.',
+      message: video ? `«${video.title}». Это действие нельзя отменить.` : 'Это действие нельзя отменить.',
       onConfirm: () => {
         remove(id)
-        setSelected((prev) => { const n = new Set(prev); n.delete(id); return n })
+        setSelected((prev) => {
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
         if (form.id === id) setForm(blankForm())
-        showToast('Удалено')
+        showToast('Видео удалено')
       },
     })
   }
 
   function toggleOne(id) {
     setSelected((prev) => {
-      const n = new Set(prev)
-      if (n.has(id)) n.delete(id); else n.add(id)
-      return n
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
     })
   }
+
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(videos.map((v) => v.id)))
+    setSelected(allSelected ? new Set() : new Set(videos.map((video) => video.id)))
   }
+
   function onDeleteSelected() {
     if (selected.size === 0) return
     const count = selected.size
@@ -281,9 +278,10 @@ export default function Screen11Admin() {
       },
     })
   }
+
   function onClearAll() {
     askConfirm({
-      title: 'Удалить ВСЕ видео?',
+      title: 'Удалить все видео?',
       message: `Будет удалено ${videos.length}. Действие нельзя отменить.`,
       onConfirm: () => {
         clear()
@@ -295,55 +293,58 @@ export default function Screen11Admin() {
   }
 
   function onBulkAdd() {
-    const n = Math.max(1, Math.min(500, parseInt(bulkCount, 10) || 0))
-    bulkAddRandom(n)
-    showToast(`Добавлено: ${n}`)
+    const count = Math.max(1, Math.min(500, parseInt(bulkCount, 10) || 0))
+    bulkAddRandom(count)
+    showToast(`Добавлено: ${count}`)
   }
 
   function onExport() {
     exportToFile()
     showToast('Скачивается videos.json')
   }
-  function onImportClick() {
-    fileInputRef.current?.click()
+
+  function onExportProject() {
+    downloadJsonFile('youtube-studio-project.json', {
+      channel,
+      videos,
+      exportedAt: new Date().toISOString(),
+    })
+    showToast('Скачивается проект JSON')
   }
-  function onImportProjectClick() {
-    projectFileInputRef.current?.click()
-  }
+
   async function onImportFile(e) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
     try {
-      const text = await file.text()
-      const arr = JSON.parse(text)
-      if (!Array.isArray(arr)) throw new Error('not array')
+      const parsed = JSON.parse(await file.text())
+      if (!Array.isArray(parsed)) throw new Error('not array')
       askConfirm({
-        title: `Импортировать ${arr.length} видео?`,
-        message: 'Текущий список будет полностью заменён.',
+        title: `Импортировать ${parsed.length} видео?`,
+        message: 'Текущий список будет полностью заменен.',
         onConfirm: () => {
-          importVideos(arr)
+          importVideos(parsed)
           setSelected(new Set())
-          showToast(`Импортировано: ${arr.length}`)
+          showToast(`Импортировано: ${parsed.length}`)
         },
       })
     } catch {
       showToast('Не удалось прочитать JSON')
     }
   }
+
   async function onImportProjectFile(e) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
     try {
-      const text = await file.text()
-      const parsed = JSON.parse(text)
+      const parsed = JSON.parse(await file.text())
       if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.videos) || typeof parsed.channel !== 'object') {
         throw new Error('invalid project json')
       }
       askConfirm({
         title: 'Импортировать весь проект?',
-        message: 'Будут заменены видео, настройки канала, комментарии и новые подписчики.',
+        message: 'Будут заменены видео и настройки канала.',
         onConfirm: () => {
           importVideos(parsed.videos)
           replaceChannel(parsed.channel)
@@ -356,21 +357,24 @@ export default function Screen11Admin() {
       showToast('Не удалось прочитать JSON проекта')
     }
   }
-  function onReset() {
+
+  function onResetVideos() {
     askConfirm({
-      title: 'Сбросить к версии из кода?',
-      message: 'Все локальные изменения видео будут потеряны и заменены содержимым public/data/videos.json.',
+      title: 'Сбросить видео к версии из кода?',
+      message: 'Локальные изменения видео будут заменены содержимым public/data/videos.json.',
       onConfirm: async () => {
         await resetToBundled()
         setSelected(new Set())
-        showToast('Сброшено к коду')
+        setForm(blankForm())
+        showToast('Видео сброшены')
       },
     })
   }
+
   function onResetProject() {
     askConfirm({
       title: 'Сбросить весь проект?',
-      message: 'Будут сброшены и видео, и настройки канала, и блоки главной Studio.',
+      message: 'Будут сброшены видео, канал и блоки главной Studio.',
       onConfirm: async () => {
         await resetToBundled()
         resetChannel()
@@ -380,311 +384,303 @@ export default function Screen11Admin() {
       },
     })
   }
-  function onExportProject() {
-    downloadJsonFile('youtube-studio-project.json', {
-      channel,
-      videos,
-      exportedAt: new Date().toISOString(),
+
+  function listSource(key, fallback) {
+    return Array.isArray(channel[key]) ? channel[key] : fallback
+  }
+
+  function updateListItem(key, fallback, index, patch) {
+    const source = listSource(key, fallback)
+    updateChannel({ [key]: source.map((item, i) => (i === index ? { ...item, ...patch } : { ...item })) })
+  }
+
+  function addListItem(key, fallback, item) {
+    const source = listSource(key, fallback)
+    updateChannel({ [key]: [...source.map((entry) => ({ ...entry })), item] })
+  }
+
+  function removeListItem(key, fallback, index) {
+    const source = listSource(key, fallback)
+    updateChannel({ [key]: source.filter((_, i) => i !== index).map((item) => ({ ...item })) })
+  }
+
+  function onResetDashboardBlocks() {
+    updateChannel({
+      dashboardComments: CHANNEL_DEFAULTS.dashboardComments.map((item) => ({ ...item })),
+      recentSubscribers: CHANNEL_DEFAULTS.recentSubscribers.map((item) => ({ ...item })),
     })
-    showToast('Скачивается проект JSON')
   }
 
   return (
     <div className={s.page}>
-      <TopBar/>
-      <Sidebar active="admin"/>
-      <div className={`${s.main} ${s.adminMain}`}>
+      <TopBar />
+      <Sidebar active="admin" />
+      <main className={s.main}>
         <div className={s.headerRow}>
-          <h1 className={s.title}>Админка проекта</h1>
-          <button type="button" className={s.dangerBtn} onClick={onClearAll} disabled={videos.length === 0}>
-            Удалить все ({videos.length})
-          </button>
-        </div>
-
-        <div className={s.helpNote}>
-          Админка — это источник данных для всего проекта: видео, канал, комментарии на главной, новые подписчики и аналитика.
-          <b> «Экспорт проекта»</b> сохраняет всё текущее состояние целиком, <b>«Импорт проекта»</b> восстанавливает его одним файлом.
-          Отдельный <b>«Экспорт JSON»</b> ниже сохраняет только массив видео для <code>public/data/videos.json</code>.
+          <div>
+            <h1 className={s.title}>Админка видео</h1>
+            <div className={s.subtitle}>Видео, канал и данные аналитики</div>
+          </div>
+          <div className={s.headerActions}>
+            <button type="button" className={s.ghostBtn} onClick={onExportProject}>Экспорт проекта</button>
+            <button type="button" className={s.ghostBtn} onClick={() => projectFileInputRef.current?.click()}>Импорт проекта</button>
+            <button type="button" className={s.dangerBtn} onClick={onClearAll} disabled={videos.length === 0}>Удалить все</button>
+          </div>
         </div>
 
         <div className={s.statsRow}>
-          <div className={s.statCard}><div className={s.statLabel}>Всего видео</div><div className={s.statValue}>{totals.count}</div></div>
-          <div className={s.statCard}><div className={s.statLabel}>Просмотры</div><div className={s.statValue}>{formatNumber(totals.views)}</div></div>
-          <div className={s.statCard}><div className={s.statLabel}>Лайки</div><div className={s.statValue}>{formatNumber(totals.likes)}</div></div>
-          <div className={s.statCard}><div className={s.statLabel}>Доход</div><div className={s.statValue}>{formatMoney(totals.revenue)}</div></div>
+          <div className={s.statCard}><span>Видео</span><strong>{totals.count}</strong></div>
+          <div className={s.statCard}><span>Просмотры</span><strong>{formatNumber(totals.views)}</strong></div>
+          <div className={s.statCard}><span>Лайки</span><strong>{formatNumber(totals.likes)}</strong></div>
+          <div className={s.statCard}><span>Доход</span><strong>{formatMoney(totals.revenue)}</strong></div>
         </div>
 
-        <section className={s.channelSection}>
-          <div className={s.channelHead}>
-            <div>
-              <h2 className={s.formTitle}>Канал</h2>
-              <p className={s.channelSub}>Параметры влияют на KPI и графики Аналитики и Монетизации</p>
+        <div className={s.editorGrid}>
+          <form className={s.videoPanel} onSubmit={onSubmit}>
+            <div className={s.panelHead}>
+              <div>
+                <h2>{isEditing ? 'Редактировать видео' : 'Новое видео'}</h2>
+                <span>{isEditing ? 'Изменения сохранятся в текущей записи' : 'Главная форма добавления'}</span>
+              </div>
+              <div className={s.formActions}>
+                <button type="button" className={s.ghostBtn} onClick={onRandomFill}>Автозаполнить</button>
+                {isEditing ? <button type="button" className={s.ghostBtn} onClick={onCancelEdit}>Отмена</button> : null}
+              </div>
             </div>
-            <button type="button" className={s.ghostBtn} onClick={onResetChannel}>Сбросить</button>
-          </div>
-          <div className={s.avatarRow}>
-            <div
-              className={s.avatarPreview}
-              style={{ backgroundImage: `url(${avatarUrl})` }}
-              aria-label="Аватар канала"
-            />
-            <div className={s.avatarLabelBlock}>
-              <label className={s.label}>Аватар канала</label>
+
+            <div className={s.videoFormGrid}>
+              <div className={s.coverCol}>
+                <label className={s.coverDrop}>
+                  {form.cover ? <img src={form.cover} alt="" /> : <span>Обложка 16:9</span>}
+                  <input type="file" accept="image/*" onChange={onCoverChange} />
+                </label>
+                {form.cover ? <button type="button" className={s.linkBtn} onClick={() => setField('cover', null)}>Убрать обложку</button> : null}
+              </div>
+
+              <div className={s.fieldsCol}>
+                <label className={`${s.field} ${s.fieldWide}`}>
+                  <span>Название</span>
+                  <input className={s.input} value={form.title} onChange={(e) => setField('title', e.target.value)} placeholder="Например: Разбор сделки по BTC" />
+                </label>
+                <div className={s.fieldRow}>
+                  <label className={s.field}>
+                    <span>Дата публикации</span>
+                    <input className={s.input} type="date" value={form.date} onChange={(e) => setField('date', e.target.value)} />
+                  </label>
+                  <label className={s.field}>
+                    <span>Длительность</span>
+                    <input className={s.input} value={form.duration} onChange={(e) => setField('duration', e.target.value)} placeholder="4:06" />
+                  </label>
+                  <label className={s.field}>
+                    <span>Тип</span>
+                    <select className={s.input} value={form.type} onChange={(e) => setField('type', e.target.value)}>
+                      {CONTENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+                    </select>
+                  </label>
+                  <label className={s.field}>
+                    <span>Просмотры</span>
+                    <input className={s.input} type="number" min="0" value={form.views} onChange={(e) => setField('views', e.target.value)} placeholder="авто" />
+                  </label>
+                  <label className={s.field}>
+                    <span>Доход за видео ($)</span>
+                    <input className={s.input} type="number" min="0" step="0.01" value={form.revenue} onChange={(e) => setField('revenue', e.target.value)} placeholder="авто" />
+                  </label>
+                </div>
+
+                {computed ? (
+                  <div className={s.previewBox}>
+                    <div><span>Лайки</span><strong>{formatNumber(computed.likes)}</strong></div>
+                    <div><span>Дизлайки</span><strong>{formatNumber(computed.dislikes)}</strong></div>
+                    <div><span>Нравится</span><strong>{formatLikePct(computed.likePct)}</strong></div>
+                  </div>
+                ) : null}
+
+                <button type="submit" className={s.submitBtn} disabled={saving}>
+                  {isEditing ? 'Сохранить видео' : 'Добавить видео'}
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <aside className={s.sidePanel}>
+            <div className={s.panelHead}>
+              <div>
+                <h2>Канал</h2>
+                <span>Общие данные</span>
+              </div>
+              <button type="button" className={s.ghostBtn} onClick={() => resetChannel()}>Сбросить</button>
+            </div>
+            <div className={s.avatarRow}>
+              <div className={s.avatarPreview} style={{ backgroundImage: `url(${avatarUrl})` }} />
               <div className={s.avatarActions}>
-                <label className={s.avatarUploadBtn}>
+                <label className={s.uploadBtn}>
                   {channel.avatar ? 'Заменить' : 'Загрузить'}
                   <input type="file" accept="image/*" onChange={onAvatarChange} />
                 </label>
-                {channel.avatar ? (
-                  <button type="button" className={s.avatarRemoveBtn} onClick={onAvatarRemove}>Удалить</button>
-                ) : null}
+                {channel.avatar ? <button type="button" className={s.linkBtn} onClick={onAvatarRemove}>Удалить</button> : null}
               </div>
             </div>
-          </div>
-          <div className={s.channelGrid}>
-            <div className={s.field}><label className={s.label}>Название канала</label>
-              <input type="text" className={s.input} value={channel.channelName} onChange={(e) => onChannelField('channelName', e.target.value)}/></div>
-            <div className={s.field}><label className={s.label}>Подписчики</label>
-              <input type="number" min="0" step="1" className={s.input} value={channel.subscriberCount} onChange={(e) => onChannelField('subscriberCount', Math.max(0, parseInt(e.target.value, 10) || 0))}/></div>
-            <div className={s.field}><label className={s.label}>Страна</label>
-              <select className={s.input} value={channel.country} onChange={(e) => onChannelField('country', e.target.value)}>
-                {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
-              </select></div>
-            <div className={s.field}><label className={s.label}>Создан</label>
-              <input type="date" className={s.input} value={channel.joinDate} onChange={(e) => onChannelField('joinDate', e.target.value)}/></div>
-            <div className={`${s.field} ${s.fieldToggle}`}>
+            <div className={s.channelFields}>
+              <label className={s.field}>
+                <span>Название канала</span>
+                <input className={s.input} value={channel.channelName} onChange={(e) => updateChannel({ channelName: e.target.value })} />
+              </label>
+              <label className={s.field}>
+                <span>Подписчики</span>
+                <input className={s.input} type="number" min="0" value={channel.subscriberCount} onChange={(e) => updateChannel({ subscriberCount: parseCount(e.target.value) || 0 })} />
+              </label>
+              <label className={s.field}>
+                <span>Страна</span>
+                <select className={s.input} value={channel.country} onChange={(e) => updateChannel({ country: e.target.value })}>
+                  {COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.label}</option>)}
+                </select>
+              </label>
+              <label className={s.field}>
+                <span>Дата создания</span>
+                <input className={s.input} type="date" value={channel.joinDate} onChange={(e) => updateChannel({ joinDate: e.target.value })} />
+              </label>
               <label className={s.toggleRow}>
-                <input type="checkbox" checked={!!channel.monetizationEnabled} onChange={(e) => onChannelField('monetizationEnabled', e.target.checked)}/>
-                <span className={s.toggleSwitch} aria-hidden="true"><span className={s.toggleKnob}/></span>
-                <span className={s.toggleLabel}><strong>Монетизация</strong><span className={s.toggleHint}>Влияет на отображение «Монетизации»</span></span>
+                <input type="checkbox" checked={!!channel.monetizationEnabled} onChange={(e) => updateChannel({ monetizationEnabled: e.target.checked })} />
+                <span className={s.toggleSwitch}><span /></span>
+                <strong>Монетизация</strong>
               </label>
             </div>
-          </div>
-
-          <div className={s.dashboardDataHead}>
-            <div>
-              <h3 className={s.subFormTitle}>Главная Studio</h3>
-              <p className={s.channelSub}>Эти строки попадают в блоки «Комментарии» и «Новые подписчики» на панели управления.</p>
-            </div>
-            <button type="button" className={s.ghostBtn} onClick={onResetDashboardBlocks}>Сбросить блоки</button>
-          </div>
-          <div className={s.dashboardDataGrid}>
-            <section className={s.inlineEditor}>
-              <h4 className={s.inlineEditorTitle}>Комментарии</h4>
-              {dashboardComments.length > 0 ? dashboardComments.map((comment, index) => (
-                <div className={s.inlineEditorRow} key={comment.id || index}>
-                  <div className={s.field}><label className={s.label}>Автор</label>
-                    <input type="text" className={s.input} value={comment.author || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { author: e.target.value })}/></div>
-                  <div className={s.field}><label className={s.label}>Возраст</label>
-                    <input type="text" className={s.input} value={comment.age || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { age: e.target.value })}/></div>
-                  <div className={s.field}><label className={s.label}>Цвет аватара</label>
-                    <input type="color" className={`${s.input} ${s.colorInput}`} value={comment.avatarColor || '#525252'} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { avatarColor: e.target.value })}/></div>
-                  <div className={s.inlineEditorActions}>
-                    <button type="button" className={s.inlineRemoveBtn} onClick={() => removeListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index)}>Удалить</button>
-                  </div>
-                  <div className={`${s.field} ${s.fieldWide}`}><label className={s.label}>Текст</label>
-                    <textarea className={`${s.input} ${s.textarea}`} value={comment.text || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { text: e.target.value })}/></div>
-                </div>
-              )) : <div className={s.inlineEditorEmpty}>Список пуст. Добавьте комментарий ниже.</div>}
-              <div className={s.inlineEditorTools}>
-                <button
-                  type="button"
-                  className={s.ghostBtn}
-                  onClick={() => addListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, {
-                    id: makeAdminId('comment'),
-                    author: '@new.comment',
-                    age: 'только что',
-                    text: '',
-                    avatarColor: '#525252',
-                  })}
-                >
-                  Добавить комментарий
-                </button>
-              </div>
-            </section>
-            <section className={s.inlineEditor}>
-              <h4 className={s.inlineEditorTitle}>Новые подписчики</h4>
-              {recentSubscribers.length > 0 ? recentSubscribers.map((subscriber, index) => (
-                <div className={s.inlineEditorRow} key={subscriber.id || index}>
-                  <div className={s.field}><label className={s.label}>Имя</label>
-                    <input type="text" className={s.input} value={subscriber.name || ''} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { name: e.target.value })}/></div>
-                  <div className={s.field}><label className={s.label}>Подпись</label>
-                    <input type="text" className={s.input} value={subscriber.count || ''} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { count: e.target.value })}/></div>
-                  <div className={s.field}><label className={s.label}>Цвет аватара</label>
-                    <input type="color" className={`${s.input} ${s.colorInput}`} value={subscriber.avatarColor || '#525252'} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { avatarColor: e.target.value })}/></div>
-                  <div className={s.inlineEditorActions}>
-                    <button type="button" className={s.inlineRemoveBtn} onClick={() => removeListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index)}>Удалить</button>
-                  </div>
-                </div>
-              )) : <div className={s.inlineEditorEmpty}>Список пуст. Добавьте подписчика ниже.</div>}
-              <div className={s.inlineEditorTools}>
-                <button
-                  type="button"
-                  className={s.ghostBtn}
-                  onClick={() => addListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, {
-                    id: makeAdminId('subscriber'),
-                    name: 'Новый подписчик',
-                    count: '0 подписчиков',
-                    avatarColor: '#525252',
-                  })}
-                >
-                  Добавить подписчика
-                </button>
-              </div>
-            </section>
-          </div>
-        </section>
-
-        <form className={s.form} onSubmit={onSubmit}>
-          <div className={s.formHead}>
-            <h2 className={s.formTitle}>{isEditing ? 'Редактирование' : 'Добавить видео'}</h2>
-            <div className={s.formActions}>
-              <button type="button" className={s.ghostBtn} onClick={onRandomFill}>✨ Случайные данные</button>
-              {isEditing ? <button type="button" className={s.ghostBtn} onClick={onCancelEdit}>Отмена</button> : null}
-            </div>
-          </div>
-
-          <div className={s.formGrid}>
-            <div className={s.coverCol}>
-              <label className={s.label}>Обложка</label>
-              <label className={s.coverDrop}>
-                {form.cover ? <img src={form.cover} alt=""/> : <span className={s.coverPlaceholder}>Нажмите, чтобы выбрать файл</span>}
-                <input type="file" accept="image/*" onChange={onCoverChange} className={s.fileInput}/>
-              </label>
-              {form.cover ? <button type="button" className={s.linkBtn} onClick={() => setField('cover', null)}>Убрать обложку</button> : null}
-            </div>
-
-            <div className={s.fieldsCol}>
-              <div className={s.field}><label className={s.label}>Название</label>
-                <input type="text" className={s.input} placeholder="Будет сгенерировано, если пусто" value={form.title} onChange={(e) => setField('title', e.target.value)}/></div>
-              <div className={s.fieldRow}>
-                <div className={s.field}><label className={s.label}>Дата публикации</label>
-                  <input type="date" className={s.input} value={form.date} onChange={(e) => setField('date', e.target.value)}/></div>
-                <div className={s.field}><label className={s.label}>Длительность</label>
-                  <input type="text" className={s.input} placeholder="например 4:06" value={form.duration} onChange={(e) => setField('duration', e.target.value)}/></div>
-              </div>
-              <div className={s.fieldRow}>
-                <div className={s.field}><label className={s.label}>Тип контента</label>
-                  <select className={s.input} value={form.type} onChange={(e) => setField('type', e.target.value)}>
-                    {CONTENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-                  </select></div>
-                <div className={s.field}><label className={s.label}>Статус</label>
-                  <select className={s.input} value="public" disabled>
-                    <option value="public">Опубликовано</option>
-                  </select></div>
-              </div>
-              <div className={s.fieldRow}>
-                <div className={s.field}><label className={s.label}>Просмотры</label>
-                  <input type="number" min="0" className={s.input} placeholder="случайное 1000–500 000" value={form.views} onChange={(e) => setField('views', e.target.value)}/></div>
-                <div className={s.field}><label className={s.label}>Доход за видео ($)</label>
-                  <input type="number" min="0" step="0.01" className={s.input} placeholder="расчетный доход" value={form.revenue} onChange={(e) => setField('revenue', e.target.value)}/></div>
-              </div>
-              {computed ? (
-                <div className={s.previewBox}>
-                  <span className={s.label}>Авто-расчет</span>
-                  <div className={s.previewGrid}>
-                    <div><span className={s.previewLabel}>Лайки</span><span className={s.previewValue}>{formatNumber(computed.likes)}</span></div>
-                    <div><span className={s.previewLabel}>Дизлайки</span><span className={s.previewValue}>{formatNumber(computed.dislikes)}</span></div>
-                    <div><span className={s.previewLabel}>«Нравится»</span><span className={s.previewValue}>{formatLikePct(computed.likePct)}</span></div>
-                  </div>
-                </div>
-              ) : null}
-              <div className={s.submitRow}>
-                <button type="submit" className={s.submitBtn} disabled={saving}>{isEditing ? 'Сохранить' : 'Добавить видео'}</button>
-              </div>
-            </div>
-          </div>
-        </form>
-
-        <h2 className={s.tableTitle}>Список видео ({videos.length})</h2>
-
-        <div className={s.toolbar}>
-          <button type="button" className={`${s.toolbarBtn} ${s.toolbarBtnDanger}`} onClick={onDeleteSelected} disabled={selected.size === 0}>
-            🗑 Удалить выбранные{selected.size > 0 ? ` (${selected.size})` : ''}
-          </button>
-          <span className={s.toolbarLabel}>Создать массово:</span>
-          <input type="number" min="1" max="500" className={s.bulkInput} value={bulkCount} onChange={(e) => setBulkCount(e.target.value)}/>
-          <button type="button" className={s.toolbarBtn} onClick={onBulkAdd}>+ Случайных</button>
-          <span className={s.toolbarSpacer}/>
-          <button type="button" className={`${s.toolbarBtn} ${s.toolbarBtnPrimary}`} onClick={onExportProject}>⬇ Экспорт проекта</button>
-          <button type="button" className={`${s.toolbarBtn} ${s.toolbarBtnPrimary}`} onClick={onImportProjectClick}>⬆ Импорт проекта</button>
-          <button type="button" className={s.toolbarBtn} onClick={onResetProject}>⟲ Сбросить проект</button>
-          <button type="button" className={s.toolbarBtn} onClick={onExport}>⬇ Экспорт JSON</button>
-          <button type="button" className={s.toolbarBtn} onClick={onImportClick}>⬆ Импорт JSON</button>
-          <button type="button" className={s.toolbarBtn} onClick={onReset}>⟲ Сбросить к коду</button>
-          <input type="file" accept="application/json,.json" ref={fileInputRef} className={s.inlineFile} onChange={onImportFile}/>
-          <input type="file" accept="application/json,.json" ref={projectFileInputRef} className={s.inlineFile} onChange={onImportProjectFile}/>
+          </aside>
         </div>
 
-        {videos.length === 0 ? (
-          <div className={s.empty}>
-            Пока нет ни одного видео. Заполните форму выше, нажмите «Случайные данные» или «+ Случайных» в массовом блоке.
+        <section className={s.librarySection}>
+          <div className={s.libraryHead}>
+            <h2>Видео ({videos.length})</h2>
+            <div className={s.toolbar}>
+              <button type="button" className={s.dangerGhostBtn} onClick={onDeleteSelected} disabled={selected.size === 0}>Удалить выбранные{selected.size ? ` (${selected.size})` : ''}</button>
+              <input className={s.bulkInput} type="number" min="1" max="500" value={bulkCount} onChange={(e) => setBulkCount(e.target.value)} />
+              <button type="button" className={s.ghostBtn} onClick={onBulkAdd}>Добавить случайные</button>
+              <button type="button" className={s.ghostBtn} onClick={onExport}>Экспорт JSON</button>
+              <button type="button" className={s.ghostBtn} onClick={() => fileInputRef.current?.click()}>Импорт JSON</button>
+              <button type="button" className={s.ghostBtn} onClick={onResetVideos}>Сбросить видео</button>
+              <button type="button" className={s.ghostBtn} onClick={onResetProject}>Сбросить проект</button>
+            </div>
           </div>
-        ) : (
-          <div className={s.tableWrap}>
-            <table className={s.table}>
-              <thead>
-                <tr>
-                  <th style={{ width: 40 }}>
-                    <input type="checkbox" className={s.checkbox} checked={allSelected} onChange={toggleAll} aria-label="Выбрать все"/>
-                  </th>
-                  <th>Видео</th>
-                  <th>Дата</th>
-                  <th>Тип</th>
-                  <th className={s.right}>Просмотры</th>
-                  <th className={s.right}>Лайки</th>
-                  <th className={s.right}>«Нравится»</th>
-                  <th className={s.right}>Доход</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {videos.map((v) => (
-                  <tr key={v.id}>
-                    <td>
-                      <input type="checkbox" className={s.checkbox} checked={selected.has(v.id)} onChange={() => toggleOne(v.id)} aria-label={`Выбрать ${v.title}`}/>
-                    </td>
-                    <td>
-                      <div className={s.videoCell}>
-                        <div className={s.thumb}>
-                          {v.cover ? <img src={v.cover} alt=""/> : <div className={s.thumbBlank}/>}
-                          <span className={s.dur}>{v.duration}</span>
-                        </div>
-                        <div className={s.videoInfo}>
-                          <div className={s.videoTitle}>{v.title}</div>
-                          <div className={s.videoId}>{v.id}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{formatDate(v.date)}</td>
-                    <td>{typeLabel(v.type)}</td>
-                    <td className={s.right}>{formatNumber(v.views)}</td>
-                    <td className={s.right}>{formatNumber(v.likes)}</td>
-                    <td className={s.right}>{formatLikePct(v.likePct)}</td>
-                    <td className={s.right}>{formatMoney(v.revenue)}</td>
-                    <td className={s.actionCell}>
-                      <button type="button" className={s.iconBtn} onClick={() => onEdit(v)} aria-label="Редактировать">✏️</button>
-                      <button type="button" className={s.iconBtn} onClick={() => onDelete(v.id)} aria-label="Удалить">🗑️</button>
-                    </td>
+
+          {videos.length === 0 ? (
+            <div className={s.empty}>Видео пока нет.</div>
+          ) : (
+            <div className={s.tableWrap}>
+              <table className={s.table}>
+                <thead>
+                  <tr>
+                    <th className={s.checkCol}><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Выбрать все" /></th>
+                    <th>Видео</th>
+                    <th>Дата</th>
+                    <th>Тип</th>
+                    <th>Длительность</th>
+                    <th>Просмотры</th>
+                    <th>Доход</th>
+                    <th>Лайки</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {videos.map((video) => (
+                    <tr key={video.id}>
+                      <td><input type="checkbox" checked={selected.has(video.id)} onChange={() => toggleOne(video.id)} aria-label={`Выбрать ${video.title}`} /></td>
+                      <td className={s.videoCell}>
+                        <div className={s.thumb}>
+                          {video.cover ? <img src={video.cover} alt="" /> : <div className={s.thumbBlank} />}
+                        </div>
+                        <div className={s.inlineTitle}>
+                          <input defaultValue={video.title} onBlur={(e) => updateVideoField(video, { title: e.target.value })} />
+                          <span>{video.id}</span>
+                        </div>
+                      </td>
+                      <td><input className={s.tableInput} type="date" value={video.date} onChange={(e) => updateVideoField(video, { date: e.target.value })} /></td>
+                      <td>
+                        <select className={s.tableInput} value={video.type || 'video'} onChange={(e) => updateVideoField(video, { type: e.target.value })}>
+                          {CONTENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+                        </select>
+                      </td>
+                      <td><input className={s.tableInput} defaultValue={video.duration} onBlur={(e) => updateVideoField(video, { duration: e.target.value })} /></td>
+                      <td><input className={s.tableInput} type="number" min="0" defaultValue={video.views} onBlur={(e) => updateVideoField(video, { views: parseCount(e.target.value) ?? 0 })} /></td>
+                      <td><input className={s.tableInput} type="number" min="0" step="0.01" defaultValue={video.revenue} onBlur={(e) => updateVideoField(video, { revenue: parseRevenue(e.target.value) ?? 0 })} /></td>
+                      <td className={s.readonlyCell}>
+                        <strong>{formatNumber(video.likes)}</strong>
+                        <span>{formatLikePct(video.likePct)}</span>
+                      </td>
+                      <td className={s.actionCell}>
+                        <button type="button" className={s.tableBtn} onClick={() => onEdit(video)}>Открыть</button>
+                        <button type="button" className={s.deleteBtn} onClick={() => onDelete(video.id)}>Удалить</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <details className={s.extraSection}>
+          <summary>Дополнительно: комментарии и новые подписчики</summary>
+          <div className={s.extraGrid}>
+            <section className={s.inlineEditor}>
+              <div className={s.inlineEditorHead}>
+                <h3>Комментарии</h3>
+                <button type="button" className={s.ghostBtn} onClick={() => addListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, {
+                  id: makeAdminId('comment'),
+                  author: '@new.comment',
+                  age: 'только что',
+                  text: '',
+                  avatarColor: '#525252',
+                })}>Добавить</button>
+              </div>
+              {dashboardComments.map((comment, index) => (
+                <div className={s.extraRow} key={comment.id || index}>
+                  <input className={s.input} value={comment.author || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { author: e.target.value })} />
+                  <input className={s.input} value={comment.age || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { age: e.target.value })} />
+                  <input className={s.input} type="color" value={comment.avatarColor || '#525252'} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { avatarColor: e.target.value })} />
+                  <textarea className={s.input} value={comment.text || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { text: e.target.value })} />
+                  <button type="button" className={s.deleteBtn} onClick={() => removeListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index)}>Удалить</button>
+                </div>
+              ))}
+            </section>
+
+            <section className={s.inlineEditor}>
+              <div className={s.inlineEditorHead}>
+                <h3>Новые подписчики</h3>
+                <button type="button" className={s.ghostBtn} onClick={() => addListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, {
+                  id: makeAdminId('subscriber'),
+                  name: 'Новый подписчик',
+                  count: '0 подписчиков',
+                  avatarColor: '#525252',
+                })}>Добавить</button>
+              </div>
+              {recentSubscribers.map((subscriber, index) => (
+                <div className={s.extraRowCompact} key={subscriber.id || index}>
+                  <input className={s.input} value={subscriber.name || ''} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { name: e.target.value })} />
+                  <input className={s.input} value={subscriber.count || ''} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { count: e.target.value })} />
+                  <input className={s.input} type="color" value={subscriber.avatarColor || '#525252'} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { avatarColor: e.target.value })} />
+                  <button type="button" className={s.deleteBtn} onClick={() => removeListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index)}>Удалить</button>
+                </div>
+              ))}
+            </section>
           </div>
-        )}
-      </div>
+          <button type="button" className={s.ghostBtn} onClick={onResetDashboardBlocks}>Сбросить блоки главной</button>
+        </details>
+
+        <input type="file" accept="application/json,.json" ref={fileInputRef} className={s.inlineFile} onChange={onImportFile} />
+        <input type="file" accept="application/json,.json" ref={projectFileInputRef} className={s.inlineFile} onChange={onImportProjectFile} />
+      </main>
 
       {confirmState ? (
         <div className={s.confirmScrim} onClick={(e) => e.target === e.currentTarget && closeConfirm()}>
           <div className={s.confirmModal} role="dialog" aria-modal="true">
-            <h3 className={s.confirmTitle}>{confirmState.title}</h3>
-            <p className={s.confirmMsg}>{confirmState.message}</p>
+            <h3>{confirmState.title}</h3>
+            <p>{confirmState.message}</p>
             <label className={s.confirmCheck}>
               <input type="checkbox" checked={confirmChecked} onChange={(e) => setConfirmChecked(e.target.checked)} />
               <span>Я понимаю последствия и хочу продолжить</span>
             </label>
             <div className={s.confirmActions}>
-              <button type="button" className={s.confirmCancel} onClick={closeConfirm}>Отмена</button>
+              <button type="button" className={s.ghostBtn} onClick={closeConfirm}>Отмена</button>
               <button type="button" className={s.confirmDelete} onClick={runConfirm} disabled={!confirmChecked}>Подтвердить</button>
             </div>
           </div>

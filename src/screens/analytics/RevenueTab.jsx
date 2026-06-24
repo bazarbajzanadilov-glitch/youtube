@@ -6,10 +6,12 @@ import clockIcon from '../../assets/clock.svg'
 import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 import s from './AnalyticsTabs.module.css'
 import {
-  ANALYTICS_TEAL,
   formatTenge,
   formatTengeShort,
 } from './studioAnalyticsHelpers.js'
+
+const REVENUE_LINE_COLOR = '#56b0aa'
+const REVENUE_FILL_COLOR = '#132121'
 
 const REVENUE_FILTERS = [
   'Все',
@@ -77,7 +79,6 @@ export default function RevenueTab({ data }) {
   ), [monetization?.sources])
   const monthlyRows = useMemo(() => buildMonthlyRows(monetization?.series || []), [monetization?.series])
   const monthlyMax = Math.max(0, ...monthlyRows.map((row) => row.value))
-  const revenueSeriesMax = Math.max(1, ...(monetization?.series || []).map((row) => Number(row.revenue) || 0))
   const totalViews = overview?.kpis?.views?.value || 0
   const topRevenueVideos = (overview?.topVideos || [])
     .map((video) => {
@@ -121,24 +122,27 @@ export default function RevenueTab({ data }) {
             data={monetization?.series || []}
             dataKey="revenue"
             xKey="date"
-            color={ANALYTICS_TEAL}
-            height={250}
+            color={REVENUE_LINE_COLOR}
+            fillColor={REVENUE_FILL_COLOR}
+            height={168}
             name="Расчетный доход"
             formatY={formatTengeShort}
             xTickFormatter={formatDateLong}
             formatTooltipValue={formatTenge}
             formatTooltipLabel={formatRevenueTooltipLabel}
             yAxisOrientation="right"
-            yDomain={[0, revenueSeriesMax]}
+            yValueScale={512}
             yAxisWidth={88}
-            margin={{ top: 22, right: 86, left: 8, bottom: 6 }}
+            margin={{ top: 22, right: 86, left: 0, bottom: 6 }}
             xTickFontSize={12}
             yTickFontSize={12}
             tooltipClassName={s.revenueHeroTooltip}
             tooltipLabelClassName={s.revenueHeroTooltipLabel}
             tooltipValueClassName={s.revenueHeroTooltipValue}
             tooltipCursor={{ stroke: '#6c6c6c', strokeOpacity: 0.8, strokeWidth: 1 }}
-            activeDotProps={{ r: 5, stroke: '#282828', strokeWidth: 2, fill: ANALYTICS_TEAL }}
+            fillTopOpacity={1}
+            fillBottomOpacity={0.65}
+            activeDotProps={{ r: 5, stroke: '#282828', strokeWidth: 2, fill: REVENUE_LINE_COLOR }}
           />
         </div>
         <div className={s.ytHeroFooter}>

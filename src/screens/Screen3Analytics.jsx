@@ -34,8 +34,6 @@ export default function Screen3Analytics() {
   const data = useAnalytics(range)
   const isTrends = activeTab === 4
   const isOverviewTab = activeTab === 0
-  const isRevenueTab = activeTab === 3
-  const isRailTab = isRevenueTab || isTrends
   const advancedRows = [
     ['Просмотры', formatAdvancedNumber(data.overview?.kpis?.views?.value)],
     ['Время просмотра (часы)', formatAdvancedNumber(data.overview?.kpis?.watchTime?.value)],
@@ -66,7 +64,7 @@ export default function Screen3Analytics() {
       <Sidebar active="analytics"/>
       <div className={s.main}>
         {!isTrends ? (
-          <div className={`${s.headerRow} ${isOverviewTab ? s.headerRowOverview : ''} ${isRevenueTab ? s.headerRowRail : ''}`}>
+          <div className={`${s.headerRow} ${isOverviewTab ? s.headerRowOverview : ''}`}>
             <h1 className={s.title}>Аналитика по каналу</h1>
             <button
               type="button"
@@ -83,7 +81,7 @@ export default function Screen3Analytics() {
         ) : null}
 
         {!isTrends ? (
-          <div className={`${s.suggestRow} ${isOverviewTab ? s.suggestRowOverview : ''} ${isRevenueTab ? s.suggestRowRail : ''}`}>
+          <div className={`${s.suggestRow} ${isOverviewTab ? s.suggestRowOverview : ''}`}>
             <button type="button" className={s.suggestion} onClick={() => showToast('Подсказка ИИ')}>
               <SparkleIcon size={18}/>Как зрители находят мой контент?
             </button>
@@ -99,10 +97,10 @@ export default function Screen3Analytics() {
           </div>
         ) : null}
 
-        <div className={`${s.controlRow} ${isOverviewTab ? s.controlRowOverview : ''} ${isTrends ? s.controlRowTrends : ''} ${isRailTab ? s.controlRowRail : ''}`}>
+        <div className={`${s.controlRow} ${isOverviewTab ? s.controlRowOverview : ''} ${isTrends ? s.controlRowTrends : ''}`}>
           <TabRow tabs={TABS} active={activeTab} onChange={setActiveTab} />
           {!isTrends ? (
-            <div className={`${s.dateWrap} ${isRevenueTab ? s.dateWrapRail : ''}`}>
+            <div className={s.dateWrap}>
               <DateRangePicker value={range} onChange={setRange} />
             </div>
           ) : null}

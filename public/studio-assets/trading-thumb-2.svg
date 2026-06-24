@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Trading income dashboard">
+  <rect width="1280" height="720" fill="#101416"/>
+  <rect x="78" y="82" width="1124" height="556" rx="32" fill="#172123" stroke="#315052" stroke-width="4"/>
+  <rect x="128" y="156" width="250" height="382" rx="18" fill="#0d191a"/>
+  <rect x="426" y="156" width="706" height="382" rx="18" fill="#0d191a"/>
+  <rect x="168" y="430" width="54" height="68" rx="8" fill="#56b0aa"/>
+  <rect x="242" y="354" width="54" height="144" rx="8" fill="#56b0aa"/>
+  <rect x="316" y="268" width="54" height="230" rx="8" fill="#56b0aa"/>
+  <path d="M478 462l104-96 96 54 112-142 98 72 168-172" fill="none" stroke="#56b0aa" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="1056" cy="178" r="18" fill="#f1f1f1"/>
+  <text x="128" y="126" fill="#f1f1f1" font-family="Arial, sans-serif" font-size="50" font-weight="700">TRADING INCOME</text>
+  <text x="128" y="598" fill="#56b0aa" font-family="Arial, sans-serif" font-size="62" font-weight="700">JUNE PLAN</text>
+</svg>

@@ -1,8 +1,8 @@
 [
   {
-    "id": "itadori-toudou-hanami-ost",
-    "title": "Itadori and Toudou vs Hanami OST song",
-    "cover": "/studio-assets/anime-thumb.png",
+    "id": "btc-orderbook-income-breakdown",
+    "title": "Разбор сделки по BTC: вход, риск, профит",
+    "cover": "/studio-assets/trading-thumb-1.svg",
     "date": "2026-05-08",
     "duration": "2:14",
     "views": 2504,
@@ -10,9 +10,9 @@
     "profile": "steady"
   },
   {
-    "id": "samruk-med-rus",
-    "title": "Samruk Med RUS",
-    "cover": "/studio-assets/samruk-thumb.png",
+    "id": "june-trading-income-plan",
+    "title": "Доход от трейдинга: план на июнь",
+    "cover": "/studio-assets/trading-thumb-2.svg",
     "date": "2026-05-19",
     "duration": "1:04",
     "views": 6,
@@ -20,9 +20,9 @@
     "profile": "gradualGrowth"
   },
   {
-    "id": "samruk-med-kaz",
-    "title": "Samruk Med KAZ",
-    "cover": "/studio-assets/samruk-thumb.png",
+    "id": "scalping-risk-management",
+    "title": "Скальпинг без эмоций: риск-менеджмент",
+    "cover": "/studio-assets/trading-thumb-3.svg",
     "date": "2026-05-21",
     "duration": "0:03",
     "views": 3,
@@ -30,9 +30,9 @@
     "profile": "gradualGrowth"
   },
   {
-    "id": "samruk-med-eng",
-    "title": "Samruk Med ENG",
-    "cover": "/studio-assets/samruk-thumb.png",
+    "id": "daily-profit-trading-setup",
+    "title": "Сетап дня: как забрать движение рынка",
+    "cover": "/studio-assets/trading-thumb-4.svg",
     "date": "2026-05-24",
     "duration": "0:01",
     "views": 1,

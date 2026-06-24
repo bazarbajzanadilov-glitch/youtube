@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Trading channel avatar">
+  <rect width="256" height="256" rx="128" fill="#0c1718"/>
+  <circle cx="128" cy="128" r="108" fill="#102426" stroke="#56b0aa" stroke-width="8"/>
+  <path d="M58 154l38-34 30 22 30-54 42 30" fill="none" stroke="#56b0aa" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M184 102h22v22" fill="none" stroke="#56b0aa" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="128" y="198" text-anchor="middle" fill="#f1f1f1" font-family="Arial, sans-serif" font-size="54" font-weight="700">TI</text>
+</svg>

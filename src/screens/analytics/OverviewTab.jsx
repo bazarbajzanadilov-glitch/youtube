@@ -169,8 +169,8 @@ export default function OverviewTab({ data, onOpenAdmin }) {
   }
   const chart = chartByMetric[metric]
   const heroChartMargin = metric === 'revenue'
-    ? { top: 12, right: 88, left: 8, bottom: 6 }
-    : { top: 12, right: 48, left: 8, bottom: 6 }
+    ? { top: 12, right: 88, left: 0, bottom: 6 }
+    : { top: 12, right: 48, left: 0, bottom: 6 }
   const heroYAxisWidth = metric === 'revenue' ? 80 : 44
   const heroFillTopOpacity = 0.1
   const heroFillBottomOpacity = 0
@@ -180,7 +180,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
     (
       <>
         <strong>Показатели канала остаются стабильными, а удержание аудитории — ровным.</strong>{' '}
-        За последние 28 дней канал {channel?.channelName || 'PRENTOSOV'} получил {formatNumberRu(overview.kpis.views.value)} просмотров и {formatHours(overview.kpis.watchTime.value)} часов просмотра. Уникальных зрителей было около {formatCompactNumber(uniqueViewers)}, а доля вернувшихся зрителей составила примерно {returningShare}%.
+        За последние 28 дней канал {channel?.channelName || 'TRADING INSIDER'} получил {formatNumberRu(overview.kpis.views.value)} просмотров и {formatHours(overview.kpis.watchTime.value)} часов просмотра. Уникальных зрителей было около {formatCompactNumber(uniqueViewers)}, а доля вернувшихся зрителей составила примерно {returningShare}%.
       </>
     ),
     (
@@ -283,6 +283,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               xTickFormatter={formatDateLong}
               formatTooltipValue={chart.formatTooltipValue}
               yAxisOrientation="right"
+              yValueScale={metric === 'revenue' ? 512 : 1}
               yAxisWidth={heroYAxisWidth}
               margin={heroChartMargin}
               fillTopOpacity={heroFillTopOpacity}

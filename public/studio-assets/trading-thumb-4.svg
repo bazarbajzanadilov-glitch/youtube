@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Daily market setup">
+  <rect width="1280" height="720" fill="#0f1719"/>
+  <rect x="82" y="74" width="1116" height="572" rx="34" fill="#152426" stroke="#263f42" stroke-width="4"/>
+  <path d="M170 520h930" stroke="#263f42" stroke-width="3"/>
+  <path d="M170 430h930M170 340h930M170 250h930M170 160h930" stroke="#203638" stroke-width="2"/>
+  <g fill="#56b0aa">
+    <rect x="224" y="370" width="42" height="150" rx="8"/>
+    <rect x="310" y="310" width="42" height="210" rx="8"/>
+    <rect x="396" y="248" width="42" height="272" rx="8"/>
+    <rect x="482" y="290" width="42" height="230" rx="8"/>
+    <rect x="568" y="214" width="42" height="306" rx="8"/>
+  </g>
+  <path d="M696 456l78-72 70 36 82-126 72 42 108-128" fill="none" stroke="#f1f1f1" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="124" y="142" fill="#f1f1f1" font-family="Arial, sans-serif" font-size="60" font-weight="700">DAILY SETUP</text>
+  <text x="760" y="578" fill="#56b0aa" font-family="Arial, sans-serif" font-size="72" font-weight="700">MARKET MOVE</text>
+</svg>

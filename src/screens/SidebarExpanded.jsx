@@ -16,13 +16,13 @@ const ITEMS = [
   { key: 'copyright', label: 'Обнаружение контен...', Icon: SideCopyright },
   { key: 'monetize', label: 'Монетизация', Icon: SideMonetize },
   { key: 'channel', label: 'Настройка канала', Icon: SideMagic },
-  { key: 'audio', label: 'Фонотека', Icon: SideAudio },
+  { key: 'audio', label: 'Creator Music (бета)', Icon: SideAudio },
 ]
 
 export default function SidebarExpanded({ active = 'monetize' }) {
   const { go, showToast } = useContext(NavContext)
   const { channel } = useChannel()
-  const avatarUrl = channel.avatar || '/studio-assets/channel-avatar-reference.jpg'
+  const avatarUrl = channel.avatar || '/studio-assets/trading-avatar.svg'
   return (
     <div className={s.sidebar}>
       <div className={s.channel}>
