@@ -28,6 +28,15 @@ export function formatTengeShort(amount) {
   return `${value.toFixed(0)}${NBSP}₸`
 }
 
+export function formatTengeAxis(amount) {
+  const value = (Number(amount) || 0) * 512
+  const hasFraction = Math.abs(value - Math.round(value)) > 0.005
+  return `${value.toLocaleString('ru-RU', {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  })}${NBSP}₸`
+}
+
 export function rangePrefix(range) {
   if (range?.kind === '7d') return 'За последние 7 дней'
   if (range?.kind === '90d') return 'За последние 90 дней'

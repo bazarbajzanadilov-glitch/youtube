@@ -15,7 +15,10 @@
 }
 
 .tabStack {
-  padding: 0 24px 32px;
+  width: min(1264px, calc(100% - 48px));
+  max-width: 1264px;
+  margin: 0 auto;
+  padding: 0 0 32px;
   box-sizing: border-box;
 }
 
@@ -155,10 +158,10 @@ button.ytKpiCell {
 
 .revenueHeroTooltipLabel {
   margin-bottom: 10px;
-  color: #c8c8c8;
-  font-size: 10px;
+  color: #a0a0a0;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 17px;
+  line-height: 20px;
   text-transform: none;
 }
 
@@ -709,20 +712,22 @@ button.ytKpiCell {
 }
 
 .overviewInset {
-  width: 886px;
-  margin: 0 0 0 24px;
+  width: 100%;
+  margin: 0;
 }
 
 .overviewShell {
-  grid-template-columns: 934px 314px;
+  grid-template-columns: minmax(0, 934px) 314px;
   gap: 16px;
-  width: 1264px;
+  width: min(1264px, calc(100% - 48px));
+  margin: 0 auto;
   padding-top: 24px;
   box-sizing: border-box;
 }
 
 .overviewMain {
-  width: 934px;
+  width: auto;
+  min-width: 0;
 }
 
 .overviewSide {
@@ -803,10 +808,10 @@ button.ytKpiCell {
 
 .overviewHeroTooltipLabel {
   margin-bottom: 10px;
-  color: #c8c8c8;
-  font-size: 10px;
+  color: #a0a0a0;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 17px;
+  line-height: 20px;
   text-transform: none;
 }
 
@@ -1098,9 +1103,10 @@ button.ytKpiCell {
 
 .revenueRail {
   --studio-analytics-chart-bar: #56b0aa;
-  width: 100%;
+  width: min(1264px, calc(100% - 48px));
   max-width: 1264px;
-  padding: 0 24px 32px;
+  margin: 0 auto;
+  padding: 0 0 32px;
   box-sizing: border-box;
 }
 
@@ -1144,32 +1150,50 @@ button.ytKpiCell {
   color: #0f0f0f;
 }
 
-@media (max-width: 959px) {
-  .overviewInset {
-    width: 627px;
-    margin-left: 24px;
-    margin-right: 0;
-  }
-
+@media (max-width: 1439px) {
   .overviewShell {
-    grid-template-columns: 651px 243px;
-    gap: 18px;
-    width: 912px;
-  }
-
-  .overviewMain {
-    width: 651px;
-    min-width: 651px;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .overviewSide {
-    width: 243px;
-    min-width: 243px;
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
 
   .overviewSideCard,
   .overviewNewVideoCard {
-    width: 243px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 959px) {
+  .overviewInset {
+    width: 100%;
+    margin: 0;
+  }
+
+  .overviewShell {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    width: min(912px, calc(100% - 48px));
+  }
+
+  .overviewMain {
+    width: auto;
+    min-width: 0;
+  }
+
+  .overviewSide {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .overviewSideCard,
+  .overviewNewVideoCard {
+    width: 100%;
   }
 
   .overviewNewVideoCard {
@@ -1181,7 +1205,7 @@ button.ytKpiCell {
   }
 
   .revenueRail {
-    padding: 0 24px;
+    padding: 0 0 32px;
   }
 }
 
@@ -1607,9 +1631,10 @@ button.ytKpiCell {
 }
 
 .trendsPage {
-  width: 100%;
+  width: min(1264px, calc(100% - 48px));
   max-width: 1264px;
-  padding: 8px 24px 32px;
+  margin: 0 auto;
+  padding: 8px 0 32px;
   box-sizing: border-box;
 }
 
@@ -1724,27 +1749,35 @@ button.ytKpiCell {
   }
 
   .trendsPage {
-    width: auto;
-    padding: 8px 24px 32px;
+    width: min(1264px, calc(100% - 48px));
+    padding: 8px 0 32px;
   }
 }
 
 @media (max-width: 720px) {
   .tabStack > .ytHeroCard,
   .revenueRail > .ytHeroCard {
-    min-width: 760px;
+    min-width: 0;
   }
 
   .overviewInset {
-    width: 886px;
+    width: 100%;
   }
 
   .overviewShell {
-    width: 1264px;
+    width: min(100%, calc(100% - 24px));
   }
 
   .overviewMain {
-    width: 934px;
-    min-width: 934px;
+    width: auto;
+    min-width: 0;
+  }
+
+  .overviewSide {
+    grid-template-columns: 1fr;
+  }
+
+  .ytKpiStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

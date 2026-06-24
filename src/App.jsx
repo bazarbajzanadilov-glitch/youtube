@@ -44,6 +44,8 @@ const ROUTE_ALIASES = {
   admin: 'admin',
 }
 
+const EXPANDED_SIDEBAR_MIN_WIDTH = 1200
+
 function normalizeHashRoute() {
   const raw = window.location.hash.replace(/^#\/?/, '') || 'dashboard'
   return ROUTE_ALIASES[raw] || raw
@@ -55,7 +57,7 @@ function getScreenByRoute(route) {
 
 function shouldStartExpanded() {
   if (typeof window === 'undefined') return true
-  return window.innerWidth >= 960
+  return window.innerWidth >= EXPANDED_SIDEBAR_MIN_WIDTH
 }
 
 export default function App() {
@@ -104,7 +106,7 @@ export default function App() {
 
   useEffect(() => {
     const onResize = () => {
-      setSidebarExpanded(window.innerWidth >= 960)
+      setSidebarExpanded(window.innerWidth >= EXPANDED_SIDEBAR_MIN_WIDTH)
     }
     onResize()
     window.addEventListener('resize', onResize)

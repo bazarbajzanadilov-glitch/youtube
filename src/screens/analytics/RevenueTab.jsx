@@ -7,7 +7,7 @@ import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 import s from './AnalyticsTabs.module.css'
 import {
   formatTenge,
-  formatTengeShort,
+  formatTengeAxis,
 } from './studioAnalyticsHelpers.js'
 
 const REVENUE_LINE_COLOR = '#56b0aa'
@@ -126,7 +126,7 @@ export default function RevenueTab({ data }) {
             fillColor={REVENUE_FILL_COLOR}
             height={168}
             name="Расчетный доход"
-            formatY={formatTengeShort}
+            formatY={formatTengeAxis}
             xTickFormatter={formatDateLong}
             formatTooltipValue={formatTenge}
             formatTooltipLabel={formatRevenueTooltipLabel}

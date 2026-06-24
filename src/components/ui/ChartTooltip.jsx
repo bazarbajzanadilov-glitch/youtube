@@ -11,6 +11,7 @@ export default function ChartTooltip({
   className = '',
   labelClassName = '',
   valueClassName = '',
+  rawValueKey,
 }) {
   if (!active || !payload || payload.length === 0) return null
 
@@ -19,7 +20,9 @@ export default function ChartTooltip({
   const numericValues = payload
     .map((p) => Number(p.value ?? p.payload?.[p.dataKey]))
     .filter((value) => Number.isFinite(value))
-  const raw = payload.length > 1 && numericValues.length > 0
+  const raw = rawValueKey && first.payload
+    ? first.payload[rawValueKey]
+    : payload.length > 1 && numericValues.length > 0
     ? numericValues.reduce((sum, value) => sum + value, 0)
     : (first.value ?? first.payload?.[first.dataKey])
   const formatted = raw == null ? '' : (formatValue ? formatValue(raw, first) : String(raw))

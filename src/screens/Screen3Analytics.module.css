@@ -13,14 +13,18 @@
   min-height: var(--studio-main-min-height);
   box-sizing: border-box;
   max-width: none;
+  min-width: 0;
 }
 
 /* === header === */
 .headerRow {
   display: flex;
   align-items: flex-start;
+  width: min(1264px, calc(100% - 48px));
   min-height: 64px;
-  padding: 0 24px;
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
 }
 .title {
   display: flex;
@@ -55,9 +59,12 @@
 .suggestRow {
   display: flex;
   align-items: center;
+  width: min(1264px, calc(100% - 48px));
   gap: 12px;
-  padding: 6px 24px 0;
+  margin: 0 auto;
+  padding: 6px 0 0;
   flex-wrap: wrap;
+  box-sizing: border-box;
 }
 .suggestion {
   display: inline-flex;
@@ -93,12 +100,13 @@
 .controlRow {
   display: flex;
   align-items: center;
+  width: min(1264px, calc(100% - 48px));
   border-bottom: 1px solid var(--studio-border);
   position: sticky;
   top: var(--studio-topbar-height);
   background: var(--studio-canvas);
   z-index: 80;
-  margin: 0 24px 16px;
+  margin: 0 auto 16px;
   padding: 0;
 }
 .dateWrap { margin-left: auto; padding-left: 24px; padding-right: 0; }
@@ -110,25 +118,25 @@
 .headerRowOverview,
 .suggestRowOverview,
 .controlRowOverview {
-  width: min(1264px, calc(100vw - var(--studio-current-sidebar-width, var(--studio-sidebar-compact-width))));
+  width: min(1264px, calc(100% - 48px));
   box-sizing: border-box;
 }
 
 .headerRowOverview {
-  padding-left: 24px;
-  padding-right: 16px;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .suggestRowOverview {
-  padding-left: 24px;
-  padding-right: 16px;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .controlRowOverview {
-  margin-left: 0;
-  margin-right: 0;
-  padding-left: 24px;
-  padding-right: 16px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .advancedOverlay {
@@ -276,11 +284,11 @@
 @media (max-width: 959px) {
   .headerRow {
     min-height: 44px;
-    padding: 0 24px;
+    padding: 0;
   }
 
   .suggestRow {
-    padding-right: 24px;
+    padding-right: 0;
   }
 
   .kebab {
@@ -288,8 +296,8 @@
   }
 
   .controlRow {
-    margin-left: 24px;
-    margin-right: 24px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .dateWrap {
@@ -299,11 +307,11 @@
   .headerRowOverview,
   .suggestRowOverview,
   .controlRowOverview {
-    width: min(912px, calc(100vw - var(--studio-current-sidebar-width, var(--studio-sidebar-compact-width))));
+    width: min(912px, calc(100% - 48px));
   }
 
   .controlRowOverview {
-    padding-right: 24px;
+    padding-right: 0;
   }
 }
 

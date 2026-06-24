@@ -8,7 +8,7 @@ import ChartTooltip from '../ui/ChartTooltip.jsx'
 import { CHART_COLORS } from '../../lib/chartColors.js'
 import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 import { formatDateLong } from '../../lib/analyticsFormat.js'
-import { buildNiceAxisTicks, maxByDataKey } from './chartAxis.js'
+import { buildPeakAxisTicks, maxByDataKey, projectValueToPeakAxis } from './chartAxis.js'
 
 function defaultXTickFormatter(value) {
   if (typeof value !== 'string') return value
@@ -96,12 +96,23 @@ export default function AreaLineChart({
     strokeOpacity: 0.32,
     strokeWidth: 1,
   }
-  const autoYTicks = buildNiceAxisTicks(maxByDataKey(data, dataKey), {
+  const autoYTicks = buildPeakAxisTicks(maxByDataKey(data, dataKey), {
     scale: yValueScale,
     targetTickCount: yTickCount,
   })
-  const chartYTicks = yTicks || (yDomain ? undefined : autoYTicks)
-  const chartYDomain = yDomain || [0, chartYTicks?.[chartYTicks.length - 1] || 1]
+  const useProjectedYAxis = !yTicks && !yDomain
+  const projectedDataKey = useProjectedYAxis ? `${dataKey}__axisPosition` : dataKey
+  const chartData = useProjectedYAxis
+    ? data.map((row) => ({
+      ...row,
+      [projectedDataKey]: projectValueToPeakAxis(row?.[dataKey], autoYTicks),
+    }))
+    : data
+  const chartYTicks = yTicks || (yDomain ? undefined : autoYTicks?.map((_, index) => index))
+  const chartYDomain = yDomain || [0, Math.max(1, (autoYTicks?.length || 2) - 1)]
+  const chartFormatY = useProjectedYAxis
+    ? (tick) => formatY(autoYTicks?.[Math.round(Number(tick) || 0)] ?? 0)
+    : formatY
   const xTicks = buildEvenTicks(data, xKey)
   const firstXTick = xTicks?.[0]
   const lastXTick = xTicks?.[xTicks.length - 1]
@@ -125,7 +136,7 @@ export default function AreaLineChart({
   return (
     <div className={s.wrap} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
-        <AreaChart data={data} margin={chartMargin}>
+        <AreaChart data={chartData} margin={chartMargin}>
           <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={chartFillColor} stopOpacity={showAreaFill ? fillTopOpacity : 0} />
@@ -153,7 +164,7 @@ export default function AreaLineChart({
             tick={{ fill: CHART_COLORS.textSubtle, fontSize: yTickFontSize }}
             tickLine={false}
             axisLine={false}
-            tickFormatter={formatY}
+            tickFormatter={chartFormatY}
             width={yAxisWidth}
             domain={chartYDomain}
             ticks={chartYTicks}
@@ -167,6 +178,7 @@ export default function AreaLineChart({
                 className={tooltipClassName}
                 labelClassName={tooltipLabelClassName}
                 valueClassName={tooltipValueClassName}
+                rawValueKey={useProjectedYAxis ? dataKey : undefined}
               />
             )}
             wrapperStyle={{ outline: 'none' }}
@@ -176,7 +188,7 @@ export default function AreaLineChart({
           ) : null}
           <Area
             type={curve}
-            dataKey={dataKey}
+            dataKey={projectedDataKey}
             name={name}
             stroke={color}
             strokeWidth={2}
