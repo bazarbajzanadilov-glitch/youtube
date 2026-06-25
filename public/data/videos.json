@@ -40,6 +40,76 @@
     "profile": "gradualGrowth"
   },
   {
+    "id": "btc-weekly-levels-may-28",
+    "title": "План по BTC на неделю: уровни и сценарии",
+    "cover": "/studio-assets/trading-thumb-1.svg",
+    "date": "2026-05-28",
+    "duration": "1:42",
+    "views": 1360,
+    "revenue": 18.2,
+    "profile": "steady"
+  },
+  {
+    "id": "false-breakout-entry-june-02",
+    "title": "Как я ищу вход после ложного пробоя",
+    "cover": "/studio-assets/trading-thumb-2.svg",
+    "date": "2026-06-02",
+    "duration": "2:06",
+    "views": 1820,
+    "revenue": 22.75,
+    "profile": "gradualGrowth"
+  },
+  {
+    "id": "eth-trade-short-june-02",
+    "title": "Shorts: быстрый разбор сделки по ETH",
+    "cover": "/studio-assets/trading-thumb-3.svg",
+    "date": "2026-06-02",
+    "duration": "0:38",
+    "views": 940,
+    "revenue": 8.6,
+    "profile": "gradualGrowth"
+  },
+  {
+    "id": "morning-watchlist-june-11",
+    "title": "Портфель трейдера: что смотреть утром",
+    "cover": "/studio-assets/trading-thumb-4.svg",
+    "date": "2026-06-11",
+    "duration": "1:28",
+    "views": 2110,
+    "revenue": 25.4,
+    "profile": "steady"
+  },
+  {
+    "id": "daily-risk-stop-june-15",
+    "title": "Риск на день: где ставить стоп",
+    "cover": "/studio-assets/trading-thumb-1.svg",
+    "date": "2026-06-15",
+    "duration": "1:11",
+    "views": 1640,
+    "revenue": 19.2,
+    "profile": "gradualGrowth"
+  },
+  {
+    "id": "entry-mistakes-short-june-15",
+    "title": "Shorts: три ошибки перед входом",
+    "cover": "/studio-assets/trading-thumb-2.svg",
+    "date": "2026-06-15",
+    "duration": "0:42",
+    "views": 1210,
+    "revenue": 10.9,
+    "profile": "gradualGrowth"
+  },
+  {
+    "id": "weekly-close-market-scenario",
+    "title": "Сценарий по рынку перед закрытием недели",
+    "cover": "/studio-assets/trading-thumb-3.svg",
+    "date": "2026-06-20",
+    "duration": "1:33",
+    "views": 1500,
+    "revenue": 16.8,
+    "profile": "steady"
+  },
+  {
     "id": "recent-processing-june-22",
     "title": "Утренний план рынка: уровни и риск",
     "cover": "/studio-assets/trading-thumb-1.svg",
@@ -68,5 +138,15 @@
     "views": 169,
     "revenue": 9.84,
     "profile": "steady"
+  },
+  {
+    "id": "btc-report-mini-june-24",
+    "title": "Мини-разбор BTC перед отчетом",
+    "cover": "/studio-assets/trading-thumb-4.svg",
+    "date": "2026-06-24",
+    "duration": "0:50",
+    "views": 88,
+    "revenue": 4.1,
+    "profile": "gradualGrowth"
   }
 ]

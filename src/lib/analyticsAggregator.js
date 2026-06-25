@@ -12,6 +12,7 @@
 import {
   hashSeed, isoDay, addDays, daysBetween, startOfDay,
   generateDailyShape, generateLifecycleShape, normalizeToTotal, inferProfile,
+  movingAverage,
   generateRetention, generateHourlyHeatmap,
   generateTrafficShares, generateDeviceShares, generateGeoShares,
   generateAgeGender, generateLanguageShares, generateReturningSeries,
@@ -266,6 +267,25 @@ function bucketSeries(series, granularity) {
   }))
 }
 
+function smoothPreserveTotal(values, window = 3, seed = 1, startWeekday = 0) {
+  if (!Array.isArray(values) || values.length < 3) return values
+  const total = values.reduce((sum, value) => sum + (Number(value) || 0), 0)
+  if (total <= 0) return values
+  const smoothed = movingAverage(values, window)
+  const wave = generateDailyShape({
+    seed,
+    days: values.length,
+    profile: 'seasonal',
+    startWeekday,
+  })
+  const waveAvg = wave.reduce((sum, value) => sum + value, 0) / Math.max(1, wave.length)
+  const shaped = smoothed.map((value, index) => {
+    const ratio = waveAvg > 0 ? wave[index] / waveAvg : 1
+    return value * (0.72 + ratio * 0.38)
+  })
+  return normalizeToTotal(shaped, total)
+}
+
 function buildSeriesForVideos(videos, channel, range, granularity) {
   const { dates, map } = buildDailyMap(range.from, range.days)
   videos.forEach((video) => attachVideoContribution({ video, channel, range, dayMap: map }))
@@ -334,13 +354,11 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const rawLikes = dates.map(({ date }) => map.get(date).likes)
   const rawComm = dates.map(({ date }) => map.get(date).comments)
 
-  /* Без скользящего среднего: оставляем дневные колебания, чтобы линейный
-     график имел естественные «острые» пики, как в реальном YouTube Studio. */
-  const smoothedViews = rawViews
-  const smoothedWatch = rawWatch
-  const smoothedRev = rawRev
-  const smoothedLikes = rawLikes
-  const smoothedComm = rawComm
+  const smoothedViews = smoothPreserveTotal(rawViews, 3, channelSeed + 21, range.from.getDay())
+  const smoothedWatch = smoothPreserveTotal(rawWatch, 3, channelSeed + 22, range.from.getDay())
+  const smoothedRev = smoothPreserveTotal(rawRev, 3, channelSeed + 23, range.from.getDay())
+  const smoothedLikes = smoothPreserveTotal(rawLikes, 3, channelSeed + 24, range.from.getDay())
+  const smoothedComm = smoothPreserveTotal(rawComm, 3, channelSeed + 25, range.from.getDay())
 
   const dailySeries = dates.map(({ date, weekday }, i) => ({
     date,

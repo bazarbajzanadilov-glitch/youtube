@@ -28,6 +28,7 @@ import {
   avgWatchPercent,
   avgWatchPretty,
   absoluteUsualComparison,
+  buildPublishedVideoMarkers,
   ctrPretty,
   daysSinceLong,
   formatTengeAxis,
@@ -118,7 +119,7 @@ function NewContentMetric({ label, value, secondaryLabel, secondaryValue }) {
 }
 
 export default function OverviewTab({ data, onOpenAdmin }) {
-  const { overview, audience, channel, monetization, realtime } = data
+  const { overview, audience, channel, content, monetization, realtime } = data
   const [metric, setMetric] = useState('views')
   const [newestIdx, setNewestIdx] = useState(0)
   const realtimeFeed = useRealtimeFeed({
@@ -180,6 +181,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
     },
   }
   const chart = chartByMetric[metric]
+  const publishedMarkers = buildPublishedVideoMarkers(chart.data, content?.allVideos || [], 'date')
   const heroChartMargin = metric === 'revenue'
     ? { top: 12, right: 48, left: 24, bottom: 6 }
     : { top: 12, right: 48, left: 24, bottom: 6 }
@@ -310,6 +312,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               tooltipValueClassName={s.overviewHeroTooltipValue}
               tooltipCursor={{ stroke: '#6c6c6c', strokeOpacity: 0.8, strokeWidth: 1 }}
               activeDotProps={{ r: 5, stroke: '#282828', strokeWidth: 2, fill: chart.color }}
+              eventMarkers={publishedMarkers}
             />
           </div>
 

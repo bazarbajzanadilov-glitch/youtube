@@ -11,6 +11,7 @@ import {
 import s from './AnalyticsTabs.module.css'
 import {
   avgWatchPretty,
+  buildPublishedVideoMarkers,
   ctrPretty,
   kpiTrend,
   usualComparison,
@@ -22,7 +23,6 @@ const TYPE_FILTERS = ['Все', 'Shorts', 'Прямой эфир']
 const TRAFFIC_TABS = ['Общие', 'Внешние источники', 'Поиск на YouTube', 'Рекомендуемые видео', 'Плейлисты']
 const TYPE_KEYS = ['all', 'short', 'live']
 const CONTENT_CHART_COLOR = '#8e8cff'
-const CONTENT_CHART_UNDER_GRID_COLOR = '#3c3c3f'
 
 function normalizeVideoType(video) {
   if (['video', 'short', 'live'].includes(video?.type)) return video.type
@@ -88,6 +88,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
   const filteredSeries = typeKey === 'all'
     ? content.series
     : (content.seriesByType?.[typeKey] || [])
+  const publishedMarkers = buildPublishedVideoMarkers(filteredSeries, filteredVideos, 'date')
   const filteredViews = filteredVideos.reduce((sum, video) => sum + (Number(video.views) || 0), 0)
   const fallbackCtr = content.kpis.ctr.value / 100
   const filteredImpressions = filteredViews > 0 ? Math.round(filteredViews / Math.max(0.04, fallbackCtr)) : 0
@@ -170,8 +171,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
             yAxisOrientation="right"
             fillTopOpacity={0.1}
             fillBottomOpacity={0}
-            gridUnderWaterColor={CONTENT_CHART_UNDER_GRID_COLOR}
-            gridUnderWaterOpacity={1}
+            eventMarkers={publishedMarkers}
           />
         </div>
         <div className={s.ytHeroFooter}>

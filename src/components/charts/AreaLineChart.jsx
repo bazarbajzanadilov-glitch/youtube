@@ -1,8 +1,7 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
   Tooltip, ReferenceLine, usePlotArea, useXAxisScale,
-  useYAxisScale, useYAxisTicks,
 } from 'recharts'
 import s from './AreaLineChart.module.css'
 import ChartTooltip from '../ui/ChartTooltip.jsx'
@@ -22,11 +21,25 @@ function defaultLabelFormatter(label) {
 
 const GRID_LINE_COLOR = '#717171'
 const GRID_LINE_WIDTH = 1
-const GRID_OVER_WATER_OPACITY = 1
-const GRID_UNDER_WATER_OPACITY = 0.6
 const GRID_PIXEL_EPSILON = 0.5
 const CHART_LEFT_MARGIN = 22
 const CHART_RIGHT_MARGIN = CHART_LEFT_MARGIN * 2
+const TIMELINE_AXIS_HEIGHT = 54
+const TIMELINE_RAIL_OFFSET = 30
+const TIMELINE_RAIL_TICK = 6
+const TIMELINE_TOOLTIP_OFFSET = 1
+const TIMELINE_LABEL_OFFSET = 23
+const TIMELINE_MARKER_OFFSET = 8
+const TIMELINE_LABEL_GAP = 18
+const MARKER_BADGE_HEIGHT = 16
+const MARKER_BADGE_MIN_WIDTH = 16
+const MARKER_BADGE_GAP = 3
+const MARKER_BADGE_FONT_WIDTH = 7
+const MARKER_BADGE_H_PADDING = 6
+const MARKER_BADGE_TEXT_Y = 12
+const MARKER_TOOLTIP_MAX_WIDTH = 524
+const MARKER_TOOLTIP_MIN_WIDTH = 300
+const MARKER_TOOLTIP_EDGE_GAP = 0
 
 function finiteNumber(value) {
   const number = Number(value)
@@ -37,163 +50,47 @@ function alignGridCoordinate(value) {
   return Math.round(value) + 0.5
 }
 
-function pointSide(pointY, gridY) {
-  const diff = pointY - gridY
-  if (Math.abs(diff) <= GRID_PIXEL_EPSILON) return 0
-  return diff > 0 ? 1 : -1
+function cleanAxisTick(value) {
+  return Number((Number(value) || 0).toFixed(8))
 }
 
-function addUniqueCut(cuts, x, left, right) {
-  if (!Number.isFinite(x)) return
-  const clamped = Math.max(left, Math.min(right, x))
-  if (!cuts.some((cut) => Math.abs(cut - clamped) <= GRID_PIXEL_EPSILON)) {
-    cuts.push(clamped)
-  }
+function forceTickCount(ticks, count) {
+  const safeCount = Math.max(2, Number(count) || 0)
+  if (!Array.isArray(ticks) || ticks.length === 0 || ticks.length === safeCount) return ticks
+
+  const maxTick = Number(ticks[ticks.length - 1]) || 0
+  const axisMax = maxTick > 0 ? maxTick : safeCount - 1
+  const step = axisMax / (safeCount - 1)
+  return Array.from({ length: safeCount }, (_, index) => cleanAxisTick(index * step))
 }
 
-function getLineYAtX(points, x) {
-  if (points.length === 0) return null
-  if (x <= points[0].x) return points[0].y
-  const lastPoint = points[points.length - 1]
-  if (x >= lastPoint.x) return lastPoint.y
-
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const start = points[i]
-    const end = points[i + 1]
-    const minX = Math.min(start.x, end.x)
-    const maxX = Math.max(start.x, end.x)
-    if (x < minX - GRID_PIXEL_EPSILON || x > maxX + GRID_PIXEL_EPSILON) continue
-    if (Math.abs(end.x - start.x) <= GRID_PIXEL_EPSILON) return start.y
-    const ratio = (x - start.x) / (end.x - start.x)
-    return start.y + ratio * (end.y - start.y)
-  }
-
-  return lastPoint.y
-}
-
-function collectLineCuts(points, gridY, left, right) {
-  const cuts = [left, right]
-
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const start = points[i]
-    const end = points[i + 1]
-    if (Math.max(start.x, end.x) < left || Math.min(start.x, end.x) > right) continue
-
-    const startSide = pointSide(start.y, gridY)
-    const endSide = pointSide(end.y, gridY)
-
-    if (startSide === 0 && endSide === 0) continue
-
-    if (startSide === 0) {
-      const prevSide = i > 0 ? pointSide(points[i - 1].y, gridY) : 0
-      if (prevSide !== 0 && endSide !== 0 && prevSide !== endSide) {
-        addUniqueCut(cuts, start.x, left, right)
-      }
-      continue
-    }
-
-    if (endSide === 0) {
-      const nextSide = i < points.length - 2 ? pointSide(points[i + 2].y, gridY) : 0
-      if (nextSide !== 0 && startSide !== 0 && nextSide !== startSide) {
-        addUniqueCut(cuts, end.x, left, right)
-      }
-      continue
-    }
-
-    if (startSide !== endSide && Math.abs(end.y - start.y) > GRID_PIXEL_EPSILON) {
-      const ratio = (gridY - start.y) / (end.y - start.y)
-      addUniqueCut(cuts, start.x + ratio * (end.x - start.x), left, right)
-    }
-  }
-
-  return cuts.sort((a, b) => a - b)
-}
-
-function buildGridSegments(gridY, linePoints, left, right) {
-  if (linePoints.length < 2) {
-    return [{ x1: left, x2: right, underWater: false }]
-  }
-
-  const segments = collectLineCuts(linePoints, gridY, left, right)
-    .map((cut, index, cuts) => {
-      const nextCut = cuts[index + 1]
-      if (nextCut == null || nextCut - cut <= GRID_PIXEL_EPSILON) return null
-      const midpointX = (cut + nextCut) / 2
-      const lineY = getLineYAtX(linePoints, midpointX)
-      const underWater = lineY != null && gridY > lineY + GRID_PIXEL_EPSILON
-      return { x1: cut, x2: nextCut, underWater }
-    })
-    .filter(Boolean)
-
-  return segments.reduce((merged, segment) => {
-    const previous = merged[merged.length - 1]
-    if (previous && previous.underWater === segment.underWater && Math.abs(previous.x2 - segment.x1) <= GRID_PIXEL_EPSILON) {
-      previous.x2 = segment.x2
-    } else {
-      merged.push({ ...segment })
-    }
-    return merged
-  }, [])
-}
-
-function WaterlineGrid({
-  data,
-  xKey,
-  yKey,
-  gridLineColor = GRID_LINE_COLOR,
-  gridUnderWaterColor = gridLineColor,
-  gridOverWaterOpacity = GRID_OVER_WATER_OPACITY,
-  gridUnderWaterOpacity = GRID_UNDER_WATER_OPACITY,
-}) {
+function UniformGrid({ lineCount = 4, gridLineColor = GRID_LINE_COLOR }) {
   const plotArea = usePlotArea()
-  const xScale = useXAxisScale()
-  const yScale = useYAxisScale()
-  const yTicks = useYAxisTicks()
 
-  if (!plotArea || !xScale || !yScale || !Array.isArray(yTicks) || yTicks.length === 0) {
-    return null
-  }
+  if (!plotArea) return null
 
-  const left = plotArea.x
-  const right = plotArea.x + plotArea.width
-  const top = plotArea.y
-  const bottom = plotArea.y + plotArea.height
-  const horizontalPoints = Array.from(new Set(yTicks
-    .map((tick) => finiteNumber(tick.coordinate))
-    .map((point) => (point == null ? null : alignGridCoordinate(point)))
-    .filter((point) => point != null && point >= top - 0.5 && point <= bottom + 0.5)
-    .map((point) => point.toFixed(1))))
-    .map(Number)
-    .sort((a, b) => b - a)
-
-  if (horizontalPoints.length === 0) return null
-
-  const linePoints = data
-    .map((row) => {
-      const x = finiteNumber(xScale(row?.[xKey]))
-      const y = finiteNumber(yScale(row?.[yKey]))
-      return x == null || y == null ? null : { x, y }
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.x - b.x)
+  const count = Math.max(2, Number(lineCount) || 4)
+  const left = alignGridCoordinate(plotArea.x)
+  const right = alignGridCoordinate(plotArea.x + plotArea.width)
+  const points = Array.from({ length: count }, (_, index) => (
+    alignGridCoordinate(plotArea.y + ((plotArea.height * index) / (count - 1)))
+  ))
 
   return (
-    <g className="recharts-custom-waterline-grid" aria-hidden="true">
-      {horizontalPoints.flatMap((y, lineIndex) => (
-        buildGridSegments(y, linePoints, left, right).map((segment, segmentIndex) => (
-          <line
-            key={`${lineIndex}-${segmentIndex}`}
-            x1={segment.x1}
-            y1={y}
-            x2={segment.x2}
-            y2={y}
-            stroke={segment.underWater ? gridUnderWaterColor : gridLineColor}
-            strokeWidth={GRID_LINE_WIDTH}
-            strokeOpacity={segment.underWater ? gridUnderWaterOpacity : gridOverWaterOpacity}
-            strokeLinecap="butt"
-            shapeRendering="crispEdges"
-          />
-        ))
+    <g className="recharts-custom-uniform-grid" aria-hidden="true">
+      {points.map((y) => (
+        <line
+          key={y}
+          x1={left}
+          y1={y}
+          x2={right}
+          y2={y}
+          stroke={gridLineColor}
+          strokeWidth={GRID_LINE_WIDTH}
+          strokeLinecap="butt"
+          shapeRendering="crispEdges"
+          vectorEffect="non-scaling-stroke"
+        />
       ))}
     </g>
   )
@@ -265,37 +162,121 @@ function ProcessingWindowOverlay({
   )
 }
 
-function ProcessingMarkersOverlay({ markers }) {
+function TimelineMarkersOverlay({ markers, onHover, onLeave }) {
   const plotArea = usePlotArea()
   const xScale = useXAxisScale()
 
   if (!plotArea || !xScale || !markers?.length) return null
 
+  const setTooltip = (marker, markerX) => {
+    const viewportWidth = typeof document === 'undefined' ? MARKER_TOOLTIP_MAX_WIDTH : document.documentElement.clientWidth
+    const viewportGap = viewportWidth <= 720 ? 8 : 32
+    const maxViewportWidth = Math.max(240, viewportWidth - (viewportGap * 2))
+    const preferredWidth = Math.round(plotArea.width / 2)
+    const maxPlotWidth = Math.max(240, plotArea.width - MARKER_TOOLTIP_EDGE_GAP)
+    const tooltipWidth = Math.min(
+      MARKER_TOOLTIP_MAX_WIDTH,
+      maxViewportWidth,
+      maxPlotWidth,
+      Math.max(MARKER_TOOLTIP_MIN_WIDTH, preferredWidth),
+    )
+    const leftEdge = plotArea.x
+    const rightLimit = Math.max(leftEdge, plotArea.x + plotArea.width - tooltipWidth - MARKER_TOOLTIP_EDGE_GAP)
+    const safeX = Math.max(0, Math.min(leftEdge, rightLimit))
+    const railY = alignGridCoordinate(plotArea.y + plotArea.height + TIMELINE_RAIL_OFFSET)
+    onHover?.({
+      x: safeX,
+      y: railY + TIMELINE_TOOLTIP_OFFSET,
+      width: tooltipWidth,
+      guideX: markerX,
+      guideTop: plotArea.y,
+      guideHeight: plotArea.height,
+      marker,
+    })
+  }
+
+  const minX = plotArea.x + (MARKER_BADGE_MIN_WIDTH / 2)
+  const maxX = plotArea.x + plotArea.width - (MARKER_BADGE_MIN_WIDTH / 2)
+  const items = markers
+    .map((marker, index) => {
+      const rawX = finiteNumber(xScale(marker.date))
+      if (rawX == null) return null
+      const count = Number(marker.count) || 0
+      const label = count > 9 ? '9+' : String(count || marker.label || '')
+      if (!label) return null
+      const width = Math.max(MARKER_BADGE_MIN_WIDTH, label.length * MARKER_BADGE_FONT_WIDTH + MARKER_BADGE_H_PADDING)
+      return {
+        marker,
+        index,
+        label,
+        width,
+        x: Math.max(minX, Math.min(maxX, rawX)),
+      }
+    })
+    .filter(Boolean)
+
+  for (let index = 1; index < items.length; index += 1) {
+    const previous = items[index - 1]
+    const item = items[index]
+    const minPosition = previous.x + (previous.width / 2) + (item.width / 2) + MARKER_BADGE_GAP
+    if (item.x < minPosition) item.x = minPosition
+  }
+
+  const last = items[items.length - 1]
+  const overflowRight = last ? (last.x + (last.width / 2)) - (plotArea.x + plotArea.width) : 0
+  if (overflowRight > 0) {
+    items.forEach((item) => { item.x -= overflowRight })
+  }
+
+  const first = items[0]
+  const overflowLeft = first ? plotArea.x - (first.x - (first.width / 2)) : 0
+  if (overflowLeft > 0) {
+    items.forEach((item) => { item.x += overflowLeft })
+  }
+
   return (
     <g className={s.processingMarkerGroup} aria-hidden="true">
-      {markers.map((marker, index) => {
-        const rawX = finiteNumber(xScale(marker.date))
-        if (rawX == null) return null
-        const x = Math.max(plotArea.x + 10, Math.min(plotArea.x + plotArea.width, rawX))
-        const y = plotArea.y + plotArea.height + 10
-        const label = String(marker.count)
-        const width = Math.max(20, label.length * 8 + 10)
+      {items.map(({ marker, index, label, width, x }) => {
+        const y = plotArea.y + plotArea.height + TIMELINE_MARKER_OFFSET
 
         return (
-          <g key={`${marker.date}-${index}`} transform={`translate(${x}, ${y})`}>
+          <g
+            key={`${marker.date}-${index}`}
+            transform={`translate(${x}, ${y})`}
+            onPointerLeave={() => onLeave?.()}
+            onPointerOut={() => onLeave?.()}
+            onPointerCancel={() => onLeave?.()}
+            onMouseLeave={() => onLeave?.()}
+          >
             <rect
               className={s.processingMarkerBadge}
               x={-width / 2}
               y={0}
               width={width}
-              height={20}
+              height={MARKER_BADGE_HEIGHT}
               rx={3}
+              onPointerEnter={() => setTooltip(marker, x)}
+              onPointerMove={() => setTooltip(marker, x)}
+              onPointerLeave={() => onLeave?.()}
+              onPointerOut={() => onLeave?.()}
+              onMouseEnter={() => setTooltip(marker, x)}
+              onMouseMove={() => setTooltip(marker, x)}
+              onMouseLeave={() => onLeave?.()}
+              onClick={() => setTooltip(marker, x)}
             />
             <text
               className={s.processingMarkerText}
               x={0}
-              y={14}
+              y={MARKER_BADGE_TEXT_Y}
               textAnchor="middle"
+              onPointerEnter={() => setTooltip(marker, x)}
+              onPointerMove={() => setTooltip(marker, x)}
+              onPointerLeave={() => onLeave?.()}
+              onPointerOut={() => onLeave?.()}
+              onMouseEnter={() => setTooltip(marker, x)}
+              onMouseMove={() => setTooltip(marker, x)}
+              onMouseLeave={() => onLeave?.()}
+              onClick={() => setTooltip(marker, x)}
             >
               {label}
             </text>
@@ -304,6 +285,157 @@ function ProcessingMarkersOverlay({ markers }) {
       })}
     </g>
   )
+}
+
+function TimelineAxisOverlay({ ticks = [], formatter, fontSize = 11 }) {
+  const plotArea = usePlotArea()
+  const xScale = useXAxisScale()
+  if (!plotArea || !xScale || ticks.length === 0) return null
+
+  const visibleTicks = fitTimelineTicks(ticks, plotArea, xScale, formatter, fontSize)
+  const left = alignGridCoordinate(plotArea.x)
+  const right = alignGridCoordinate(plotArea.x + plotArea.width)
+  const railY = alignGridCoordinate(plotArea.y + plotArea.height + TIMELINE_RAIL_OFFSET)
+  const labelY = railY + TIMELINE_LABEL_OFFSET
+  const firstTick = visibleTicks[0]
+  const lastTick = visibleTicks[visibleTicks.length - 1]
+
+  return (
+    <g className={s.timelineAxis} aria-hidden="true">
+      <path
+        d={`M${left} ${railY}H${right}M${left} ${railY}V${railY + TIMELINE_RAIL_TICK}M${right} ${railY}V${railY + TIMELINE_RAIL_TICK}`}
+        className={s.timelineRail}
+      />
+      {visibleTicks.map((tick) => {
+        const rawX = finiteNumber(xScale(tick))
+        if (rawX == null) return null
+        const x = alignGridCoordinate(Math.max(plotArea.x, Math.min(plotArea.x + plotArea.width, rawX)))
+        const isFirst = tick === firstTick
+        const isLast = tick === lastTick
+        const textAnchor = isFirst ? 'start' : isLast ? 'end' : 'middle'
+
+        return (
+          <g key={tick}>
+            {!isFirst && !isLast ? (
+              <line
+                className={s.timelineRail}
+                x1={x}
+                y1={railY}
+                x2={x}
+                y2={railY + TIMELINE_RAIL_TICK}
+              />
+            ) : null}
+            <text
+              className={s.timelineTickLabel}
+              x={x}
+              y={labelY}
+              textAnchor={textAnchor}
+              fontSize={fontSize}
+            >
+              {formatTimelineTickLabel(tick, formatter, plotArea.width)}
+            </text>
+          </g>
+        )
+      })}
+    </g>
+  )
+}
+
+function mergeTimelineMarkers(...groups) {
+  const merged = new Map()
+  groups.flat().forEach((marker) => {
+    const date = String(marker?.date || '').slice(0, 10)
+    const count = Number(marker?.count) || 0
+    if (!date || count <= 0) return
+    const previous = merged.get(date)
+    const previousVideos = previous?.videos || []
+    const incomingVideos = Array.isArray(marker.videos) ? marker.videos : []
+    const videos = [...previousVideos]
+    incomingVideos.forEach((video) => {
+      if (!video?.id || videos.some((item) => item.id === video.id)) return
+      videos.push(video)
+    })
+    merged.set(date, {
+      ...marker,
+      date,
+      count: Math.max(previous?.count || 0, count),
+      videos,
+    })
+  })
+  return Array.from(merged.values()).sort((a, b) => a.date.localeCompare(b.date))
+}
+
+function estimateTimelineLabelWidth(label, fontSize) {
+  const text = String(label || '')
+  return Math.max(38, text.length * fontSize * 0.62)
+}
+
+function formatTimelineTickLabel(tick, formatter, width) {
+  const label = String(formatter(tick) || '')
+  if ((Number(width) || 0) >= 420) return label
+  return label
+    .replace(/\s+\d{4}\s*г\.?$/u, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
+function timelineLabelBounds(item, firstTick, lastTick) {
+  const isFirst = item.tick === firstTick
+  const isLast = item.tick === lastTick
+  if (isFirst) return { left: item.x, right: item.x + item.width }
+  if (isLast) return { left: item.x - item.width, right: item.x }
+  return { left: item.x - item.width / 2, right: item.x + item.width / 2 }
+}
+
+function timelineLabelsCollide(a, b, firstTick, lastTick) {
+  const left = timelineLabelBounds(a, firstTick, lastTick)
+  const right = timelineLabelBounds(b, firstTick, lastTick)
+  return left.right + TIMELINE_LABEL_GAP > right.left
+}
+
+function fitTimelineTicks(ticks, plotArea, xScale, formatter, fontSize) {
+  if (!Array.isArray(ticks) || ticks.length === 0) return []
+  const firstTick = ticks[0]
+  const lastTick = ticks[ticks.length - 1]
+  const candidates = ticks
+    .map((tick) => {
+      const rawX = finiteNumber(xScale(tick))
+      if (rawX == null) return null
+      const label = formatTimelineTickLabel(tick, formatter, plotArea.width)
+      return {
+        tick,
+        x: Math.max(plotArea.x, Math.min(plotArea.x + plotArea.width, rawX)),
+        width: estimateTimelineLabelWidth(label, fontSize),
+      }
+    })
+    .filter(Boolean)
+
+  if (candidates.length <= 2) {
+    if (
+      candidates.length === 2 &&
+      timelineLabelsCollide(candidates[0], candidates[1], firstTick, lastTick)
+    ) {
+      return [candidates[1].tick]
+    }
+    return candidates.map((item) => item.tick)
+  }
+
+  const lastCandidate = candidates[candidates.length - 1]
+  const selected = [candidates[0]]
+  for (let index = 1; index < candidates.length - 1; index += 1) {
+    const candidate = candidates[index]
+    const previous = selected[selected.length - 1]
+    if (timelineLabelsCollide(previous, candidate, firstTick, lastTick)) continue
+    if (timelineLabelsCollide(candidate, lastCandidate, firstTick, lastTick)) continue
+    selected.push(candidate)
+  }
+
+  while (selected.length > 1 && timelineLabelsCollide(selected[selected.length - 1], lastCandidate, firstTick, lastTick)) {
+    selected.pop()
+  }
+
+  selected.push(lastCandidate)
+  return selected.map((item) => item.tick)
 }
 
 function buildEvenTicks(data, key, maxTicks = 7) {
@@ -339,7 +471,7 @@ export default function AreaLineChart({
   margin,
   yAxisWidth = 48,
   yTicks,
-  yTickCount = 5,
+  yTickCount = 4,
   yValueScale = 1,
   xTickFontSize = 11,
   yTickFontSize = 11,
@@ -353,12 +485,14 @@ export default function AreaLineChart({
   fillTopOpacity = 0.1,
   fillBottomOpacity = 0,
   gridLineColor = GRID_LINE_COLOR,
-  gridUnderWaterColor,
-  gridOverWaterOpacity = GRID_OVER_WATER_OPACITY,
-  gridUnderWaterOpacity = GRID_UNDER_WATER_OPACITY,
   processingWindow,
 }) {
   const [processingTooltip, setProcessingTooltip] = useState(null)
+  const [markerTooltip, setMarkerTooltip] = useState(null)
+  const wrapRef = useRef(null)
+  const markerTooltipRef = useRef(null)
+  const markerHideTimer = useRef(null)
+  const markerNativeMoveHandler = useRef(null)
   const chartId = useId().replace(/:/g, '')
   const gradientId = `${chartId}-gradient`
   const chartFillColor = fillColor || color
@@ -385,7 +519,7 @@ export default function AreaLineChart({
     top: 16,
     right: CHART_RIGHT_MARGIN,
     left: CHART_LEFT_MARGIN,
-    bottom: markerIndexes.length > 0 ? 30 : 4,
+    bottom: 4,
   }
   const chartActiveDot = activeDotProps || {
     r: 4,
@@ -398,10 +532,11 @@ export default function AreaLineChart({
     strokeOpacity: 0.32,
     strokeWidth: 1,
   }
-  const autoYTicks = buildPeakAxisTicks(maxByDataKey(data, dataKey), {
+  const autoYTicks = forceTickCount(buildPeakAxisTicks(maxByDataKey(data, dataKey), {
     scale: yValueScale,
     targetTickCount: yTickCount,
-  })
+    maxTickCount: yTickCount,
+  }), yTickCount)
   const useProjectedYAxis = !yTicks && !yDomain
   const projectedDataKey = useProjectedYAxis ? `${dataKey}__axisPosition` : dataKey
   const chartData = useProjectedYAxis
@@ -416,27 +551,85 @@ export default function AreaLineChart({
     ? (tick) => formatY(autoYTicks?.[Math.round(Number(tick) || 0)] ?? 0)
     : formatY
   const xTicks = buildEvenTicks(data, xKey)
-  const firstXTick = xTicks?.[0]
-  const lastXTick = xTicks?.[xTicks.length - 1]
-  const renderXAxisTick = ({ x, y, payload }) => {
-    const value = payload?.value
-    const anchor = value === firstXTick ? 'start' : value === lastXTick ? 'end' : 'middle'
-    return (
-      <text
-        x={x}
-        y={y}
-        dy={16}
-        textAnchor={anchor}
-        fill={CHART_COLORS.textSubtle}
-        fontSize={xTickFontSize}
-      >
-        {xTickFormatter(value)}
-      </text>
-    )
+  const timelineMarkers = mergeTimelineMarkers(markerIndexes, processingMarkerIndexes)
+  const clearMarkerHideTimer = () => {
+    if (markerHideTimer.current != null) {
+      window.clearTimeout(markerHideTimer.current)
+      markerHideTimer.current = null
+    }
+  }
+  const markerClassName = (node) => (
+    typeof node?.className === 'string' ? node.className : node?.className?.baseVal || ''
+  )
+  const isMarkerElement = (node) => {
+    const className = markerClassName(node)
+    return className.includes('processingMarker') || className.includes('markerTooltip')
+  }
+  const isMarkerTooltipTarget = (target, container) => {
+    let node = target
+    while (node && node !== container) {
+      if (isMarkerElement(node)) return true
+      node = node.parentNode
+    }
+    return false
+  }
+  const stopMarkerNativeMoveWatch = () => {
+    if (!markerNativeMoveHandler.current) return
+    window.removeEventListener('pointermove', markerNativeMoveHandler.current, true)
+    window.removeEventListener('mousemove', markerNativeMoveHandler.current, true)
+    markerNativeMoveHandler.current = null
+  }
+  const closeMarkerTooltip = () => {
+    clearMarkerHideTimer()
+    stopMarkerNativeMoveWatch()
+    markerTooltipRef.current = null
+    setMarkerTooltip(null)
+  }
+  const startMarkerNativeMoveWatch = () => {
+    stopMarkerNativeMoveWatch()
+    markerNativeMoveHandler.current = (event) => {
+      const tooltip = markerTooltipRef.current
+      const wrap = wrapRef.current
+      if (!tooltip || !wrap || isMarkerTooltipTarget(event.target, wrap)) return
+      const rect = wrap.getBoundingClientRect()
+      const localX = event.clientX - rect.left
+      const localY = event.clientY - rect.top
+      const outsideWrap = localX < 0 || localX > rect.width || localY < 0 || localY > rect.height
+      const abovePlot = localY < tooltip.guideTop + tooltip.guideHeight - 1
+      if (outsideWrap || abovePlot) closeMarkerTooltip()
+    }
+    window.addEventListener('pointermove', markerNativeMoveHandler.current, true)
+    window.addEventListener('mousemove', markerNativeMoveHandler.current, true)
+  }
+  const showMarkerTooltip = (tooltip) => {
+    clearMarkerHideTimer()
+    markerTooltipRef.current = tooltip
+    setMarkerTooltip(tooltip)
+    startMarkerNativeMoveWatch()
+  }
+  const hideMarkerTooltip = () => {
+    clearMarkerHideTimer()
+    markerHideTimer.current = window.setTimeout(closeMarkerTooltip, 90)
+  }
+  const handleWrapPointerMove = (event) => {
+    if (!markerTooltip || isMarkerTooltipTarget(event.target, event.currentTarget)) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const localY = event.clientY - rect.top
+    if (localY < markerTooltip.guideTop + markerTooltip.guideHeight - 1) {
+      closeMarkerTooltip()
+    }
   }
 
   return (
-    <div className={s.wrap} style={{ height }}>
+    <div
+      ref={wrapRef}
+      className={s.wrap}
+      style={{ height }}
+      onPointerMove={handleWrapPointerMove}
+      onPointerLeave={closeMarkerTooltip}
+      onMouseMove={handleWrapPointerMove}
+      onMouseLeave={closeMarkerTooltip}
+    >
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
         <AreaChart data={chartData} margin={chartMargin}>
           <defs>
@@ -464,7 +657,7 @@ export default function AreaLineChart({
           <XAxis
             dataKey={xKey}
             stroke={CHART_COLORS.textSubtle}
-            tick={renderXAxisTick}
+            tick={false}
             tickLine={false}
             axisLine={false}
             tickFormatter={xTickFormatter}
@@ -472,6 +665,7 @@ export default function AreaLineChart({
             interval={0}
             padding={xAxisPadding}
             scale="point"
+            height={TIMELINE_AXIS_HEIGHT}
           />
           <YAxis
             orientation={yAxisOrientation}
@@ -485,16 +679,16 @@ export default function AreaLineChart({
             ticks={chartYTicks}
           />
           {showGrid ? (
-            <WaterlineGrid
-              data={chartData}
-              xKey={xKey}
-              yKey={projectedDataKey}
+            <UniformGrid
+              lineCount={yTickCount}
               gridLineColor={gridLineColor}
-              gridUnderWaterColor={gridUnderWaterColor}
-              gridOverWaterOpacity={gridOverWaterOpacity}
-              gridUnderWaterOpacity={gridUnderWaterOpacity}
             />
           ) : null}
+          <TimelineAxisOverlay
+            ticks={xTicks || []}
+            formatter={xTickFormatter}
+            fontSize={xTickFontSize}
+          />
           {processingWindow ? (
             <ProcessingWindowOverlay
               processingWindow={processingWindow}
@@ -539,8 +733,12 @@ export default function AreaLineChart({
               onLeave={() => setProcessingTooltip(null)}
             />
           ) : null}
-          {processingMarkerIndexes.length > 0 ? (
-            <ProcessingMarkersOverlay markers={processingMarkerIndexes} />
+          {timelineMarkers.length > 0 ? (
+            <TimelineMarkersOverlay
+              markers={timelineMarkers}
+              onHover={showMarkerTooltip}
+              onLeave={hideMarkerTooltip}
+            />
           ) : null}
         </AreaChart>
       </ResponsiveContainer>
@@ -556,25 +754,45 @@ export default function AreaLineChart({
           </div>
         </div>
       ) : null}
-      {markerIndexes.length > 0 ? (
-        <div
-          className={s.markerRail}
-          style={{ '--chart-left': `${chartMargin.left}px`, '--chart-right': `${chartMargin.right}px` }}
+      {markerTooltip ? (
+        <span
+          className={s.markerHoverGuide}
+          style={{
+            left: `${markerTooltip.guideX}px`,
+            top: `${markerTooltip.guideTop}px`,
+            height: `${markerTooltip.guideHeight}px`,
+          }}
           aria-hidden="true"
+        />
+      ) : null}
+      {markerTooltip ? (
+        <div
+          className={s.markerTooltip}
+          style={{ left: `${markerTooltip.x}px`, top: `${markerTooltip.y}px`, width: `${markerTooltip.width}px` }}
+          onPointerEnter={clearMarkerHideTimer}
+          onPointerLeave={hideMarkerTooltip}
+          onMouseEnter={clearMarkerHideTimer}
+          onMouseLeave={hideMarkerTooltip}
         >
-          {markerIndexes.map((marker, i) => {
-            const pct = data.length <= 1 ? 0 : (marker.idx / (data.length - 1)) * 100
-            return (
-              <span
-                key={`${marker.date}-${i}`}
-                className={s.eventMarker}
-                style={{ left: `${pct}%` }}
-                title={marker.label || marker.date}
-              >
-                <span className={s.playGlyph} />
-              </span>
-            )
-          })}
+          <div className={s.markerTooltipTitle}>{markerTooltip.marker.label}</div>
+          <div className={s.markerTooltipList}>
+            {(markerTooltip.marker.videos || []).map((video) => (
+              <div className={s.markerTooltipItem} key={video.id || `${markerTooltip.marker.date}-${video.title}`}>
+                <span className={s.markerTooltipThumb}>
+                  {video.cover ? <img src={video.cover} alt="" aria-hidden="true" /> : null}
+                </span>
+                <span className={s.markerTooltipBody}>
+                  <span className={s.markerTooltipVideoTitle}>{video.title || 'Без названия'}</span>
+                  <span className={s.markerTooltipDate}>{formatDateLong(video.date || markerTooltip.marker.date)}</span>
+                </span>
+                <span className={s.markerTooltipViewsIcon} aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M3 3h18v18H3V3Zm2 2v14h14V5H5Zm4 11H7v-5h2v5Zm4 0h-2V8h2v8Zm4 0h-2v-3h2v3Z" />
+                  </svg>
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
     </div>

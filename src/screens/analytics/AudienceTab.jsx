@@ -14,6 +14,7 @@ import s from './AnalyticsTabs.module.css'
 import {
   ANALYTICS_PURPLE,
   absoluteUsualComparison,
+  buildPublishedVideoMarkers,
   signedNumber,
   videoDate,
 } from './studioAnalyticsHelpers.js'
@@ -49,7 +50,7 @@ function KpiCell({ label, value, note, active = false, clock = false, trend = 'n
 }
 
 export default function AudienceTab({ data, onOpenAdmin }) {
-  const { audience, overview, range } = data
+  const { audience, overview, content, range } = data
   const [metric, setMetric] = useState('viewers')
   const monthlyViewers = Math.max(0, Math.round((audience.kpis.uniqueViewers.value || 0) * 0.85))
   const topVideos = overview.topVideos || []
@@ -91,6 +92,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
     },
   }
   const chart = chartByMetric[metric]
+  const publishedMarkers = buildPublishedVideoMarkers(chart.data, content?.allVideos || [], 'date')
   const segments = [
     { label: 'Новые зрители', share: 0.918, color: 'rgba(188, 105, 243, 0.95)' },
     { label: 'Случайные зрители', share: 0.082, color: 'rgba(188, 105, 243, 0.62)' },
@@ -149,6 +151,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
             formatY={formatCompactNumber}
             formatTooltipValue={formatNumberRu}
             yAxisOrientation="right"
+            eventMarkers={publishedMarkers}
           />
         </div>
         <div className={s.ytHeroFooter}>

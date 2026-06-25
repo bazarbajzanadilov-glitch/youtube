@@ -82,39 +82,39 @@ function profileParams(profile, rand) {
       }
     case 'decayAfterPeak':
       return {
-        peakAt: 3.5 + rand() * 7,
+        peakAt: 1.5 + rand() * 3.5,
         rampPower: 1.55 + rand() * 0.35,
         decay: 0.018 + rand() * 0.014,
         floor: 0.075 + rand() * 0.055,
-        plateau: 2 + Math.floor(rand() * 4),
+        plateau: 1 + Math.floor(rand() * 3),
         spikeChance: 0.035,
       }
     case 'steady':
       return {
-        peakAt: 5 + rand() * 12,
+        peakAt: 1.5 + rand() * 5,
         rampPower: 1.25 + rand() * 0.3,
         decay: 0.006 + rand() * 0.006,
         floor: 0.18 + rand() * 0.12,
-        plateau: 5 + Math.floor(rand() * 8),
+        plateau: 4 + Math.floor(rand() * 7),
         spikeChance: 0.045,
       }
     case 'seasonal':
       return {
-        peakAt: 6 + rand() * 18,
+        peakAt: 2 + rand() * 7,
         rampPower: 1.35 + rand() * 0.35,
         decay: 0.008 + rand() * 0.012,
         floor: 0.13 + rand() * 0.09,
-        plateau: 4 + Math.floor(rand() * 10),
+        plateau: 3 + Math.floor(rand() * 8),
         spikeChance: 0.06,
       }
     case 'gradualGrowth':
     default:
       return {
-        peakAt: 7 + rand() * 18,
+        peakAt: 2 + rand() * 6,
         rampPower: 1.35 + rand() * 0.4,
         decay: 0.011 + rand() * 0.014,
         floor: 0.1 + rand() * 0.08,
-        plateau: 3 + Math.floor(rand() * 7),
+        plateau: 2 + Math.floor(rand() * 6),
         spikeChance: 0.05,
       }
   }
@@ -159,8 +159,8 @@ export function generateLifecycleShape({ seed, days, profile = 'gradualGrowth', 
     out[i] = Math.max(0.015, value)
   }
 
-  if (days > 1) out[0] = Math.min(out[0], out[peakIdx] * (0.03 + rand() * 0.04))
-  if (days > 2) out[1] = Math.min(out[1], out[peakIdx] * (0.1 + rand() * 0.08))
+  if (days > 1 && peakIdx > 1) out[0] = Math.min(out[0], out[peakIdx] * (0.28 + rand() * 0.16))
+  if (days > 2 && peakIdx > 2) out[1] = Math.min(out[1], out[peakIdx] * (0.52 + rand() * 0.18))
   return out
 }
 

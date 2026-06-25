@@ -7,6 +7,7 @@ import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 import s from './AnalyticsTabs.module.css'
 import {
   ANALYTICS_TEAL,
+  buildPublishedVideoMarkers,
   formatTenge,
   formatTengeAxis,
 } from './studioAnalyticsHelpers.js'
@@ -233,6 +234,7 @@ export default function RevenueTab({ data }) {
       series: monetization?.series || [],
     })
   ), [content?.allVideos, range, monetization?.series])
+  const publishedMarkers = buildPublishedVideoMarkers(monetization?.series || [], content?.allVideos || [], 'date')
   const sourcesMax = Math.max(0, ...sourceRows.map((item) => item.amount || 0))
 
   return (
@@ -264,7 +266,7 @@ export default function RevenueTab({ data }) {
             xKey="date"
             color={REVENUE_LINE_COLOR}
             fillColor={REVENUE_LINE_COLOR}
-            height={168}
+            height={174}
             name="Расчетный доход"
             formatY={formatTengeAxis}
             xTickFormatter={formatDateLong}
@@ -273,7 +275,7 @@ export default function RevenueTab({ data }) {
             yAxisOrientation="right"
             yValueScale={512}
             yAxisWidth={88}
-            margin={{ top: 22, right: 44, left: 22, bottom: 6 }}
+            margin={{ top: 16, right: 44, left: 22, bottom: 4 }}
             xTickFontSize={12}
             yTickFontSize={12}
             tooltipClassName={s.revenueHeroTooltip}
@@ -284,6 +286,7 @@ export default function RevenueTab({ data }) {
             fillBottomOpacity={0.03}
             activeDotProps={{ r: 5, stroke: '#282828', strokeWidth: 2, fill: REVENUE_LINE_COLOR }}
             processingWindow={processingWindow}
+            eventMarkers={publishedMarkers}
           />
         </div>
         <div className={s.ytHeroFooter}>

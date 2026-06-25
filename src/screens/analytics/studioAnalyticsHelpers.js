@@ -152,6 +152,40 @@ export function absoluteUsualComparison(value, format = formatCompactNumber) {
   return `На ${format(amount)} ${Number(value) >= 0 ? 'больше' : 'меньше'}, чем обычно`
 }
 
+export function buildPublishedVideoMarkers(series = [], videos = [], xKey = 'date') {
+  const seriesDates = new Set((series || [])
+    .map((row) => String(row?.[xKey] || '').slice(0, 10))
+    .filter(Boolean))
+  if (seriesDates.size === 0) return []
+
+  const grouped = new Map()
+  ;(videos || []).forEach((video) => {
+    const date = String(video?.date || video?.publishedAt || '').slice(0, 10)
+    if (!seriesDates.has(date)) return
+    if (!grouped.has(date)) grouped.set(date, [])
+    grouped.get(date).push(video)
+  })
+
+  return Array.from(grouped.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, markerVideos]) => ({
+      date,
+      count: markerVideos.length,
+      label: `${markerVideos.length} ${markerVideos.length === 1 ? 'опубликованное видео' : 'опубликованных видео'}`,
+      videos: markerVideos
+        .slice()
+        .sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'ru'))
+        .map((video) => ({
+          id: video.id,
+          title: video.title || 'Без названия',
+          cover: video.cover || '',
+          date,
+          duration: video.duration || '',
+          views: video.views || 0,
+        })),
+    }))
+}
+
 export function comparePreviousText() {
   return 'На 99 % меньше, чем за предыдущие 28 дней'
 }
