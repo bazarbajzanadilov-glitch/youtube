@@ -1,0 +1,92 @@
+.button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  border: 0;
+  font-family: inherit;
+  font-weight: var(--studio-control-font-weight);
+  letter-spacing: 0;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.size-sm {
+  min-height: var(--studio-control-height-sm);
+  padding: var(--studio-control-padding-sm);
+  border-radius: calc(var(--studio-control-height-sm) / 2);
+  font-size: var(--studio-control-font-size-sm);
+  line-height: var(--studio-control-height-sm);
+}
+
+.size-md {
+  min-height: var(--studio-control-height-md);
+  padding: var(--studio-control-padding-md);
+  border-radius: calc(var(--studio-control-height-md) / 2);
+  font-size: var(--studio-control-font-size-md);
+  line-height: var(--studio-control-height-md);
+}
+
+.variant-pill,
+.variant-dark {
+  background: var(--studio-action-pill-bg);
+  color: var(--studio-text);
+}
+
+.variant-pill:hover,
+.variant-dark:hover {
+  background: var(--studio-action-pill-bg-hover);
+}
+
+.variant-chip {
+  background: var(--studio-action-chip-bg-muted);
+  color: var(--studio-text);
+}
+
+.variant-chip:hover {
+  background: var(--studio-hover);
+}
+
+.variant-light,
+.variant-chip.active,
+.active.variant-chip {
+  background: var(--studio-action-active-bg);
+  color: var(--studio-action-active-text);
+}
+
+.variant-link {
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--studio-link);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.variant-link:hover {
+  color: #65b8ff;
+}
+
+.variant-icon {
+  width: var(--studio-control-height-md);
+  height: var(--studio-control-height-md);
+  min-height: var(--studio-control-height-md);
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--studio-text-muted);
+}
+
+.variant-icon:hover {
+  background: var(--studio-hover-soft);
+  color: var(--studio-text);
+}

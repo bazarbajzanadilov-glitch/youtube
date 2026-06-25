@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
+import { analyticsAreaChartProps } from '../../components/charts/analyticsChartDefaults.js'
 import {
   formatCompactNumber,
   formatNumberRu,
@@ -17,7 +18,8 @@ import {
   usualComparison,
   videoDate,
 } from './studioAnalyticsHelpers.js'
-import { KpiDownCircleIcon, KpiUpCircleIcon } from '../icons.jsx'
+import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
+import MetricKpiCell from './MetricKpiCell.jsx'
 
 const TYPE_FILTERS = ['Все', 'Shorts', 'Прямой эфир']
 const TRAFFIC_TABS = ['Общие', 'Внешние источники', 'Поиск на YouTube', 'Рекомендуемые видео', 'Плейлисты']
@@ -47,27 +49,6 @@ function averageDurationByViews(videos) {
     return sum + (Number(video.views) || 0) * seconds * 0.45
   }, 0)
   return totalSeconds / totalViews
-}
-
-function KpiCell({ label, value, note, active = false, trend = 'neutral' }) {
-  const showTrend = trend === 'up' || trend === 'down'
-
-  return (
-    <div className={`${s.ytKpiCell} ${active ? s.ytKpiCellActive : ''}`}>
-      <div className={s.ytKpiLabel}>{label}</div>
-      <div className={s.ytKpiValue}>
-        {value}
-        {showTrend ? (
-          <span className={`${s.trendMark} ${trend === 'up' ? s.trendUp : s.trendDown}`}>
-            {trend === 'up'
-              ? <KpiUpCircleIcon size={18} color="#2ba640" />
-              : <KpiDownCircleIcon size={18} color="#909090" />}
-          </span>
-        ) : null}
-      </div>
-      <div className={s.ytKpiNote}>{note}</div>
-    </div>
-  )
 }
 
 export default function ContentTab({ data, onOpenAdmin }) {
@@ -131,53 +112,48 @@ export default function ContentTab({ data, onOpenAdmin }) {
         ))}
       </div>
 
-      <Card padding="none" depth="lg" className={s.ytHeroCard}>
+      <AnalyticsHeroCard
+        chart={(
+          <AreaLineChart
+            {...analyticsAreaChartProps()}
+            data={filteredSeries}
+            dataKey="views"
+            xKey="date"
+            color={CONTENT_CHART_COLOR}
+            fillColor={CONTENT_CHART_COLOR}
+            name="Просмотры"
+            formatY={formatCompactNumber}
+            formatTooltipValue={formatNumberRu}
+            eventMarkers={publishedMarkers}
+          />
+        )}
+      >
         <div className={s.ytKpiStrip}>
-          <KpiCell
+          <MetricKpiCell
             label="Просмотры"
             value={formatCompactNumber(filteredViews)}
             note={typeKey === 'all' ? usualComparison(content.kpis.views, formatCompactNumber) : 'Обычное значение'}
             trend={typeKey === 'all' ? kpiTrend(content.kpis.views.delta) : 'neutral'}
             active
           />
-          <KpiCell
+          <MetricKpiCell
             label="Показы"
             value={formatCompactNumber(filteredImpressions)}
             note={typeKey === 'all' ? usualComparison(content.kpis.impressions, formatCompactNumber) : 'Обычное значение'}
             trend={typeKey === 'all' ? kpiTrend(content.kpis.impressions.delta) : 'neutral'}
           />
-          <KpiCell
+          <MetricKpiCell
             label="CTR для значков видео"
             value={formatPercent(filteredCtr, 1)}
             note="Обычное значение"
           />
-          <KpiCell
+          <MetricKpiCell
             label="Средняя продолжительность просмотра"
             value={formatSecondsAsClock(filteredAvgDuration)}
             note="Обычное значение"
           />
         </div>
-        <div className={s.ytHeroChart}>
-          <AreaLineChart
-            data={filteredSeries}
-            dataKey="views"
-            xKey="date"
-            color={CONTENT_CHART_COLOR}
-            fillColor={CONTENT_CHART_COLOR}
-            height={174}
-            name="Просмотры"
-            formatY={formatCompactNumber}
-            formatTooltipValue={formatNumberRu}
-            yAxisOrientation="right"
-            fillTopOpacity={0.1}
-            fillBottomOpacity={0}
-            eventMarkers={publishedMarkers}
-          />
-        </div>
-        <div className={s.ytHeroFooter}>
-          <button type="button" className={s.ytPillBtn}>Подробнее</button>
-        </div>
-      </Card>
+      </AnalyticsHeroCard>
 
       <div className={s.twoColumnGrid}>
         <Card padding="lg" depth="md" className={s.blockCard}>

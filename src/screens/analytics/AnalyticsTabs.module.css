@@ -23,21 +23,22 @@
 }
 
 .contentTabStack {
-  --studio-analytics-chart-bar: #8e8cff;
+  --studio-analytics-chart-bar: var(--studio-chart-content-line);
 }
 
 .audienceTabStack {
-  --studio-analytics-chart-bar: #bc69f3;
+  --studio-analytics-chart-bar: var(--studio-chart-audience-line);
 }
 
 .contentTabStack .trafficRow div span,
 .contentTabStack .formatRow i {
-  background: #8e8cff;
+  background: var(--studio-chart-content-line);
 }
 
 .ytHeroCard {
-  background: #0f0f0f;
-  border: 1px solid #fff3;
+  background: var(--studio-card-widget);
+  border: 1px solid var(--studio-analytics-card-border);
+  border-radius: var(--studio-analytics-card-radius);
 }
 
 .ytKpiStrip {
@@ -168,7 +169,7 @@ button.ytKpiCell {
 }
 
 .ytHeroChart {
-  padding: 10px 0 0;
+  padding: var(--studio-analytics-hero-chart-pad-top) 0 0;
 }
 
 .revenueHeroTooltip {
@@ -199,8 +200,9 @@ button.ytKpiCell {
 .ytHeroFooter {
   display: flex;
   align-items: flex-end;
-  min-height: 58px;
-  padding: 0 22px 22px;
+  min-height: var(--studio-analytics-hero-footer-min-height);
+  margin-top: var(--studio-analytics-hero-footer-gap);
+  padding: 0 var(--studio-analytics-hero-footer-pad-x) var(--studio-analytics-hero-footer-pad-bottom);
 }
 
 .ytPillBtn,
@@ -208,16 +210,16 @@ button.ytKpiCell {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
-  padding: 0 16px;
+  min-height: var(--studio-control-height-md);
+  padding: var(--studio-control-padding-md);
   border: 0;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #f1f1f1;
+  border-radius: calc(var(--studio-control-height-md) / 2);
+  background: var(--studio-action-pill-bg);
+  color: var(--studio-text);
   font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 36px;
+  font-size: var(--studio-control-font-size-md);
+  font-weight: var(--studio-control-font-weight);
+  line-height: var(--studio-control-height-md);
   cursor: pointer;
 }
 
@@ -266,7 +268,7 @@ button.ytKpiCell {
 .ytPillBtn:hover,
 .ytWideBtn:hover {
   filter: none;
-  background-color: rgba(255, 255, 255, 0.16);
+  background-color: var(--studio-action-pill-bg-hover);
 }
 
 .ytTextBtn:hover {
@@ -768,7 +770,14 @@ button.ytKpiCell {
 .overviewTable,
 .overviewSideCard,
 .overviewNewVideoCard {
-  border-radius: 16px;
+  border-radius: var(--studio-analytics-card-radius);
+}
+
+.overviewHeroCard {
+  --studio-analytics-hero-footer-gap: var(--studio-analytics-overview-footer-gap);
+  --studio-analytics-hero-footer-min-height: var(--studio-analytics-overview-footer-min-height);
+  --studio-analytics-hero-footer-pad-x: var(--studio-analytics-overview-footer-pad-x);
+  --studio-analytics-hero-footer-pad-bottom: 24px;
 }
 
 .overviewHeroCard .ytKpiStrip {
@@ -841,8 +850,8 @@ button.ytKpiCell {
 }
 
 .overviewHeroCard .ytHeroFooter {
-  min-height: 84px;
-  padding: 0 24px 24px;
+  min-height: var(--studio-analytics-hero-footer-min-height);
+  padding: 0 var(--studio-analytics-hero-footer-pad-x) var(--studio-analytics-hero-footer-pad-bottom);
 }
 
 .overviewHeroTooltip {
@@ -1150,7 +1159,7 @@ button.ytKpiCell {
 }
 
 .revenueRail {
-  --studio-analytics-chart-bar: #39cfc2;
+  --studio-analytics-chart-bar: var(--studio-chart-revenue-line);
   width: min(1264px, calc(100% - 48px));
   max-width: 1264px;
   margin: 0 auto;
@@ -1160,8 +1169,8 @@ button.ytKpiCell {
 
 .revenueRail .ytHeroCard,
 .revenueRail .tableCard {
-  border-radius: 16px;
-  border: 1px solid #fff3;
+  border-radius: var(--studio-analytics-card-radius);
+  border: 1px solid var(--studio-analytics-card-border);
 }
 
 .revenueRail .revenueBreakdownCard {
@@ -1176,16 +1185,16 @@ button.ytKpiCell {
 .filterChip,
 .innerTab {
   flex: 0 0 auto;
-  height: 32px;
-  padding: 0 11px;
+  height: var(--studio-control-height-sm);
+  padding: var(--studio-control-padding-sm);
   border: 0;
   border-radius: 8px;
-  background: #3f3f3f;
-  color: #f1f1f1;
+  background: var(--studio-action-chip-bg-muted);
+  color: var(--studio-text);
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 32px;
+  font-size: var(--studio-control-font-size-sm);
+  font-weight: var(--studio-control-font-weight);
+  line-height: var(--studio-control-height-sm);
   letter-spacing: 0;
   cursor: pointer;
   white-space: nowrap;
@@ -1193,8 +1202,8 @@ button.ytKpiCell {
 
 .filterChipActive,
 .innerTabActive {
-  background: #f1f1f1;
-  color: #0f0f0f;
+  background: var(--studio-action-active-bg);
+  color: var(--studio-action-active-text);
 }
 
 @media (max-width: 1439px) {
@@ -1265,7 +1274,7 @@ button.ytKpiCell {
 
 .blockCard {
   min-height: 0;
-  border: 1px solid #fff3;
+  border: 1px solid var(--studio-analytics-card-border);
 }
 
 .innerTabs {
@@ -1476,15 +1485,15 @@ button.ytKpiCell {
 }
 
 .revenueSourcesCard .innerTab {
-  height: 36px;
-  padding: 0 16px;
-  border-radius: 18px;
+  height: var(--studio-control-height-md);
+  padding: var(--studio-control-padding-md);
+  border-radius: calc(var(--studio-control-height-md) / 2);
   outline: 0;
-  background: #282828;
+  background: var(--studio-action-chip-bg);
   box-shadow: none;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 36px;
+  font-size: var(--studio-control-font-size-md);
+  font-weight: var(--studio-control-font-weight);
+  line-height: var(--studio-control-height-md);
 }
 
 .revenueSourcesCard .innerTab:focus {
@@ -1493,8 +1502,8 @@ button.ytKpiCell {
 }
 
 .revenueSourcesCard .innerTabActive {
-  background: #f1f1f1;
-  color: #0f0f0f;
+  background: var(--studio-action-active-bg);
+  color: var(--studio-action-active-text);
 }
 
 .revenueSourcesCard {
@@ -1534,15 +1543,15 @@ button.ytKpiCell {
 }
 
 .revenuePerformanceCard .innerTab {
-  height: 36px;
-  padding: 0 16px;
-  border-radius: 18px;
+  height: var(--studio-control-height-md);
+  padding: var(--studio-control-padding-md);
+  border-radius: calc(var(--studio-control-height-md) / 2);
   outline: 0;
-  background: #282828;
+  background: var(--studio-action-chip-bg);
   box-shadow: none;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 36px;
+  font-size: var(--studio-control-font-size-md);
+  font-weight: var(--studio-control-font-weight);
+  line-height: var(--studio-control-height-md);
 }
 
 .revenuePerformanceCard .innerTab:focus {
@@ -1551,8 +1560,8 @@ button.ytKpiCell {
 }
 
 .revenuePerformanceCard .innerTabActive {
-  background: #f1f1f1;
-  color: #0f0f0f;
+  background: var(--studio-action-active-bg);
+  color: var(--studio-action-active-text);
 }
 
 .revenueMetricRows {

@@ -90,11 +90,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 32px;
-  padding: 0 16px;
+  height: var(--studio-control-height-sm);
+  padding: var(--studio-control-padding-md);
   border: 0;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.1);
+  border-radius: calc(var(--studio-control-height-sm) / 2);
+  background: var(--studio-action-pill-bg);
   color: var(--studio-text);
   font-family: inherit;
   font-size: 13px;
@@ -103,8 +103,8 @@
 }
 
 .filterChipActive {
-  background: #ffffff;
-  color: #0d0d0d;
+  background: var(--studio-action-active-bg);
+  color: var(--studio-action-active-text);
 }
 
 .emptyState {

@@ -47,8 +47,8 @@
   padding: 16px 0 8px;
 }
 .filterIcon {
-  width: 36px;
-  height: 36px;
+  width: var(--studio-control-height-md);
+  height: var(--studio-control-height-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,9 +64,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 16px;
+  height: var(--studio-control-height-sm);
+  padding: var(--studio-control-padding-sm);
+  border-radius: calc(var(--studio-control-height-sm) / 2);
   border: 1px solid var(--studio-chip-border);
   color: var(--studio-text);
   font-size: 13px;
@@ -76,8 +76,8 @@
 }
 .filterChip:hover { background: var(--studio-hover-soft); }
 .filterClear {
-  width: 32px;
-  height: 32px;
+  width: var(--studio-control-height-sm);
+  height: var(--studio-control-height-sm);
   margin-left: 4px;
   border: none;
   border-radius: 50%;
@@ -98,8 +98,8 @@
   margin-top: 16px;
   max-width: 760px;
   padding: 48px 24px;
-  border: 1px dashed var(--studio-border);
-  border-radius: 12px;
+  border: 1px dashed var(--studio-card-border);
+  border-radius: var(--studio-radius-lg);
   color: var(--studio-text-muted);
   font-size: 14px;
   text-align: center;

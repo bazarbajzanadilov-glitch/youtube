@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
+import { analyticsAreaChartProps } from '../../components/charts/analyticsChartDefaults.js'
 import RealtimeMiniChart from '../../components/charts/RealtimeMiniChart.jsx'
 import RealtimeIndicator from '../../components/ui/RealtimeIndicator.jsx'
 import { FAST_CHART_ANIMATION_SECONDS } from '../../components/charts/chartAnimation.js'
@@ -12,17 +13,16 @@ import {
   formatDateLong,
   formatNumberRu,
 } from '../../lib/analyticsFormat.js'
-import clockIcon from '../../assets/clock.svg'
 import {
   ChevronLeft,
   ChevronRight,
   InfoIcon,
-  KpiDownCircleIcon,
-  KpiUpCircleIcon,
   ThumbDownIcon,
   ThumbUpIcon,
 } from '../icons.jsx'
 import s from './AnalyticsTabs.module.css'
+import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
+import MetricKpiCell from './MetricKpiCell.jsx'
 import {
   ANALYTICS_BLUE,
   avgWatchPercent,
@@ -60,44 +60,6 @@ function StudioAiSparkle({ size = 22 }) {
         opacity="0.95"
       />
     </svg>
-  )
-}
-
-function KpiCell({
-  label,
-  value,
-  note,
-  active = false,
-  clock = false,
-  trend = 'neutral',
-  onClick,
-  accentColor,
-}) {
-  const Tag = onClick ? 'button' : 'div'
-  const showTrend = trend === 'up' || trend === 'down'
-  return (
-    <Tag
-      type={onClick ? 'button' : undefined}
-      className={`${s.ytKpiCell} ${active ? s.ytKpiCellActive : ''}`}
-      onClick={onClick}
-      style={active && accentColor ? { '--yt-kpi-accent': accentColor } : undefined}
-    >
-      <div className={s.ytKpiLabel}>
-        {label}
-        {clock ? <img className={s.clockBadge} src={clockIcon} alt="" aria-hidden="true" /> : null}
-      </div>
-      <div className={s.ytKpiValue}>
-        {value}
-        {showTrend ? (
-          <span className={`${s.trendMark} ${trend === 'up' ? s.trendUp : s.trendDown}`}>
-            {trend === 'up'
-              ? <KpiUpCircleIcon size={18} color="#2ba640" />
-              : <KpiDownCircleIcon size={18} color="#909090" />}
-          </span>
-        ) : null}
-      </div>
-      {note ? <div className={s.ytKpiNote}>{note}</div> : null}
-    </Tag>
   )
 }
 
@@ -182,12 +144,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
   }
   const chart = chartByMetric[metric]
   const publishedMarkers = buildPublishedVideoMarkers(chart.data, content?.allVideos || [], 'date')
-  const heroChartMargin = metric === 'revenue'
-    ? { top: 12, right: 48, left: 24, bottom: 6 }
-    : { top: 12, right: 48, left: 24, bottom: 6 }
   const heroYAxisWidth = metric === 'revenue' ? 80 : 44
-  const heroFillTopOpacity = 0.1
-  const heroFillBottomOpacity = 0
   const topVideo = overview.topVideos[0]
   const replayViews = newestVideo ? Math.max(1, Math.round((newestVideo.views || 0) * (newestVideo.type === 'live' ? 0.01 : 0.08))) : 0
   const aiInsights = [
@@ -249,9 +206,35 @@ export default function OverviewTab({ data, onOpenAdmin }) {
   return (
     <div className={`${s.analyticsShell} ${s.overviewShell}`}>
       <div className={`${s.analyticsMain} ${s.overviewMain}`}>
-        <Card padding="none" depth="lg" className={`${s.ytHeroCard} ${s.overviewHeroCard} ${s.overviewInset}`}>
+        <AnalyticsHeroCard
+          className={`${s.overviewHeroCard} ${s.overviewInset}`}
+          chartStyle={{ '--overview-tooltip-accent': chart.color }}
+          chart={(
+            <AreaLineChart
+              {...analyticsAreaChartProps({
+                margin: { top: 12, bottom: 6 },
+                yValueScale: metric === 'revenue' ? 512 : 1,
+                yAxisWidth: heroYAxisWidth,
+                tooltipClassName: s.overviewHeroTooltip,
+                tooltipLabelClassName: s.overviewHeroTooltipLabel,
+                tooltipValueClassName: s.overviewHeroTooltipValue,
+                tooltipCursor: { stroke: '#6c6c6c', strokeOpacity: 0.8, strokeWidth: 1 },
+                activeDotProps: { r: 5, stroke: '#282828', strokeWidth: 2, fill: chart.color },
+              })}
+              data={chart.data}
+              dataKey={chart.dataKey}
+              xKey="date"
+              color={chart.color}
+              name={chart.name}
+              formatY={chart.formatY}
+              xTickFormatter={formatDateLong}
+              formatTooltipValue={chart.formatTooltipValue}
+              eventMarkers={publishedMarkers}
+            />
+          )}
+        >
           <div className={s.ytKpiStrip}>
-            <KpiCell
+            <MetricKpiCell
               label="Просмотры"
               value={formatCompactNumber(overview.kpis.views.value)}
               note={usualComparison(overview.kpis.views, formatCompactNumber)}
@@ -260,7 +243,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               accentColor={chartByMetric.views.color}
               onClick={() => setMetric('views')}
             />
-            <KpiCell
+            <MetricKpiCell
               label="Время просмотра (часы)"
               value={formatHours(overview.kpis.watchTime.value)}
               note={usualComparison(overview.kpis.watchTime, formatHours)}
@@ -269,7 +252,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               accentColor={chartByMetric.watch.color}
               onClick={() => setMetric('watch')}
             />
-            <KpiCell
+            <MetricKpiCell
               label="Подписчики"
               value={signedNumber(overview.kpis.subscribers.value)}
               note={absoluteUsualComparison(overview.kpis.subscribers.value, formatNumberRu)}
@@ -278,7 +261,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               accentColor={chartByMetric.subscribers.color}
               onClick={() => setMetric('subscribers')}
             />
-            <KpiCell
+            <MetricKpiCell
               label="Расчетный доход"
               value={formatTenge(monetization?.kpis?.revenue?.value || 0)}
               note={usualComparison(monetization?.kpis?.revenue, formatTenge)}
@@ -289,37 +272,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               onClick={() => setMetric('revenue')}
             />
           </div>
-
-          <div className={s.ytHeroChart} style={{ '--overview-tooltip-accent': chart.color }}>
-            <AreaLineChart
-              data={chart.data}
-              dataKey={chart.dataKey}
-              xKey="date"
-              color={chart.color}
-              height={174}
-              name={chart.name}
-              formatY={chart.formatY}
-              xTickFormatter={formatDateLong}
-              formatTooltipValue={chart.formatTooltipValue}
-              yAxisOrientation="right"
-              yValueScale={metric === 'revenue' ? 512 : 1}
-              yAxisWidth={heroYAxisWidth}
-              margin={heroChartMargin}
-              fillTopOpacity={heroFillTopOpacity}
-              fillBottomOpacity={heroFillBottomOpacity}
-              tooltipClassName={s.overviewHeroTooltip}
-              tooltipLabelClassName={s.overviewHeroTooltipLabel}
-              tooltipValueClassName={s.overviewHeroTooltipValue}
-              tooltipCursor={{ stroke: '#6c6c6c', strokeOpacity: 0.8, strokeWidth: 1 }}
-              activeDotProps={{ r: 5, stroke: '#282828', strokeWidth: 2, fill: chart.color }}
-              eventMarkers={publishedMarkers}
-            />
-          </div>
-
-          <div className={s.ytHeroFooter}>
-            <button type="button" className={s.ytPillBtn}>Подробнее</button>
-          </div>
-        </Card>
+        </AnalyticsHeroCard>
 
         <Card padding="lg" depth="md" className={`${s.aiCard} ${s.overviewAICard} ${s.overviewInset}`}>
           <div className={s.aiIcon}><StudioAiSparkle size={22} /></div>

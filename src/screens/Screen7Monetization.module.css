@@ -49,19 +49,19 @@
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  height: 36px;
-  padding: 0 16px;
-  border-radius: 18px;
+  height: var(--studio-control-height-md);
+  padding: var(--studio-control-padding-md);
+  border-radius: calc(var(--studio-control-height-md) / 2);
   border: 0;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--studio-action-pill-bg);
   color: var(--studio-text);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--studio-control-font-size-md);
+  font-weight: var(--studio-control-font-weight);
   font-family: inherit;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease;
 }
-.advanced:hover { background: rgba(255,255,255,0.16); }
+.advanced:hover { background: var(--studio-action-pill-bg-hover); }
 
 .suggestRow {
   display: flex;
@@ -74,20 +74,20 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 36px;
-  padding: 0 16px;
-  border-radius: 18px;
+  height: var(--studio-control-height-md);
+  padding: var(--studio-control-padding-md);
+  border-radius: calc(var(--studio-control-height-md) / 2);
   border: 0;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--studio-action-pill-bg);
   color: var(--studio-text);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--studio-control-font-size-md);
+  font-weight: var(--studio-control-font-weight);
   font-family: inherit;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
   white-space: nowrap;
 }
-.suggestion:hover { background: rgba(255,255,255,0.16); transform: none; }
+.suggestion:hover { background: var(--studio-action-pill-bg-hover); transform: none; }
 .suggestion svg { color: var(--studio-text-muted); }
 .kebab {
   width: 36px; height: 36px;

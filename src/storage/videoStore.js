@@ -17,6 +17,8 @@ const STORAGE_KEY = 'yt-studio-videos-v3'
 const STORAGE_EVENT = 'yt-studio-store-update'
 const BOOTSTRAP_FLAG = 'yt-studio-videos-bootstrapped-v3'
 const BOOTSTRAP_URL = './data/videos.json'
+const SEED_SYNC_KEY = 'yt-studio-videos-seed-sync-v3'
+const SEED_SYNC_VERSION = '2026-06-25-analytics-markers'
 
 /**
  * Хранилище видео:
@@ -350,6 +352,46 @@ function write(videos) {
   window.dispatchEvent(new CustomEvent(STORAGE_EVENT))
 }
 
+function normalizeImportedVideo(video) {
+  return normalizeVideo({
+    ...video,
+    autoViews: parseNonNegativeInteger(video.views) === null,
+    autoRevenue: parseNonNegativeMoney(video.revenue) === null,
+  })
+}
+
+async function loadBundledVideos() {
+  const url = new URL(BOOTSTRAP_URL, document.baseURI).toString()
+  const res = await fetch(url, { cache: 'no-cache' })
+  if (!res.ok) return []
+  const data = await res.json()
+  return Array.isArray(data) ? data.filter((v) => v && typeof v === 'object') : []
+}
+
+async function syncBundledVideosOnce() {
+  if (localStorage.getItem(SEED_SYNC_KEY) === SEED_SYNC_VERSION) return
+  try {
+    const bundled = await loadBundledVideos()
+    if (bundled.length === 0) {
+      localStorage.setItem(SEED_SYNC_KEY, SEED_SYNC_VERSION)
+      return
+    }
+
+    const current = read()
+    const existingIds = new Set(current.map((video) => video.id).filter(Boolean))
+    const missing = bundled
+      .filter((video) => video.id && !existingIds.has(video.id))
+      .map(normalizeImportedVideo)
+
+    if (missing.length > 0) {
+      write([...current, ...missing])
+    }
+    localStorage.setItem(SEED_SYNC_KEY, SEED_SYNC_VERSION)
+  } catch {
+    // ignore — existing localStorage remains the source of truth
+  }
+}
+
 /* === Публичный API === */
 
 export function getVideos() {
@@ -390,11 +432,7 @@ export function importVideos(arr) {
   if (!Array.isArray(arr)) return
   const sanitized = arr
     .filter((v) => v && typeof v === 'object')
-    .map((v) => normalizeVideo({
-      ...v,
-      autoViews: parseNonNegativeInteger(v.views) === null,
-      autoRevenue: parseNonNegativeMoney(v.revenue) === null,
-    }))
+    .map(normalizeImportedVideo)
   write(sanitized)
 }
 
@@ -425,29 +463,31 @@ export function bulkAddRandom(count) {
 
 export async function bootstrapFromFile() {
   if (typeof window === 'undefined') return
-  if (localStorage.getItem(BOOTSTRAP_FLAG)) return
+  if (localStorage.getItem(BOOTSTRAP_FLAG)) {
+    await syncBundledVideosOnce()
+    return
+  }
   if (localStorage.getItem(STORAGE_KEY)) {
     localStorage.setItem(BOOTSTRAP_FLAG, '1')
+    await syncBundledVideosOnce()
     return
   }
   try {
-    const url = new URL(BOOTSTRAP_URL, document.baseURI).toString()
-    const res = await fetch(url, { cache: 'no-cache' })
-    if (res.ok) {
-      const data = await res.json()
-      if (Array.isArray(data) && data.length > 0) {
-        importVideos(data)
-      }
+    const data = await loadBundledVideos()
+    if (data.length > 0) {
+      importVideos(data)
     }
   } catch {
     // ignore — start with empty list
   }
+  localStorage.setItem(SEED_SYNC_KEY, SEED_SYNC_VERSION)
   localStorage.setItem(BOOTSTRAP_FLAG, '1')
 }
 
 export async function resetToBundled() {
   localStorage.removeItem(STORAGE_KEY)
   localStorage.removeItem(BOOTSTRAP_FLAG)
+  localStorage.removeItem(SEED_SYNC_KEY)
   invalidateCache()
   window.dispatchEvent(new CustomEvent(STORAGE_EVENT))
   await bootstrapFromFile()

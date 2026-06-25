@@ -12,6 +12,7 @@ import { useChannel } from '../storage/useChannel.js'
 import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
 import { formatNumber, formatMoney, formatViews } from '../storage/videoStore.js'
 import { effectiveComments, build as buildAnalytics } from '../lib/analyticsAggregator.js'
+import VideoRow from '../components/ui/VideoRow.jsx'
 
 const PERFORMANCE_THUMB = '/studio-assets/dashboard-performance-reference.jpg'
 const SHOPPING_ART = '/studio-assets/dashboard-shopping-idea.png'
@@ -178,19 +179,26 @@ export default function Screen1Dashboard() {
               {publishedVideos.length > 0 ? (
                 <div className={s.publishedList}>
                   {publishedVideos.map((video) => (
-                    <button type="button" className={s.publishedRow} key={video.id} onClick={() => go('content')}>
-                      <span className={s.publishedThumb}>
-                        {video.cover ? <img src={video.cover} alt="" /> : <span className={s.thumbBlank} />}
-                      </span>
-                      <span className={s.publishedBody}>
-                        <span className={s.publishedTitle}>{video.title}</span>
-                        <span className={s.publishedMeta}>
+                    <VideoRow
+                      as="button"
+                      className={s.publishedRow}
+                      thumbClassName={s.publishedThumb}
+                      bodyClassName={s.publishedBody}
+                      titleClassName={s.publishedTitle}
+                      metaClassName={s.publishedMeta}
+                      blankClassName={s.thumbBlank}
+                      key={video.id}
+                      cover={video.cover}
+                      title={video.title}
+                      onClick={() => go('content')}
+                      meta={(
+                        <>
                           <span>{formatViews(video.views)}</span>
                           <span>{formatNumber(effectiveComments(video))}</span>
                           <span>{formatNumber(video.likes || 0)}</span>
-                        </span>
-                      </span>
-                    </button>
+                        </>
+                      )}
+                    />
                   ))}
                   <button type="button" className={s.linkBtn} onClick={() => go('content')}>Перейти к видео</button>
                 </div>

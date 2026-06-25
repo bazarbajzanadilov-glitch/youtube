@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
+import { analyticsAreaChartProps } from '../../components/charts/analyticsChartDefaults.js'
 import { formatDateLong, formatNumberRu } from '../../lib/analyticsFormat.js'
 import clockIcon from '../../assets/clock.svg'
 import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 import s from './AnalyticsTabs.module.css'
+import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
+import MetricKpiCell from './MetricKpiCell.jsx'
 import {
   ANALYTICS_TEAL,
   buildPublishedVideoMarkers,
@@ -252,47 +255,44 @@ export default function RevenueTab({ data }) {
         ))}
       </div>
 
-      <Card padding="none" depth="lg" className={s.ytHeroCard}>
-        <div className={`${s.ytKpiStrip} ${s.ytKpiStripOne}`}>
-          <div className={`${s.ytKpiCell} ${s.ytKpiCellActive}`}>
-            <div className={s.ytKpiLabel}>Расчетный доход <img className={s.clockBadge} src={clockIcon} alt="" aria-hidden="true" /></div>
-            <div className={s.ytKpiValue}>{formatTenge(revenue)}</div>
-          </div>
-        </div>
-        <div className={s.ytHeroChart}>
+      <AnalyticsHeroCard
+        chart={(
           <AreaLineChart
+            {...analyticsAreaChartProps({
+              yValueScale: 512,
+              yAxisWidth: 88,
+              tooltipClassName: s.revenueHeroTooltip,
+              tooltipLabelClassName: s.revenueHeroTooltipLabel,
+              tooltipValueClassName: s.revenueHeroTooltipValue,
+              tooltipCursor: { stroke: '#6c6c6c', strokeOpacity: 0.8, strokeWidth: 1 },
+              fillTopOpacity: 0.16,
+              fillBottomOpacity: 0.03,
+              activeDotProps: { r: 5, stroke: '#282828', strokeWidth: 2, fill: REVENUE_LINE_COLOR },
+            })}
             data={monetization?.series || []}
             dataKey="revenue"
             xKey="date"
             color={REVENUE_LINE_COLOR}
             fillColor={REVENUE_LINE_COLOR}
-            height={174}
             name="Расчетный доход"
             formatY={formatTengeAxis}
             xTickFormatter={formatDateLong}
             formatTooltipValue={formatTenge}
             formatTooltipLabel={formatRevenueTooltipLabel}
-            yAxisOrientation="right"
-            yValueScale={512}
-            yAxisWidth={88}
-            margin={{ top: 16, right: 44, left: 22, bottom: 4 }}
-            xTickFontSize={12}
-            yTickFontSize={12}
-            tooltipClassName={s.revenueHeroTooltip}
-            tooltipLabelClassName={s.revenueHeroTooltipLabel}
-            tooltipValueClassName={s.revenueHeroTooltipValue}
-            tooltipCursor={{ stroke: '#6c6c6c', strokeOpacity: 0.8, strokeWidth: 1 }}
-            fillTopOpacity={0.16}
-            fillBottomOpacity={0.03}
-            activeDotProps={{ r: 5, stroke: '#282828', strokeWidth: 2, fill: REVENUE_LINE_COLOR }}
             processingWindow={processingWindow}
             eventMarkers={publishedMarkers}
           />
+        )}
+      >
+        <div className={`${s.ytKpiStrip} ${s.ytKpiStripOne}`}>
+          <MetricKpiCell
+            label="Расчетный доход"
+            value={formatTenge(revenue)}
+            active
+            clock
+          />
         </div>
-        <div className={s.ytHeroFooter}>
-          <button type="button" className={s.ytPillBtn}>Подробнее</button>
-        </div>
-      </Card>
+      </AnalyticsHeroCard>
 
       <div className={s.twoColumnGrid}>
         <Card padding="none" depth="md" className={`${s.tableCard} ${s.revenueBreakdownCard}`}>

@@ -6,7 +6,7 @@
 .wrap :global(.recharts-tooltip-wrapper) { z-index: 4; }
 
 .processingWindow {
-  fill: #242424;
+  fill: var(--studio-chart-processing-window);
   opacity: 0.92;
   pointer-events: none;
 }
@@ -22,10 +22,10 @@
   z-index: 6;
   min-width: 284px;
   padding: 18px 20px;
-  border: 1px solid #3f3f3f;
+  border: 1px solid var(--studio-chart-marker-tooltip-border);
   border-radius: 12px;
-  background: #0f0f0f;
-  color: #f1f1f1;
+  background: var(--studio-chart-tooltip-bg);
+  color: var(--studio-text);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
   pointer-events: none;
   transform: translate(-50%, -50%);
@@ -33,7 +33,7 @@
 
 .processingTooltipLabel {
   margin-bottom: 14px;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
@@ -44,7 +44,7 @@
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 13px;
   font-weight: 400;
   line-height: 18px;
@@ -56,7 +56,7 @@
   flex: 0 0 auto;
   width: 18px;
   height: 18px;
-  border: 2px solid #f1f1f1;
+  border: 2px solid var(--studio-text);
   border-radius: 50%;
   box-sizing: border-box;
 }
@@ -69,7 +69,7 @@
   bottom: 7px;
   width: 2px;
   border-radius: 2px;
-  background: #f1f1f1;
+  background: var(--studio-text);
   transform-origin: bottom center;
 }
 
@@ -96,12 +96,12 @@
 }
 
 .processingMarkerBadge {
-  fill: #a6a6a6;
+  fill: var(--studio-chart-marker-bg);
   cursor: default;
 }
 
 .processingMarkerText {
-  fill: #f1f1f1;
+  fill: var(--studio-chart-marker-text);
   font-family: var(--studio-font);
   font-size: 11px;
   font-weight: 600;
@@ -117,11 +117,11 @@
   box-sizing: border-box;
   max-height: 260px;
   padding: 0;
-  border: 1px solid rgba(90, 90, 90, 0.6);
+  border: 1px solid var(--studio-chart-marker-tooltip-border);
   border-radius: 0;
-  background: #242424;
+  background: var(--studio-chart-marker-tooltip-bg);
   box-shadow: none;
-  color: #f1f1f1;
+  color: var(--studio-text);
   overflow: hidden;
 }
 
@@ -177,7 +177,7 @@
 
 .markerTooltipVideoTitle {
   overflow: hidden;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 14px;
   font-weight: 500;
   line-height: 19px;
@@ -186,7 +186,7 @@
 }
 
 .markerTooltipDate {
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 13px;
   font-weight: 400;
   line-height: 18px;
@@ -211,7 +211,7 @@
   position: absolute;
   z-index: 3;
   width: 1px;
-  background: rgba(90, 90, 90, 0.6);
+  background: var(--studio-chart-marker-tooltip-border);
   pointer-events: none;
   transform: translateX(-0.5px);
 }
@@ -222,9 +222,9 @@
 
 .timelineRail {
   fill: none;
-  stroke: #5a5a5a;
+  stroke: var(--studio-chart-timeline-line);
   stroke-width: 1px;
-  stroke-opacity: 0.6;
+  stroke-opacity: 1;
   shape-rendering: crispEdges;
 }
 

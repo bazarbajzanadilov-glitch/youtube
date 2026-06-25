@@ -9,6 +9,7 @@ import { CHART_COLORS } from '../../lib/chartColors.js'
 import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 import { formatDateLong } from '../../lib/analyticsFormat.js'
 import { buildPeakAxisTicks, maxByDataKey, projectValueToPeakAxis } from './chartAxis.js'
+import { ANALYTICS_AREA_CHART_DEFAULT_PROPS, ANALYTICS_CHART_GEOMETRY } from './analyticsChartDefaults.js'
 
 function defaultXTickFormatter(value) {
   if (typeof value !== 'string') return value
@@ -19,27 +20,29 @@ function defaultLabelFormatter(label) {
   return formatChartDateLabel(label)
 }
 
-const GRID_LINE_COLOR = '#717171'
-const GRID_LINE_WIDTH = 1
-const GRID_PIXEL_EPSILON = 0.5
-const CHART_LEFT_MARGIN = 22
-const CHART_RIGHT_MARGIN = CHART_LEFT_MARGIN * 2
-const TIMELINE_AXIS_HEIGHT = 54
-const TIMELINE_RAIL_OFFSET = 30
-const TIMELINE_RAIL_TICK = 6
-const TIMELINE_TOOLTIP_OFFSET = 1
-const TIMELINE_LABEL_OFFSET = 23
-const TIMELINE_MARKER_OFFSET = 8
-const TIMELINE_LABEL_GAP = 18
-const MARKER_BADGE_HEIGHT = 16
-const MARKER_BADGE_MIN_WIDTH = 16
-const MARKER_BADGE_GAP = 3
-const MARKER_BADGE_FONT_WIDTH = 7
-const MARKER_BADGE_H_PADDING = 6
-const MARKER_BADGE_TEXT_Y = 12
-const MARKER_TOOLTIP_MAX_WIDTH = 524
-const MARKER_TOOLTIP_MIN_WIDTH = 300
-const MARKER_TOOLTIP_EDGE_GAP = 0
+const {
+  gridLineColor: GRID_LINE_COLOR,
+  gridLineWidth: GRID_LINE_WIDTH,
+  gridPixelEpsilon: GRID_PIXEL_EPSILON,
+  chartLeftMargin: CHART_LEFT_MARGIN,
+  chartRightMargin: CHART_RIGHT_MARGIN,
+  timelineAxisHeight: TIMELINE_AXIS_HEIGHT,
+  timelineRailOffset: TIMELINE_RAIL_OFFSET,
+  timelineRailTick: TIMELINE_RAIL_TICK,
+  timelineTooltipOffset: TIMELINE_TOOLTIP_OFFSET,
+  timelineLabelOffset: TIMELINE_LABEL_OFFSET,
+  timelineMarkerOffset: TIMELINE_MARKER_OFFSET,
+  timelineLabelGap: TIMELINE_LABEL_GAP,
+  markerBadgeHeight: MARKER_BADGE_HEIGHT,
+  markerBadgeMinWidth: MARKER_BADGE_MIN_WIDTH,
+  markerBadgeGap: MARKER_BADGE_GAP,
+  markerBadgeFontWidth: MARKER_BADGE_FONT_WIDTH,
+  markerBadgeHPadding: MARKER_BADGE_H_PADDING,
+  markerBadgeTextY: MARKER_BADGE_TEXT_Y,
+  markerTooltipMaxWidth: MARKER_TOOLTIP_MAX_WIDTH,
+  markerTooltipMinWidth: MARKER_TOOLTIP_MIN_WIDTH,
+  markerTooltipEdgeGap: MARKER_TOOLTIP_EDGE_GAP,
+} = ANALYTICS_CHART_GEOMETRY
 
 function finiteNumber(value) {
   const number = Number(value)
@@ -457,7 +460,7 @@ export default function AreaLineChart({
   xKey = 'date',
   color = CHART_COLORS.primary,
   fillColor,
-  height = 220,
+  height = ANALYTICS_AREA_CHART_DEFAULT_PROPS.height,
   name = 'Значение',
   formatY = (n) => Number(n).toLocaleString('ru-RU'),
   formatTooltipValue,
@@ -471,10 +474,10 @@ export default function AreaLineChart({
   margin,
   yAxisWidth = 48,
   yTicks,
-  yTickCount = 4,
+  yTickCount = ANALYTICS_AREA_CHART_DEFAULT_PROPS.yTickCount,
   yValueScale = 1,
-  xTickFontSize = 11,
-  yTickFontSize = 11,
+  xTickFontSize = ANALYTICS_AREA_CHART_DEFAULT_PROPS.xTickFontSize,
+  yTickFontSize = ANALYTICS_AREA_CHART_DEFAULT_PROPS.yTickFontSize,
   xTickFormatter = defaultXTickFormatter,
   xAxisPadding = { left: 0, right: 0 },
   tooltipClassName = '',
@@ -482,9 +485,9 @@ export default function AreaLineChart({
   tooltipValueClassName = '',
   tooltipCursor,
   activeDotProps,
-  fillTopOpacity = 0.1,
-  fillBottomOpacity = 0,
-  gridLineColor = GRID_LINE_COLOR,
+  fillTopOpacity = ANALYTICS_AREA_CHART_DEFAULT_PROPS.fillTopOpacity,
+  fillBottomOpacity = ANALYTICS_AREA_CHART_DEFAULT_PROPS.fillBottomOpacity,
+  gridLineColor = ANALYTICS_AREA_CHART_DEFAULT_PROPS.gridLineColor,
   processingWindow,
 }) {
   const [processingTooltip, setProcessingTooltip] = useState(null)

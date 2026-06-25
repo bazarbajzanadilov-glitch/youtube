@@ -1,6 +1,6 @@
 .card {
   background: var(--studio-card-widget);
-  border: 1px solid var(--studio-border);
+  border: 1px solid var(--studio-card-border, var(--studio-border));
   border-radius: var(--studio-radius-lg);
   position: relative;
   overflow: hidden;

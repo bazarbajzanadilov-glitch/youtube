@@ -64,8 +64,8 @@
 
 .card {
   background: var(--studio-card-widget);
-  border: 1px solid var(--studio-border);
-  border-radius: 12px;
+  border: 1px solid var(--studio-card-border);
+  border-radius: var(--studio-radius-lg);
   padding: 22px 24px;
   overflow: hidden;
   box-sizing: border-box;
@@ -241,13 +241,13 @@
   white-space: nowrap;
 }
 .catchBtn {
-  min-height: 36px;
+  min-height: var(--studio-control-height-md);
   margin-top: 14px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   border: 1px solid var(--studio-border-strong);
-  border-radius: 18px;
+  border-radius: calc(var(--studio-control-height-md) / 2);
   background: transparent;
   color: var(--studio-text);
   padding: 0 14px;
@@ -355,10 +355,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 32px;
-  padding: 0 16px;
+  height: var(--studio-control-height-sm);
+  padding: var(--studio-control-padding-md);
   border: 0;
-  border-radius: 16px;
+  border-radius: calc(var(--studio-control-height-sm) / 2);
   background: var(--studio-white);
   color: var(--studio-text-on-light);
   font: inherit;
@@ -456,12 +456,12 @@
 }
 .sectionSpacer { margin-top: 12px; }
 .ghostPill {
-  min-height: 32px;
+  min-height: var(--studio-control-height-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--studio-border-strong);
-  border-radius: 16px;
+  border-radius: calc(var(--studio-control-height-sm) / 2);
   background: transparent;
   color: var(--studio-text);
   padding: 0 14px;

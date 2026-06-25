@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
+import { analyticsAreaChartProps } from '../../components/charts/analyticsChartDefaults.js'
 import Heatmap7x24 from '../../components/charts/Heatmap7x24.jsx'
 import HorizontalBarChart from '../../components/charts/HorizontalBarChart.jsx'
-import clockIcon from '../../assets/clock.svg'
 import {
   formatCompactNumber,
   formatNumberRu,
@@ -18,36 +18,10 @@ import {
   signedNumber,
   videoDate,
 } from './studioAnalyticsHelpers.js'
-import { KpiDownCircleIcon, KpiUpCircleIcon } from '../icons.jsx'
+import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
+import MetricKpiCell from './MetricKpiCell.jsx'
 
 const AUDIENCE_CHART_COLOR = ANALYTICS_PURPLE
-
-function KpiCell({ label, value, note, active = false, clock = false, trend = 'neutral', onClick }) {
-  const Tag = onClick ? 'button' : 'div'
-  const showTrend = trend === 'up' || trend === 'down'
-
-  return (
-    <Tag
-      type={onClick ? 'button' : undefined}
-      aria-pressed={onClick ? active : undefined}
-      className={`${s.ytKpiCell} ${active ? s.ytKpiCellActive : ''}`}
-      onClick={onClick}
-    >
-      <div className={s.ytKpiLabel}>{label}{clock ? <img className={s.clockBadge} src={clockIcon} alt="" aria-hidden="true" /> : null}</div>
-      <div className={s.ytKpiValue}>
-        {value}
-        {showTrend ? (
-          <span className={`${s.trendMark} ${trend === 'up' ? s.trendUp : s.trendDown}`}>
-            {trend === 'up'
-              ? <KpiUpCircleIcon size={18} color="#2ba640" />
-              : <KpiDownCircleIcon size={18} color="#909090" />}
-          </span>
-        ) : null}
-      </div>
-      <div className={s.ytKpiNote}>{note}</div>
-    </Tag>
-  )
-}
 
 export default function AudienceTab({ data, onOpenAdmin }) {
   const { audience, overview, content, range } = data
@@ -120,9 +94,25 @@ export default function AudienceTab({ data, onOpenAdmin }) {
 
   return (
     <div className={`${s.tabStack} ${s.audienceTabStack}`}>
-      <Card padding="none" depth="lg" className={`${s.ytHeroCard} ${s.audienceHeroCard}`}>
+      <AnalyticsHeroCard
+        className={s.audienceHeroCard}
+        chart={(
+          <AreaLineChart
+            {...analyticsAreaChartProps()}
+            data={chart.data}
+            dataKey={chart.dataKey}
+            xKey="date"
+            color={AUDIENCE_CHART_COLOR}
+            fillColor={AUDIENCE_CHART_COLOR}
+            name={chart.name}
+            formatY={formatCompactNumber}
+            formatTooltipValue={formatNumberRu}
+            eventMarkers={publishedMarkers}
+          />
+        )}
+      >
         <div className={`${s.ytKpiStrip} ${s.ytKpiStripTwo}`}>
-          <KpiCell
+          <MetricKpiCell
             label="Зрителей в месяц"
             value={formatCompactNumber(monthlyViewers)}
             note="Обновляется каждый день"
@@ -130,7 +120,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
             clock
             onClick={() => setMetric('viewers')}
           />
-          <KpiCell
+          <MetricKpiCell
             label="Подписчики"
             value={signedNumber(audience.kpis.subscribers.value)}
             note={absoluteUsualComparison(audience.kpis.subscribers.value, formatNumberRu)}
@@ -139,25 +129,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
             onClick={() => setMetric('subscribers')}
           />
         </div>
-        <div className={s.ytHeroChart}>
-          <AreaLineChart
-            data={chart.data}
-            dataKey={chart.dataKey}
-            xKey="date"
-            color={AUDIENCE_CHART_COLOR}
-            fillColor={AUDIENCE_CHART_COLOR}
-            height={174}
-            name={chart.name}
-            formatY={formatCompactNumber}
-            formatTooltipValue={formatNumberRu}
-            yAxisOrientation="right"
-            eventMarkers={publishedMarkers}
-          />
-        </div>
-        <div className={s.ytHeroFooter}>
-          <button type="button" className={s.ytPillBtn}>Подробнее</button>
-        </div>
-      </Card>
+      </AnalyticsHeroCard>
 
       <div className={s.twoColumnGrid}>
         <div className={s.sideStack}>

@@ -109,13 +109,13 @@
 .sparkleBtn { color: var(--studio-text); }
 
 .createBtn {
-  height: 36px;
+  height: var(--studio-control-height-md);
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 0 12px;
   border: 1px solid var(--studio-border-strong);
-  border-radius: 18px;
+  border-radius: calc(var(--studio-control-height-md) / 2);
   background: transparent;
   color: var(--studio-text);
   font-size: 14px;
@@ -163,12 +163,23 @@
 }
 
 @media (max-width: 640px) {
+  .topbar {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .hamburger {
+    width: 40px;
+    height: 40px;
+  }
   .logoWrap {
+    margin-left: 8px;
     margin-right: 8px;
   }
   .searchWrap {
     flex: 0 0 40px;
     width: 40px;
+    min-width: 40px;
+    max-width: 40px;
     padding: 0;
     justify-content: center;
     border-color: transparent;
@@ -179,6 +190,9 @@
   }
   .searchIcon {
     margin-right: 0;
+  }
+  .topRight .iconBtn {
+    display: none;
   }
   .createBtn {
     width: 39px;
