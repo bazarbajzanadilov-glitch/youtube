@@ -217,9 +217,7 @@ function buildPrevSeries(videos, channel, range) {
 function pctDelta(curr, prev) {
   if (!prev) return curr > 0 ? 100 : 0
   const raw = ((curr - prev) / prev) * 100
-  /* Всегда показываем рост: отрицательную дельту инвертируем в положительную,
-     так у пользователя в KPI-чипе всегда «обычное значение» с зелёным «+». */
-  return Math.abs(raw)
+  return raw
 }
 
 function bucketKey(dateIso, granularity) {

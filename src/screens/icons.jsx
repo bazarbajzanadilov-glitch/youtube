@@ -30,6 +30,11 @@ export const KpiDownCircleIcon = ({ size = 24, color = '#909090' }) => (
     <path d="M12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1Zm0 5a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414L12 18.414l-4.707-4.707a1 1 0 111.414-1.414L11 14.586V7a1 1 0 011-1Z" fill={color} />
   </svg>
 )
+export const KpiUpCircleIcon = ({ size = 24, color = '#2ba640' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} focusable="false" aria-hidden="true">
+    <path d="M12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1Zm-5.207 9.793L12 5.586l5.207 5.207a1 1 0 11-1.414 1.414L13 9.414V17a1 1 0 01-2 0V9.414l-2.793 2.793a1 1 0 11-1.414-1.414Z" />
+  </svg>
+)
 export const BellIcon = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M16 19a4 4 0 11-8 0H4.765C3.21 19 2.25 17.304 3.05 15.97l1.806-3.01A1 1 0 005 12.446V8a7 7 0 0114 0v4.446c0 .181.05.36.142.515l1.807 3.01c.8 1.333-.161 3.029-1.716 3.029H16ZM12 3a5 5 0 00-5 5v4.446a3 3 0 01-.428 1.543L4.765 17h14.468l-1.805-3.01A3 3 0 0117 12.445V8a5 5 0 00-5-5Zm-2 16a2 2 0 104 0h-4Z"/></svg>
 )

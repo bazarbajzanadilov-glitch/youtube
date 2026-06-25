@@ -18,6 +18,7 @@ import {
   ChevronRight,
   InfoIcon,
   KpiDownCircleIcon,
+  KpiUpCircleIcon,
   ThumbDownIcon,
   ThumbUpIcon,
 } from '../icons.jsx'
@@ -26,13 +27,15 @@ import {
   ANALYTICS_BLUE,
   avgWatchPercent,
   avgWatchPretty,
-  belowUsual,
+  absoluteUsualComparison,
   ctrPretty,
   daysSinceLong,
   formatTengeAxis,
   formatTenge,
+  kpiTrend,
   liveEndedLong,
   signedNumber,
+  usualComparison,
   videoDate,
 } from './studioAnalyticsHelpers.js'
 
@@ -65,10 +68,12 @@ function KpiCell({
   note,
   active = false,
   clock = false,
+  trend = 'neutral',
   onClick,
   accentColor,
 }) {
   const Tag = onClick ? 'button' : 'div'
+  const showTrend = trend === 'up' || trend === 'down'
   return (
     <Tag
       type={onClick ? 'button' : undefined}
@@ -82,7 +87,13 @@ function KpiCell({
       </div>
       <div className={s.ytKpiValue}>
         {value}
-        {!clock ? <span className={s.downMark}><KpiDownCircleIcon size={18} color="#909090" /></span> : null}
+        {showTrend ? (
+          <span className={`${s.trendMark} ${trend === 'up' ? s.trendUp : s.trendDown}`}>
+            {trend === 'up'
+              ? <KpiUpCircleIcon size={18} color="#2ba640" />
+              : <KpiDownCircleIcon size={18} color="#909090" />}
+          </span>
+        ) : null}
       </div>
       {note ? <div className={s.ytKpiNote}>{note}</div> : null}
     </Tag>
@@ -241,7 +252,8 @@ export default function OverviewTab({ data, onOpenAdmin }) {
             <KpiCell
               label="Просмотры"
               value={formatCompactNumber(overview.kpis.views.value)}
-              note={belowUsual(overview.kpis.views.value)}
+              note={usualComparison(overview.kpis.views, formatCompactNumber)}
+              trend={kpiTrend(overview.kpis.views.delta)}
               active={metric === 'views'}
               accentColor={chartByMetric.views.color}
               onClick={() => setMetric('views')}
@@ -249,7 +261,8 @@ export default function OverviewTab({ data, onOpenAdmin }) {
             <KpiCell
               label="Время просмотра (часы)"
               value={formatHours(overview.kpis.watchTime.value)}
-              note={belowUsual(overview.kpis.watchTime.value, formatHours)}
+              note={usualComparison(overview.kpis.watchTime, formatHours)}
+              trend={kpiTrend(overview.kpis.watchTime.delta)}
               active={metric === 'watch'}
               accentColor={chartByMetric.watch.color}
               onClick={() => setMetric('watch')}
@@ -257,7 +270,8 @@ export default function OverviewTab({ data, onOpenAdmin }) {
             <KpiCell
               label="Подписчики"
               value={signedNumber(overview.kpis.subscribers.value)}
-              note={belowUsual(Math.abs(overview.kpis.subscribers.value) || 1)}
+              note={absoluteUsualComparison(overview.kpis.subscribers.value, formatNumberRu)}
+              trend={overview.kpis.subscribers.value > 0 ? 'up' : overview.kpis.subscribers.value < 0 ? 'down' : 'neutral'}
               active={metric === 'subscribers'}
               accentColor={chartByMetric.subscribers.color}
               onClick={() => setMetric('subscribers')}
@@ -265,6 +279,8 @@ export default function OverviewTab({ data, onOpenAdmin }) {
             <KpiCell
               label="Расчетный доход"
               value={formatTenge(monetization?.kpis?.revenue?.value || 0)}
+              note={usualComparison(monetization?.kpis?.revenue, formatTenge)}
+              trend={kpiTrend(monetization?.kpis?.revenue?.delta)}
               active={metric === 'revenue'}
               clock
               accentColor={chartByMetric.revenue.color}

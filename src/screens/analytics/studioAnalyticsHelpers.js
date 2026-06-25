@@ -122,6 +122,36 @@ export function belowUsual(value, format = formatCompactNumber, prefix = 'Зна
   return `${prefix} (на ${format(diff)})`
 }
 
+export function kpiTrend(delta) {
+  const value = Number(delta) || 0
+  if (value > 0.1) return 'up'
+  if (value < -0.1) return 'down'
+  return 'neutral'
+}
+
+function diffFromDelta(value, delta) {
+  const current = Number(value) || 0
+  const change = Number(delta) || 0
+  if (Math.abs(change) <= 0.1) return 0
+  const denominator = 1 + (change / 100)
+  if (Math.abs(denominator) < 0.001) return Math.abs(current)
+  const previous = current / denominator
+  return Math.abs(current - previous)
+}
+
+export function usualComparison(kpi, format = formatCompactNumber) {
+  const delta = Number(kpi?.delta) || 0
+  if (Math.abs(delta) <= 0.1) return 'Обычное значение'
+  const diff = diffFromDelta(kpi?.value, delta) || Math.abs(Number(kpi?.value) || 0)
+  return `На ${format(diff)} ${delta > 0 ? 'больше' : 'меньше'}, чем обычно`
+}
+
+export function absoluteUsualComparison(value, format = formatCompactNumber) {
+  const amount = Math.abs(Number(value) || 0)
+  if (amount <= 0) return 'Обычное значение'
+  return `На ${format(amount)} ${Number(value) >= 0 ? 'больше' : 'меньше'}, чем обычно`
+}
+
 export function comparePreviousText() {
   return 'На 99 % меньше, чем за предыдущие 28 дней'
 }

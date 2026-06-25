@@ -13,16 +13,17 @@ import {
 import s from './AnalyticsTabs.module.css'
 import {
   ANALYTICS_PURPLE,
-  belowUsual,
+  absoluteUsualComparison,
   signedNumber,
   videoDate,
 } from './studioAnalyticsHelpers.js'
-import { KpiDownCircleIcon } from '../icons.jsx'
+import { KpiDownCircleIcon, KpiUpCircleIcon } from '../icons.jsx'
 
 const AUDIENCE_CHART_COLOR = ANALYTICS_PURPLE
 
-function KpiCell({ label, value, note, active = false, clock = false, onClick }) {
+function KpiCell({ label, value, note, active = false, clock = false, trend = 'neutral', onClick }) {
   const Tag = onClick ? 'button' : 'div'
+  const showTrend = trend === 'up' || trend === 'down'
 
   return (
     <Tag
@@ -32,7 +33,16 @@ function KpiCell({ label, value, note, active = false, clock = false, onClick })
       onClick={onClick}
     >
       <div className={s.ytKpiLabel}>{label}{clock ? <img className={s.clockBadge} src={clockIcon} alt="" aria-hidden="true" /> : null}</div>
-      <div className={s.ytKpiValue}>{value}{!clock ? <span className={s.downMark}><KpiDownCircleIcon size={18} color="#909090" /></span> : null}</div>
+      <div className={s.ytKpiValue}>
+        {value}
+        {showTrend ? (
+          <span className={`${s.trendMark} ${trend === 'up' ? s.trendUp : s.trendDown}`}>
+            {trend === 'up'
+              ? <KpiUpCircleIcon size={18} color="#2ba640" />
+              : <KpiDownCircleIcon size={18} color="#909090" />}
+          </span>
+        ) : null}
+      </div>
       <div className={s.ytKpiNote}>{note}</div>
     </Tag>
   )
@@ -121,7 +131,8 @@ export default function AudienceTab({ data, onOpenAdmin }) {
           <KpiCell
             label="Подписчики"
             value={signedNumber(audience.kpis.subscribers.value)}
-            note={belowUsual(Math.abs(audience.kpis.subscribers.value) || 1)}
+            note={absoluteUsualComparison(audience.kpis.subscribers.value, formatNumberRu)}
+            trend={audience.kpis.subscribers.value > 0 ? 'up' : audience.kpis.subscribers.value < 0 ? 'down' : 'neutral'}
             active={metric === 'subscribers'}
             onClick={() => setMetric('subscribers')}
           />

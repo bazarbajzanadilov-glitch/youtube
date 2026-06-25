@@ -122,18 +122,30 @@ button.ytKpiCell {
   white-space: normal;
 }
 
-.downMark {
+.downMark,
+.trendMark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 18px;
   height: 18px;
   color: #909090;
+  flex: 0 0 auto;
 }
 
-.downMark svg {
+.downMark svg,
+.trendMark svg {
   width: 18px;
   height: 18px;
+  display: block;
+}
+
+.trendUp {
+  color: #2ba640;
+}
+
+.trendDown {
+  color: #909090;
 }
 
 .clockMark {

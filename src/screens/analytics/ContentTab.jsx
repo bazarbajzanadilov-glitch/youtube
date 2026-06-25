@@ -11,11 +11,12 @@ import {
 import s from './AnalyticsTabs.module.css'
 import {
   avgWatchPretty,
-  comparePreviousText,
   ctrPretty,
+  kpiTrend,
+  usualComparison,
   videoDate,
 } from './studioAnalyticsHelpers.js'
-import { KpiDownCircleIcon } from '../icons.jsx'
+import { KpiDownCircleIcon, KpiUpCircleIcon } from '../icons.jsx'
 
 const TYPE_FILTERS = ['Все', 'Shorts', 'Прямой эфир']
 const TRAFFIC_TABS = ['Общие', 'Внешние источники', 'Поиск на YouTube', 'Рекомендуемые видео', 'Плейлисты']
@@ -48,11 +49,22 @@ function averageDurationByViews(videos) {
   return totalSeconds / totalViews
 }
 
-function KpiCell({ label, value, note, active = false }) {
+function KpiCell({ label, value, note, active = false, trend = 'neutral' }) {
+  const showTrend = trend === 'up' || trend === 'down'
+
   return (
     <div className={`${s.ytKpiCell} ${active ? s.ytKpiCellActive : ''}`}>
       <div className={s.ytKpiLabel}>{label}</div>
-      <div className={s.ytKpiValue}>{value}<span className={s.downMark}><KpiDownCircleIcon size={18} color="#909090" /></span></div>
+      <div className={s.ytKpiValue}>
+        {value}
+        {showTrend ? (
+          <span className={`${s.trendMark} ${trend === 'up' ? s.trendUp : s.trendDown}`}>
+            {trend === 'up'
+              ? <KpiUpCircleIcon size={18} color="#2ba640" />
+              : <KpiDownCircleIcon size={18} color="#909090" />}
+          </span>
+        ) : null}
+      </div>
       <div className={s.ytKpiNote}>{note}</div>
     </div>
   )
@@ -123,13 +135,15 @@ export default function ContentTab({ data, onOpenAdmin }) {
           <KpiCell
             label="Просмотры"
             value={formatCompactNumber(filteredViews)}
-            note={comparePreviousText()}
+            note={typeKey === 'all' ? usualComparison(content.kpis.views, formatCompactNumber) : 'Обычное значение'}
+            trend={typeKey === 'all' ? kpiTrend(content.kpis.views.delta) : 'neutral'}
             active
           />
           <KpiCell
             label="Показы"
             value={formatCompactNumber(filteredImpressions)}
-            note={comparePreviousText()}
+            note={typeKey === 'all' ? usualComparison(content.kpis.impressions, formatCompactNumber) : 'Обычное значение'}
+            trend={typeKey === 'all' ? kpiTrend(content.kpis.impressions.delta) : 'neutral'}
           />
           <KpiCell
             label="CTR для значков видео"
