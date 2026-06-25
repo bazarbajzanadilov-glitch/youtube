@@ -513,6 +513,14 @@ export default function AreaLineChart({
       [projectedDataKey]: projectValueToPeakAxis(row?.[dataKey], autoYTicks),
     }))
     : data
+  const processingStartDate = String(processingWindow?.startDate || '').slice(0, 10)
+  const renderedChartData = processingStartDate
+    ? chartData.map((row) => {
+      const date = String(row?.[xKey] || '').slice(0, 10)
+      if (!date || date <= processingStartDate) return row
+      return { ...row, [projectedDataKey]: null }
+    })
+    : chartData
   const chartYTicks = yTicks || (yDomain ? undefined : autoYTicks?.map((_, index) => index))
   const chartYDomain = yDomain || [0, Math.max(1, (autoYTicks?.length || 2) - 1)]
   const chartFormatY = useProjectedYAxis
@@ -599,7 +607,7 @@ export default function AreaLineChart({
       onMouseLeave={closeMarkerTooltip}
     >
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
-        <AreaChart data={chartData} margin={chartMargin}>
+        <AreaChart data={renderedChartData} margin={chartMargin}>
           <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={chartFillColor} stopOpacity={showAreaFill ? fillTopOpacity : 0} />
