@@ -229,10 +229,15 @@
 }
 
 .timelineTickLabel {
-  fill: var(--studio-text-subtle);
+  width: 100%;
+  height: 100%;
+  color: var(--studio-text-subtle);
   font-family: var(--studio-font);
   font-weight: 400;
-  dominant-baseline: middle;
+  line-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .eventMarker {

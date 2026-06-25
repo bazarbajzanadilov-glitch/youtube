@@ -33,6 +33,9 @@ const {
   timelineLabelOffset: TIMELINE_LABEL_OFFSET,
   timelineMarkerOffset: TIMELINE_MARKER_OFFSET,
   timelineLabelGap: TIMELINE_LABEL_GAP,
+  timelineTickCount: TIMELINE_TICK_COUNT,
+  timelineLabelHeight: TIMELINE_LABEL_HEIGHT,
+  timelineEdgeLabelWidth: TIMELINE_EDGE_LABEL_WIDTH,
   markerBadgeHeight: MARKER_BADGE_HEIGHT,
   markerBadgeMinWidth: MARKER_BADGE_MIN_WIDTH,
   markerBadgeGap: MARKER_BADGE_GAP,
@@ -292,16 +295,15 @@ function TimelineMarkersOverlay({ markers, onHover, onLeave }) {
 
 function TimelineAxisOverlay({ ticks = [], formatter, fontSize = 11 }) {
   const plotArea = usePlotArea()
-  const xScale = useXAxisScale()
-  if (!plotArea || !xScale || ticks.length === 0) return null
+  if (!plotArea || ticks.length === 0) return null
 
-  const visibleTicks = fitTimelineTicks(ticks, plotArea, xScale, formatter, fontSize)
+  const tickLayouts = buildTimelineTickLayouts(ticks, plotArea, formatter)
   const left = alignGridCoordinate(plotArea.x)
   const right = alignGridCoordinate(plotArea.x + plotArea.width)
   const railY = alignGridCoordinate(plotArea.y + plotArea.height + TIMELINE_RAIL_OFFSET)
   const labelY = railY + TIMELINE_LABEL_OFFSET
-  const firstTick = visibleTicks[0]
-  const lastTick = visibleTicks[visibleTicks.length - 1]
+  const firstTick = tickLayouts[0]?.tick
+  const lastTick = tickLayouts[tickLayouts.length - 1]?.tick
 
   return (
     <g className={s.timelineAxis} aria-hidden="true">
@@ -309,13 +311,9 @@ function TimelineAxisOverlay({ ticks = [], formatter, fontSize = 11 }) {
         d={`M${left} ${railY}H${right}M${left} ${railY}V${railY + TIMELINE_RAIL_TICK}M${right} ${railY}V${railY + TIMELINE_RAIL_TICK}`}
         className={s.timelineRail}
       />
-      {visibleTicks.map((tick) => {
-        const rawX = finiteNumber(xScale(tick))
-        if (rawX == null) return null
-        const x = alignGridCoordinate(Math.max(plotArea.x, Math.min(plotArea.x + plotArea.width, rawX)))
+      {tickLayouts.map(({ tick, label, x, labelX, labelWidth, textAlign }) => {
         const isFirst = tick === firstTick
         const isLast = tick === lastTick
-        const textAnchor = isFirst ? 'start' : isLast ? 'end' : 'middle'
 
         return (
           <g key={tick}>
@@ -328,15 +326,21 @@ function TimelineAxisOverlay({ ticks = [], formatter, fontSize = 11 }) {
                 y2={railY + TIMELINE_RAIL_TICK}
               />
             ) : null}
-            <text
-              className={s.timelineTickLabel}
-              x={x}
-              y={labelY}
-              textAnchor={textAnchor}
-              fontSize={fontSize}
+            <foreignObject
+              x={labelX}
+              y={labelY - (TIMELINE_LABEL_HEIGHT / 2)}
+              width={labelWidth}
+              height={TIMELINE_LABEL_HEIGHT}
             >
-              {formatTimelineTickLabel(tick, formatter, plotArea.width)}
-            </text>
+              <div
+                xmlns="http://www.w3.org/1999/xhtml"
+                className={s.timelineTickLabel}
+                style={{ fontSize: `${fontSize}px`, textAlign }}
+                title={label}
+              >
+                {label}
+              </div>
+            </foreignObject>
           </g>
         )
       })}
@@ -368,80 +372,41 @@ function mergeTimelineMarkers(...groups) {
   return Array.from(merged.values()).sort((a, b) => a.date.localeCompare(b.date))
 }
 
-function estimateTimelineLabelWidth(label, fontSize) {
-  const text = String(label || '')
-  return Math.max(38, text.length * fontSize * 0.62)
-}
-
-function formatTimelineTickLabel(tick, formatter, width) {
+function formatTimelineTickLabel(tick, formatter) {
   const label = String(formatter(tick) || '')
-  if ((Number(width) || 0) >= 420) return label
-  return label
-    .replace(/\s+\d{4}\s*г\.?$/u, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
+  return label.replace(/\s{2,}/g, ' ').trim()
 }
 
-function timelineLabelBounds(item, firstTick, lastTick) {
-  const isFirst = item.tick === firstTick
-  const isLast = item.tick === lastTick
-  if (isFirst) return { left: item.x, right: item.x + item.width }
-  if (isLast) return { left: item.x - item.width, right: item.x }
-  return { left: item.x - item.width / 2, right: item.x + item.width / 2 }
-}
-
-function timelineLabelsCollide(a, b, firstTick, lastTick) {
-  const left = timelineLabelBounds(a, firstTick, lastTick)
-  const right = timelineLabelBounds(b, firstTick, lastTick)
-  return left.right + TIMELINE_LABEL_GAP > right.left
-}
-
-function fitTimelineTicks(ticks, plotArea, xScale, formatter, fontSize) {
+function buildTimelineTickLayouts(ticks, plotArea, formatter) {
   if (!Array.isArray(ticks) || ticks.length === 0) return []
-  const firstTick = ticks[0]
-  const lastTick = ticks[ticks.length - 1]
-  const candidates = ticks
-    .map((tick) => {
-      const rawX = finiteNumber(xScale(tick))
-      if (rawX == null) return null
-      const label = formatTimelineTickLabel(tick, formatter, plotArea.width)
+  const step = ticks.length > 1 ? plotArea.width / (ticks.length - 1) : plotArea.width
+  const middleWidth = Math.max(18, step - TIMELINE_LABEL_GAP)
+  const edgeWidth = Math.max(18, Math.min(middleWidth, TIMELINE_EDGE_LABEL_WIDTH))
+
+  return ticks
+    .map((tick, index) => {
+      const rawX = ticks.length > 1
+        ? plotArea.x + ((plotArea.width * index) / (ticks.length - 1))
+        : plotArea.x + (plotArea.width / 2)
+      const x = alignGridCoordinate(rawX)
+      const isFirst = index === 0
+      const isLast = index === ticks.length - 1
+      const label = formatTimelineTickLabel(tick, formatter)
+      const labelWidth = Math.min(plotArea.width, isFirst || isLast ? edgeWidth : middleWidth)
+      const labelX = x - (labelWidth / 2)
       return {
         tick,
-        x: Math.max(plotArea.x, Math.min(plotArea.x + plotArea.width, rawX)),
-        width: estimateTimelineLabelWidth(label, fontSize),
+        label,
+        x,
+        labelX,
+        labelWidth,
+        textAlign: 'center',
       }
     })
     .filter(Boolean)
-
-  if (candidates.length <= 2) {
-    if (
-      candidates.length === 2 &&
-      timelineLabelsCollide(candidates[0], candidates[1], firstTick, lastTick)
-    ) {
-      return [candidates[1].tick]
-    }
-    return candidates.map((item) => item.tick)
-  }
-
-  const lastCandidate = candidates[candidates.length - 1]
-  const selected = [candidates[0]]
-  for (let index = 1; index < candidates.length - 1; index += 1) {
-    const candidate = candidates[index]
-    const previous = selected[selected.length - 1]
-    if (timelineLabelsCollide(previous, candidate, firstTick, lastTick)) continue
-    if (timelineLabelsCollide(candidate, lastCandidate, firstTick, lastTick)) continue
-    selected.push(candidate)
-  }
-
-  while (selected.length > 1 && timelineLabelsCollide(selected[selected.length - 1], lastCandidate, firstTick, lastTick)) {
-    selected.pop()
-  }
-
-  selected.push(lastCandidate)
-  return selected.map((item) => item.tick)
 }
 
-function buildEvenTicks(data, key, maxTicks = 7) {
+function buildEvenTicks(data, key, maxTicks = TIMELINE_TICK_COUNT) {
   if (!Array.isArray(data) || data.length === 0) return undefined
   if (data.length <= maxTicks) return data.map((row) => row[key])
   const lastIndex = data.length - 1
