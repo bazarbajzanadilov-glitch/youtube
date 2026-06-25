@@ -5,6 +5,13 @@
 }
 .wrap :global(.recharts-tooltip-wrapper) { z-index: 4; }
 
+.uniformGridLine {
+  stroke: var(--studio-chart-grid-line);
+  stroke-width: var(--studio-chart-grid-line-width);
+  stroke-opacity: 1;
+  shape-rendering: crispEdges;
+}
+
 .processingWindow {
   fill: var(--studio-chart-processing-window);
   opacity: 0.92;
@@ -113,7 +120,7 @@
 
 .markerTooltip {
   position: absolute;
-  z-index: 8;
+  z-index: 1000;
   box-sizing: border-box;
   max-height: 260px;
   padding: 0;

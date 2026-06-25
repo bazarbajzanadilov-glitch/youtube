@@ -1,5 +1,5 @@
 export const ANALYTICS_CHART_GEOMETRY = {
-  gridLineColor: '#717171',
+  gridLineColor: 'var(--studio-chart-grid-line)',
   gridLineWidth: 1,
   gridPixelEpsilon: 0.5,
   chartLeftMargin: 22,
@@ -7,7 +7,7 @@ export const ANALYTICS_CHART_GEOMETRY = {
   timelineAxisHeight: 54,
   timelineRailOffset: 30,
   timelineRailTick: 4,
-  timelineTooltipOffset: 36,
+  timelineTooltipOffset: 40,
   timelineLabelOffset: 23,
   timelineMarkerOffset: 8,
   timelineLabelGap: 18,

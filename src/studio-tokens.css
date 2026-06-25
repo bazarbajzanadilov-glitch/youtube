@@ -70,7 +70,7 @@
   --studio-analytics-overview-footer-gap: 0px;
   --studio-analytics-overview-footer-min-height: 84px;
   --studio-analytics-overview-footer-pad-x: 24px;
-  --studio-chart-grid-line: #717171;
+  --studio-chart-grid-line: var(--studio-chart-timeline-line);
   --studio-chart-grid-line-width: 1px;
   --studio-chart-timeline-line: rgba(90, 90, 90, 0.6);
   --studio-chart-processing-window: #242424;

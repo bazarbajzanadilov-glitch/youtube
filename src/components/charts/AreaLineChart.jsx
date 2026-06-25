@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
   Tooltip, ReferenceLine, usePlotArea, useXAxisScale,
@@ -87,12 +88,14 @@ function UniformGrid({ lineCount = 4, gridLineColor = GRID_LINE_COLOR }) {
       {points.map((y) => (
         <line
           key={y}
+          className={s.uniformGridLine}
           x1={left}
           y1={y}
           x2={right}
           y2={y}
           stroke={gridLineColor}
           strokeWidth={GRID_LINE_WIDTH}
+          strokeOpacity={1}
           strokeLinecap="butt"
           shapeRendering="crispEdges"
           vectorEffect="non-scaling-stroke"
@@ -583,8 +586,20 @@ export default function AreaLineChart({
   }
   const showMarkerTooltip = (tooltip) => {
     clearMarkerHideTimer()
-    markerTooltipRef.current = tooltip
-    setMarkerTooltip(tooltip)
+    const wrapRect = wrapRef.current?.getBoundingClientRect()
+    const viewportWidth = typeof document === 'undefined' ? 0 : document.documentElement.clientWidth
+    const viewportGap = viewportWidth <= 720 ? 8 : 32
+    const width = Number(tooltip.width) || MARKER_TOOLTIP_MIN_WIDTH
+    const viewportTooltip = wrapRect && viewportWidth
+      ? {
+        ...tooltip,
+        x: (window.scrollX || document.documentElement.scrollLeft || 0)
+          + Math.max(viewportGap, Math.min(viewportWidth - width - viewportGap, wrapRect.left + tooltip.guideX - (width / 2))),
+        y: (window.scrollY || document.documentElement.scrollTop || 0) + wrapRect.top + tooltip.y,
+      }
+      : tooltip
+    markerTooltipRef.current = viewportTooltip
+    setMarkerTooltip(viewportTooltip)
     startMarkerNativeMoveWatch()
   }
   const hideMarkerTooltip = () => {
@@ -599,182 +614,192 @@ export default function AreaLineChart({
       closeMarkerTooltip()
     }
   }
+  const handleWrapPointerLeave = (event) => {
+    if (isMarkerTooltipTarget(event.relatedTarget, event.currentTarget)) return
+    closeMarkerTooltip()
+  }
+
+  const markerTooltipNode = markerTooltip ? (
+    <div
+      className={s.markerTooltip}
+      style={{ left: `${markerTooltip.x}px`, top: `${markerTooltip.y}px`, width: `${markerTooltip.width}px` }}
+      onPointerEnter={clearMarkerHideTimer}
+      onPointerLeave={hideMarkerTooltip}
+      onMouseEnter={clearMarkerHideTimer}
+      onMouseLeave={hideMarkerTooltip}
+    >
+      <div className={s.markerTooltipTitle}>{markerTooltip.marker.label}</div>
+      <div className={s.markerTooltipList}>
+        {(markerTooltip.marker.videos || []).map((video) => (
+          <div className={s.markerTooltipItem} key={video.id || `${markerTooltip.marker.date}-${video.title}`}>
+            <span className={s.markerTooltipThumb}>
+              {video.cover ? <img src={video.cover} alt="" aria-hidden="true" /> : null}
+            </span>
+            <span className={s.markerTooltipBody}>
+              <span className={s.markerTooltipVideoTitle}>{video.title || 'Без названия'}</span>
+              <span className={s.markerTooltipDate}>{formatDateLong(video.date || markerTooltip.marker.date)}</span>
+            </span>
+            <span className={s.markerTooltipViewsIcon} aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M3 3h18v18H3V3Zm2 2v14h14V5H5Zm4 11H7v-5h2v5Zm4 0h-2V8h2v8Zm4 0h-2v-3h2v3Z" />
+              </svg>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null
 
   return (
-    <div
-      ref={wrapRef}
-      className={s.wrap}
-      style={{ height }}
-      onPointerMove={handleWrapPointerMove}
-      onPointerLeave={closeMarkerTooltip}
-      onMouseMove={handleWrapPointerMove}
-      onMouseLeave={closeMarkerTooltip}
-    >
-      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
-        <AreaChart data={renderedChartData} margin={chartMargin}>
-          <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={chartFillColor} stopOpacity={showAreaFill ? fillTopOpacity : 0} />
-              <stop offset="100%" stopColor={chartFillColor} stopOpacity={showAreaFill ? fillBottomOpacity : 0} />
-            </linearGradient>
-          </defs>
-          {showAreaFill ? (
+    <>
+      <div
+        ref={wrapRef}
+        className={s.wrap}
+        style={{ height }}
+        onPointerMove={handleWrapPointerMove}
+        onPointerLeave={handleWrapPointerLeave}
+        onMouseMove={handleWrapPointerMove}
+        onMouseLeave={handleWrapPointerLeave}
+      >
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
+          <AreaChart data={renderedChartData} margin={chartMargin}>
+            <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={chartFillColor} stopOpacity={showAreaFill ? fillTopOpacity : 0} />
+                <stop offset="100%" stopColor={chartFillColor} stopOpacity={showAreaFill ? fillBottomOpacity : 0} />
+              </linearGradient>
+            </defs>
+            {showAreaFill ? (
+              <Area
+                type={curve}
+                dataKey={projectedDataKey}
+                name={name}
+                stroke="none"
+                strokeWidth={0}
+                fill={`url(#${gradientId})`}
+                fillOpacity={1}
+                isAnimationActive={false}
+                activeDot={false}
+                dot={false}
+                tooltipType="none"
+                legendType="none"
+              />
+            ) : null}
+            <XAxis
+              dataKey={xKey}
+              stroke={CHART_COLORS.textSubtle}
+              tick={false}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={xTickFormatter}
+              ticks={xTicks}
+              interval={0}
+              padding={xAxisPadding}
+              scale="point"
+              height={TIMELINE_AXIS_HEIGHT}
+            />
+            <YAxis
+              orientation={yAxisOrientation}
+              stroke={CHART_COLORS.textSubtle}
+              tick={{ fill: CHART_COLORS.textSubtle, fontSize: yTickFontSize }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={chartFormatY}
+              width={yAxisWidth}
+              domain={chartYDomain}
+              ticks={chartYTicks}
+            />
+            {showGrid ? (
+              <UniformGrid
+                lineCount={yTickCount}
+                gridLineColor={gridLineColor}
+              />
+            ) : null}
+            <TimelineAxisOverlay
+              ticks={xTicks || []}
+              formatter={xTickFormatter}
+              fontSize={xTickFontSize}
+            />
+            {processingWindow ? (
+              <ProcessingWindowOverlay
+                processingWindow={processingWindow}
+              />
+            ) : null}
+            <Tooltip
+              cursor={chartCursor}
+              content={(
+                <ChartTooltip
+                  formatLabel={formatTooltipLabel}
+                  formatValue={tooltipFormatValue}
+                  className={tooltipClassName}
+                  labelClassName={tooltipLabelClassName}
+                  valueClassName={tooltipValueClassName}
+                  rawValueKey={useProjectedYAxis ? dataKey : undefined}
+                />
+              )}
+              wrapperStyle={{ outline: 'none' }}
+            />
+            {last ? (
+              <ReferenceLine x={last[xKey]} stroke={CHART_COLORS.gridSoft} strokeDasharray="2 4" />
+            ) : null}
             <Area
               type={curve}
               dataKey={projectedDataKey}
               name={name}
-              stroke="none"
-              strokeWidth={0}
-              fill={`url(#${gradientId})`}
-              fillOpacity={1}
+              stroke={color}
+              strokeWidth={2}
+              fill="transparent"
+              fillOpacity={0}
               isAnimationActive={false}
-              activeDot={false}
+              animationDuration={0}
+              animationEasing="ease-out"
+              activeDot={chartActiveDot}
               dot={false}
-              tooltipType="none"
-              legendType="none"
             />
-          ) : null}
-          <XAxis
-            dataKey={xKey}
-            stroke={CHART_COLORS.textSubtle}
-            tick={false}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={xTickFormatter}
-            ticks={xTicks}
-            interval={0}
-            padding={xAxisPadding}
-            scale="point"
-            height={TIMELINE_AXIS_HEIGHT}
-          />
-          <YAxis
-            orientation={yAxisOrientation}
-            stroke={CHART_COLORS.textSubtle}
-            tick={{ fill: CHART_COLORS.textSubtle, fontSize: yTickFontSize }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={chartFormatY}
-            width={yAxisWidth}
-            domain={chartYDomain}
-            ticks={chartYTicks}
-          />
-          {showGrid ? (
-            <UniformGrid
-              lineCount={yTickCount}
-              gridLineColor={gridLineColor}
-            />
-          ) : null}
-          <TimelineAxisOverlay
-            ticks={xTicks || []}
-            formatter={xTickFormatter}
-            fontSize={xTickFontSize}
-          />
-          {processingWindow ? (
-            <ProcessingWindowOverlay
-              processingWindow={processingWindow}
-            />
-          ) : null}
-          <Tooltip
-            cursor={chartCursor}
-            content={(
-              <ChartTooltip
-                formatLabel={formatTooltipLabel}
-                formatValue={tooltipFormatValue}
-                className={tooltipClassName}
-                labelClassName={tooltipLabelClassName}
-                valueClassName={tooltipValueClassName}
-                rawValueKey={useProjectedYAxis ? dataKey : undefined}
+            {processingWindow ? (
+              <ProcessingWindowOverlay
+                processingWindow={processingWindow}
+                interactive
+                onHover={setProcessingTooltip}
+                onLeave={() => setProcessingTooltip(null)}
               />
-            )}
-            wrapperStyle={{ outline: 'none' }}
-          />
-          {last ? (
-            <ReferenceLine x={last[xKey]} stroke={CHART_COLORS.gridSoft} strokeDasharray="2 4" />
-          ) : null}
-          <Area
-            type={curve}
-            dataKey={projectedDataKey}
-            name={name}
-            stroke={color}
-            strokeWidth={2}
-            fill="transparent"
-            fillOpacity={0}
-            isAnimationActive={false}
-            animationDuration={0}
-            animationEasing="ease-out"
-            activeDot={chartActiveDot}
-            dot={false}
-          />
-          {processingWindow ? (
-            <ProcessingWindowOverlay
-              processingWindow={processingWindow}
-              interactive
-              onHover={setProcessingTooltip}
-              onLeave={() => setProcessingTooltip(null)}
-            />
-          ) : null}
-          {timelineMarkers.length > 0 ? (
-            <TimelineMarkersOverlay
-              markers={timelineMarkers}
-              onHover={showMarkerTooltip}
-              onLeave={hideMarkerTooltip}
-            />
-          ) : null}
-        </AreaChart>
-      </ResponsiveContainer>
-      {processingTooltip ? (
-        <div
-          className={s.processingTooltip}
-          style={{ left: `${processingTooltip.x}px`, top: `${processingTooltip.y}px` }}
-        >
-          <div className={s.processingTooltipLabel}>{processingTooltip.label}</div>
-          <div className={s.processingTooltipStatus}>
-            <span className={s.processingClock} aria-hidden="true" />
-            <span>{processingTooltip.statusText}</span>
+            ) : null}
+            {timelineMarkers.length > 0 ? (
+              <TimelineMarkersOverlay
+                markers={timelineMarkers}
+                onHover={showMarkerTooltip}
+                onLeave={hideMarkerTooltip}
+              />
+            ) : null}
+          </AreaChart>
+        </ResponsiveContainer>
+        {processingTooltip ? (
+          <div
+            className={s.processingTooltip}
+            style={{ left: `${processingTooltip.x}px`, top: `${processingTooltip.y}px` }}
+          >
+            <div className={s.processingTooltipLabel}>{processingTooltip.label}</div>
+            <div className={s.processingTooltipStatus}>
+              <span className={s.processingClock} aria-hidden="true" />
+              <span>{processingTooltip.statusText}</span>
+            </div>
           </div>
-        </div>
-      ) : null}
-      {markerTooltip ? (
-        <span
-          className={s.markerHoverGuide}
-          style={{
-            left: `${markerTooltip.guideX}px`,
-            top: `${markerTooltip.guideTop}px`,
-            height: `${markerTooltip.guideHeight}px`,
-          }}
-          aria-hidden="true"
-        />
-      ) : null}
-      {markerTooltip ? (
-        <div
-          className={s.markerTooltip}
-          style={{ left: `${markerTooltip.x}px`, top: `${markerTooltip.y}px`, width: `${markerTooltip.width}px` }}
-          onPointerEnter={clearMarkerHideTimer}
-          onPointerLeave={hideMarkerTooltip}
-          onMouseEnter={clearMarkerHideTimer}
-          onMouseLeave={hideMarkerTooltip}
-        >
-          <div className={s.markerTooltipTitle}>{markerTooltip.marker.label}</div>
-          <div className={s.markerTooltipList}>
-            {(markerTooltip.marker.videos || []).map((video) => (
-              <div className={s.markerTooltipItem} key={video.id || `${markerTooltip.marker.date}-${video.title}`}>
-                <span className={s.markerTooltipThumb}>
-                  {video.cover ? <img src={video.cover} alt="" aria-hidden="true" /> : null}
-                </span>
-                <span className={s.markerTooltipBody}>
-                  <span className={s.markerTooltipVideoTitle}>{video.title || 'Без названия'}</span>
-                  <span className={s.markerTooltipDate}>{formatDateLong(video.date || markerTooltip.marker.date)}</span>
-                </span>
-                <span className={s.markerTooltipViewsIcon} aria-hidden="true">
-                  <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M3 3h18v18H3V3Zm2 2v14h14V5H5Zm4 11H7v-5h2v5Zm4 0h-2V8h2v8Zm4 0h-2v-3h2v3Z" />
-                  </svg>
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
+        ) : null}
+        {markerTooltip ? (
+          <span
+            className={s.markerHoverGuide}
+            style={{
+              left: `${markerTooltip.guideX}px`,
+              top: `${markerTooltip.guideTop}px`,
+              height: `${markerTooltip.guideHeight}px`,
+            }}
+            aria-hidden="true"
+          />
+        ) : null}
+      </div>
+      {markerTooltipNode && typeof document !== 'undefined'
+        ? createPortal(markerTooltipNode, document.body)
+        : markerTooltipNode}
+    </>
   )
 }
