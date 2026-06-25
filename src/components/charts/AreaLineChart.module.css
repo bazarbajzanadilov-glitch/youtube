@@ -4,7 +4,83 @@
   font-variant-numeric: tabular-nums;
 }
 .wrap :global(.recharts-tooltip-wrapper) { z-index: 4; }
-.wrap :global(.recharts-cartesian-grid line) { stroke-opacity: 1; }
+
+.processingWindow {
+  fill: #242424;
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.processingWindowHit {
+  fill: transparent;
+  cursor: default;
+  pointer-events: all;
+}
+
+.processingTooltip {
+  position: absolute;
+  z-index: 6;
+  min-width: 284px;
+  padding: 18px 20px;
+  border: 1px solid #3f3f3f;
+  border-radius: 12px;
+  background: #0f0f0f;
+  color: #f1f1f1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.processingTooltipLabel {
+  margin-bottom: 14px;
+  color: #f1f1f1;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.processingTooltipStatus {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  color: #aaa;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.processingClock {
+  position: relative;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #f1f1f1;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.processingClock::before,
+.processingClock::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  bottom: 7px;
+  width: 2px;
+  border-radius: 2px;
+  background: #f1f1f1;
+  transform-origin: bottom center;
+}
+
+.processingClock::before {
+  height: 5px;
+}
+
+.processingClock::after {
+  height: 4px;
+  transform: rotate(120deg);
+}
 
 .markerRail {
   position: absolute;
@@ -13,6 +89,22 @@
   bottom: 22px;
   height: 18px;
   pointer-events: none;
+}
+
+.processingMarkerGroup {
+  pointer-events: none;
+}
+
+.processingMarkerBadge {
+  fill: #a6a6a6;
+}
+
+.processingMarkerText {
+  fill: #f1f1f1;
+  font-family: var(--studio-font);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
 }
 
 .eventMarker {
@@ -40,5 +132,9 @@
 
 @media (max-width: 720px) {
   .markerRail { left: 44px; right: 44px; }
+  .processingTooltip {
+    min-width: 248px;
+    padding: 14px 16px;
+  }
   .eventMarker:nth-child(n+4) { display: none; }
 }

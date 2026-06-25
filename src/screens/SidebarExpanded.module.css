@@ -45,11 +45,10 @@
   margin-top: 2px;
 }
 
-/* Прокручивается только список — «Настройки»/«Отзыв» закреплены внизу */
 .itemsScroll {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: hidden;
+  overflow-y: auto;
   scrollbar-width: none;
 }
 .itemsScroll::-webkit-scrollbar { display: none; }
@@ -62,35 +61,26 @@
 
 .item {
   position: relative;
-  height: 48px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   gap: 24px;
   border: none;
-  border-radius: 0;
-  padding: 0 24px;
+  border-radius: 8px;
+  margin: 0 29px 0 12px;
+  padding: 8px 8px 8px 12px;
   background: transparent;
   color: var(--studio-text);
   font: inherit;
   cursor: pointer;
   text-align: left;
-  width: 100%;
+  width: calc(100% - 41px);
   flex-shrink: 0;
 }
 
-.item::before {
-  content: '';
-  position: absolute;
-  inset: 0 29px 0 12px;
-  border-radius: 8px;
-  background: #3f3f3f;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.item:hover::before,
-.active::before {
-  opacity: 1;
+.item:hover,
+.active {
+  background: #272727;
 }
 .active .itemLabel { font-weight: 500; }
 

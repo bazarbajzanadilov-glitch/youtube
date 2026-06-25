@@ -1,4 +1,6 @@
 const NICE_STEPS = [1, 2, 2.5, 5, 10]
+const NICE_AXIS_MAX_MULTIPLIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+const STEP_EPSILON = 1e-8
 
 function cleanTick(value) {
   if (!Number.isFinite(value)) return 0
@@ -28,6 +30,49 @@ function niceStep(maxDisplayValue, targetTickCount) {
   return niceFraction * magnitude
 }
 
+function ceilNiceAxisMax(maxDisplayValue) {
+  const safeMax = Math.max(0, Number(maxDisplayValue) || 0)
+  if (safeMax === 0) return 1
+
+  const magnitude = 10 ** Math.floor(Math.log10(safeMax))
+  const fraction = safeMax / magnitude
+  const multiplier = NICE_AXIS_MAX_MULTIPLIERS.find((item) => fraction < item - STEP_EPSILON)
+
+  if (multiplier) return multiplier * magnitude
+  return 10 * magnitude
+}
+
+function dividesEvenly(value, step) {
+  if (!(value > 0) || !(step > 0)) return false
+  const ratio = value / step
+  return Math.abs(ratio - Math.round(ratio)) <= STEP_EPSILON
+}
+
+function axisStep(axisMax, targetTickCount, maxTickCount) {
+  const maxCount = Math.max(3, Number(maxTickCount) || targetTickCount + 1)
+  const candidates = stepCandidates(axisMax)
+    .map((step) => {
+      const intervals = axisMax / step
+      return {
+        step,
+        tickCount: Math.round(intervals) + 1,
+      }
+    })
+    .filter((candidate) => (
+      dividesEvenly(axisMax, candidate.step) &&
+      candidate.tickCount >= 3 &&
+      candidate.tickCount <= maxCount
+    ))
+    .sort((a, b) => {
+      const aDistance = Math.abs(a.tickCount - targetTickCount)
+      const bDistance = Math.abs(b.tickCount - targetTickCount)
+      if (aDistance !== bDistance) return aDistance - bDistance
+      return b.tickCount - a.tickCount
+    })
+
+  return candidates[0]?.step || niceStep(axisMax, targetTickCount)
+}
+
 export function buildNiceAxisTicks(maxValue, { scale = 1, targetTickCount = 5 } = {}) {
   const safeScale = Number(scale) > 0 ? Number(scale) : 1
   const displayMax = Math.max(0, Number(maxValue) || 0) * safeScale
@@ -45,33 +90,16 @@ export function buildPeakAxisTicks(maxValue, { scale = 1, targetTickCount = 5, m
   const displayMax = Math.max(0, Number(maxValue) || 0) * safeScale
   if (displayMax === 0) return [0, cleanTick(1 / safeScale)]
 
-  const candidates = stepCandidates(displayMax)
-  const fallback = niceStep(displayMax, targetTickCount)
-  const maxCount = Math.max(3, Number(maxTickCount) || targetTickCount + 1)
-  const step = candidates
-    .map((candidate) => ({
-      step: candidate,
-      tickCount: Math.floor(displayMax / candidate) + 2,
-    }))
-    .filter((candidate) => (
-      candidate.step < displayMax &&
-      candidate.tickCount >= 3 &&
-      candidate.tickCount <= maxCount
-    ))
-    .sort((a, b) => {
-      const aDistance = Math.abs(a.tickCount - targetTickCount)
-      const bDistance = Math.abs(b.tickCount - targetTickCount)
-      if (aDistance !== bDistance) return aDistance - bDistance
-      return b.step - a.step
-    })[0]?.step || fallback
+  const axisMax = ceilNiceAxisMax(displayMax)
+  const step = axisStep(axisMax, targetTickCount, maxTickCount)
 
   const displayTicks = []
-  for (let value = 0; value < displayMax; value += step) {
+  for (let value = 0; value < axisMax - STEP_EPSILON; value += step) {
     displayTicks.push(cleanTick(value))
   }
   const last = displayTicks[displayTicks.length - 1]
-  if (last == null || Math.abs(last - displayMax) > Math.max(1e-8, displayMax * 1e-10)) {
-    displayTicks.push(cleanTick(displayMax))
+  if (last == null || Math.abs(last - axisMax) > Math.max(STEP_EPSILON, axisMax * 1e-10)) {
+    displayTicks.push(cleanTick(axisMax))
   }
 
   return displayTicks.map((value) => cleanTick(value / safeScale))

@@ -38,5 +38,35 @@
     "views": 1,
     "revenue": 2.25,
     "profile": "gradualGrowth"
+  },
+  {
+    "id": "recent-processing-june-22",
+    "title": "Утренний план рынка: уровни и риск",
+    "cover": "/studio-assets/trading-thumb-1.svg",
+    "date": "2026-06-22",
+    "duration": "1:12",
+    "views": 148,
+    "revenue": 8.2,
+    "profile": "steady"
+  },
+  {
+    "id": "recent-processing-june-23",
+    "title": "BTC после импульса: где ждать вход",
+    "cover": "/studio-assets/trading-thumb-2.svg",
+    "date": "2026-06-23",
+    "duration": "0:58",
+    "views": 132,
+    "revenue": 7.65,
+    "profile": "gradualGrowth"
+  },
+  {
+    "id": "recent-processing-june-24",
+    "title": "Сделка дня: план, стоп и фиксация",
+    "cover": "/studio-assets/trading-thumb-3.svg",
+    "date": "2026-06-24",
+    "duration": "1:36",
+    "views": 169,
+    "revenue": 9.84,
+    "profile": "steady"
   }
 ]

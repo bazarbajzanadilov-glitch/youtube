@@ -25,7 +25,7 @@ const SCREENS = [
   { key: 'monetize', route: 'monetization', name: 'Монетизация', Component: Screen7Monetization },
   { key: 'channel', route: 'channel-profile', name: 'Настройка канала: профиль', Component: Screen8aProfile },
   { key: 'channel-home', route: 'channel-home', name: 'Настройка канала: главная', Component: Screen8bHomeTab },
-  { key: 'audio', route: 'audio-library', name: 'Creator Music (бета)', Component: Screen9AudioLibrary },
+  { key: 'audio', route: 'audio-library', name: 'Creator Music (beta)', Component: Screen9AudioLibrary },
   { key: 'settings', route: 'settings', name: 'Настройки', Component: Screen10Settings },
   { key: 'admin', route: 'admin', name: 'Админка', Component: Screen11Admin },
 ]

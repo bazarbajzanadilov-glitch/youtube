@@ -16,7 +16,7 @@ const ITEMS = [
   { key: 'copyright', label: 'Обнаружение контента', Icon: SideCopyright },
   { key: 'monetize', label: 'Монетизация', Icon: SideMonetize },
   { key: 'channel', label: 'Настройка канала', Icon: SideMagic },
-  { key: 'audio', label: 'Creator Music (бета)', Icon: SideAudio },
+  { key: 'audio', label: 'Creator Music (beta)', Icon: SideAudio },
 ]
 
 export default function SidebarCompact({ active = 'home' }) {
@@ -40,8 +40,6 @@ export default function SidebarCompact({ active = 'home' }) {
             <Icon/>
           </button>
         ))}
-      </div>
-      <div className={s.sideBottom}>
         <button type="button" className={`${s.sideItem} ${active === 'settings' ? s.sideActive : ''}`} onClick={() => go('settings')} aria-label="Настройки" title="Настройки">
           <SideSettings/>
         </button>

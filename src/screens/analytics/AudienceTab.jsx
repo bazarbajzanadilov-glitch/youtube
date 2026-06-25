@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
@@ -18,34 +19,82 @@ import {
 } from './studioAnalyticsHelpers.js'
 import { KpiDownCircleIcon } from '../icons.jsx'
 
-function KpiCell({ label, value, note, active = false, clock = false }) {
+const AUDIENCE_CHART_COLOR = ANALYTICS_PURPLE
+
+function KpiCell({ label, value, note, active = false, clock = false, onClick }) {
+  const Tag = onClick ? 'button' : 'div'
+
   return (
-    <div className={`${s.ytKpiCell} ${active ? s.ytKpiCellActive : ''}`}>
+    <Tag
+      type={onClick ? 'button' : undefined}
+      aria-pressed={onClick ? active : undefined}
+      className={`${s.ytKpiCell} ${active ? s.ytKpiCellActive : ''}`}
+      onClick={onClick}
+    >
       <div className={s.ytKpiLabel}>{label}{clock ? <img className={s.clockBadge} src={clockIcon} alt="" aria-hidden="true" /> : null}</div>
       <div className={s.ytKpiValue}>{value}{!clock ? <span className={s.downMark}><KpiDownCircleIcon size={18} color="#909090" /></span> : null}</div>
       <div className={s.ytKpiNote}>{note}</div>
-    </div>
+    </Tag>
   )
 }
 
 export default function AudienceTab({ data, onOpenAdmin }) {
   const { audience, overview, range } = data
+  const [metric, setMetric] = useState('viewers')
   const monthlyViewers = Math.max(0, Math.round((audience.kpis.uniqueViewers.value || 0) * 0.85))
   const topVideos = overview.topVideos || []
+  const viewerSeries = useMemo(() => {
+    const source = audience.newReturning?.length ? audience.newReturning : audience.subscribers
+    if (!source.length) return []
+
+    const values = source.map((row) => {
+      const value = Number(row.new) + Number(row.returning)
+      return Number.isFinite(value) && value > 0 ? value : 0
+    })
+    const total = values.reduce((sum, value) => sum + value, 0)
+
+    let cumulative = 0
+    return source.map((row, index) => {
+      cumulative += values[index]
+      const progress = total > 0
+        ? cumulative / total
+        : source.length > 1
+          ? index / (source.length - 1)
+          : 1
+
+      return {
+        date: row.date,
+        viewers: Math.max(0, Math.round(monthlyViewers * progress)),
+      }
+    })
+  }, [audience.newReturning, audience.subscribers, monthlyViewers])
+  const chartByMetric = {
+    viewers: {
+      data: viewerSeries,
+      dataKey: 'viewers',
+      name: 'Зрителей в месяц',
+    },
+    subscribers: {
+      data: audience.subscribers,
+      dataKey: 'subscribers',
+      name: 'Подписчики',
+    },
+  }
+  const chart = chartByMetric[metric]
   const segments = [
-    { label: 'Новые зрители', share: 0.918, color: 'rgba(169, 112, 255, 0.95)' },
-    { label: 'Случайные зрители', share: 0.082, color: 'rgba(169, 112, 255, 0.62)' },
-    { label: 'Постоянные зрители', share: 0.001, color: 'rgba(169, 112, 255, 0.34)' },
+    { label: 'Новые зрители', share: 0.918, color: 'rgba(188, 105, 243, 0.95)' },
+    { label: 'Случайные зрители', share: 0.082, color: 'rgba(188, 105, 243, 0.62)' },
+    { label: 'Постоянные зрители', share: 0.001, color: 'rgba(188, 105, 243, 0.34)' },
   ]
   const subscriptionStats = [
-    { label: 'Без подписки', share: 0.999, color: ANALYTICS_PURPLE },
-    { label: 'С подпиской', share: 0.001, color: ANALYTICS_PURPLE },
+    { label: 'Без подписки', share: 0.999, color: AUDIENCE_CHART_COLOR },
+    { label: 'С подпиской', share: 0.001, color: AUDIENCE_CHART_COLOR },
   ]
-  const ageRows = audience.ageGender.ages.map((row) => ({ label: row.label, share: row.share, color: ANALYTICS_PURPLE }))
-  const genderRows = audience.ageGender.genders.map((row) => ({ label: row.label, share: row.share, color: ANALYTICS_PURPLE }))
-  const deviceRows = audience.devices.filter((row) => row.share > 0.001).map((row) => ({ label: row.label, share: row.share, color: ANALYTICS_PURPLE }))
-  const geoRows = audience.geography.slice(0, 5).map((row) => ({ label: row.label, share: row.share, color: ANALYTICS_PURPLE }))
-  const langRows = audience.languages.slice(0, 5).map((row) => ({ label: row.label, share: row.share, color: ANALYTICS_PURPLE }))
+  const ageRows = audience.ageGender.ages.map((row) => ({ label: row.label, share: row.share, color: AUDIENCE_CHART_COLOR }))
+  const genderRows = audience.ageGender.genders.map((row) => ({ label: row.label, share: row.share, color: AUDIENCE_CHART_COLOR }))
+  const deviceRows = audience.devices.filter((row) => row.share > 0.001).map((row) => ({ label: row.label, share: row.share, color: AUDIENCE_CHART_COLOR }))
+  const geoRows = audience.geography.slice(0, 5).map((row) => ({ label: row.label, share: row.share, color: AUDIENCE_CHART_COLOR }))
+  const langRows = audience.languages.slice(0, 5).map((row) => ({ label: row.label, share: row.share, color: AUDIENCE_CHART_COLOR }))
 
   if (audience.kpis.subscribers.absolute === 0 && audience.subscribers.length === 0) {
     return (
@@ -58,30 +107,34 @@ export default function AudienceTab({ data, onOpenAdmin }) {
   }
 
   return (
-    <div className={s.tabStack}>
-      <Card padding="none" depth="lg" className={s.ytHeroCard}>
+    <div className={`${s.tabStack} ${s.audienceTabStack}`}>
+      <Card padding="none" depth="lg" className={`${s.ytHeroCard} ${s.audienceHeroCard}`}>
         <div className={`${s.ytKpiStrip} ${s.ytKpiStripTwo}`}>
           <KpiCell
             label="Зрителей в месяц"
             value={formatCompactNumber(monthlyViewers)}
             note="Обновляется каждый день"
-            active
+            active={metric === 'viewers'}
             clock
+            onClick={() => setMetric('viewers')}
           />
           <KpiCell
             label="Подписчики"
             value={signedNumber(audience.kpis.subscribers.value)}
             note={belowUsual(Math.abs(audience.kpis.subscribers.value) || 1)}
+            active={metric === 'subscribers'}
+            onClick={() => setMetric('subscribers')}
           />
         </div>
         <div className={s.ytHeroChart}>
           <AreaLineChart
-            data={audience.subscribers}
-            dataKey="subscribers"
+            data={chart.data}
+            dataKey={chart.dataKey}
             xKey="date"
-            color={ANALYTICS_PURPLE}
+            color={AUDIENCE_CHART_COLOR}
+            fillColor={AUDIENCE_CHART_COLOR}
             height={174}
-            name="Подписчики"
+            name={chart.name}
             formatY={formatCompactNumber}
             formatTooltipValue={formatNumberRu}
             yAxisOrientation="right"
@@ -172,15 +225,15 @@ export default function AudienceTab({ data, onOpenAdmin }) {
           <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Время просмотра подписчиками</div>
             <div className={s.cardSub}>Время просмотра · {range.label}</div>
-            <HorizontalBarChart data={subscriptionStats} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
+            <HorizontalBarChart data={subscriptionStats} defaultColor={AUDIENCE_CHART_COLOR} formatValue={(v) => formatPercent(v * 100, 1)} />
           </Card>
 
           <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Возраст и пол</div>
             <div className={s.cardSub}>Просмотры · {range.label}</div>
-            <HorizontalBarChart data={genderRows} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
+            <HorizontalBarChart data={genderRows} defaultColor={AUDIENCE_CHART_COLOR} formatValue={(v) => formatPercent(v * 100, 1)} />
             <div className={s.softDivider} />
-            <HorizontalBarChart data={ageRows} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
+            <HorizontalBarChart data={ageRows} defaultColor={AUDIENCE_CHART_COLOR} formatValue={(v) => formatPercent(v * 100, 1)} />
           </Card>
 
           <Card padding="lg" depth="md" className={s.blockCard}>
@@ -198,19 +251,19 @@ export default function AudienceTab({ data, onOpenAdmin }) {
           <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Тип устройства</div>
             <div className={s.cardSub}>Время просмотра (часы) · {range.label}</div>
-            <HorizontalBarChart data={deviceRows} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
+            <HorizontalBarChart data={deviceRows} defaultColor={AUDIENCE_CHART_COLOR} formatValue={(v) => formatPercent(v * 100, 1)} />
           </Card>
 
           <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Топ регионов</div>
             <div className={s.cardSub}>Просмотры · {range.label}</div>
-            <HorizontalBarChart data={geoRows} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
+            <HorizontalBarChart data={geoRows} defaultColor={AUDIENCE_CHART_COLOR} formatValue={(v) => formatPercent(v * 100, 1)} />
           </Card>
 
           <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Самые популярные языки субтитров</div>
             <div className={s.cardSub}>Просмотры · {range.label}</div>
-            <HorizontalBarChart data={langRows} defaultColor={ANALYTICS_PURPLE} formatValue={(v) => formatPercent(v * 100, 1)} />
+            <HorizontalBarChart data={langRows} defaultColor={AUDIENCE_CHART_COLOR} formatValue={(v) => formatPercent(v * 100, 1)} />
           </Card>
         </div>
       </div>

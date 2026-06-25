@@ -22,15 +22,27 @@
   box-sizing: border-box;
 }
 
+.contentTabStack {
+  --studio-analytics-chart-bar: #8e8cff;
+}
+
+.audienceTabStack {
+  --studio-analytics-chart-bar: #bc69f3;
+}
+
+.contentTabStack .trafficRow div span,
+.contentTabStack .formatRow i {
+  background: #8e8cff;
+}
+
 .ytHeroCard {
   background: #0f0f0f;
-  border-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid #fff3;
 }
 
 .ytKpiStrip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-bottom: 1px solid #3f3f3f;
 }
 
 .ytKpiStripTwo {
@@ -152,7 +164,7 @@ button.ytKpiCell {
   padding: 18px 20px;
   border-color: #4a4a4a;
   border-radius: 16px;
-  background: rgba(40, 40, 40, 0.98);
+  background: #0f0f0f;
   box-shadow: none;
 }
 
@@ -166,7 +178,7 @@ button.ytKpiCell {
 }
 
 .revenueHeroTooltipValue {
-  color: #56b0aa;
+  color: #39cfc2;
   font-size: 22px;
   font-weight: 500;
   line-height: 30px;
@@ -174,9 +186,9 @@ button.ytKpiCell {
 
 .ytHeroFooter {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   min-height: 58px;
-  padding: 0 22px 18px;
+  padding: 0 22px 22px;
 }
 
 .ytPillBtn,
@@ -193,12 +205,17 @@ button.ytKpiCell {
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
+  line-height: 36px;
   cursor: pointer;
 }
 
 .ytPillBtn {
   align-self: flex-start;
   width: auto;
+}
+
+.ytHeroFooter .ytPillBtn {
+  align-self: flex-end;
 }
 
 .linkBtn {
@@ -788,6 +805,25 @@ button.ytKpiCell {
   white-space: normal;
 }
 
+.audienceHeroCard .ytKpiStrip {
+  background: #0f0f0f;
+}
+
+.audienceHeroCard .ytKpiCell {
+  background: #0f0f0f;
+  border-bottom: 0;
+  transition: background-color 120ms ease;
+}
+
+.audienceHeroCard button.ytKpiCell:hover {
+  background: #1f1f1f;
+}
+
+.audienceHeroCard .ytKpiCellActive,
+.audienceHeroCard button.ytKpiCellActive:hover {
+  background: #282828;
+}
+
 .overviewHeroCard .ytHeroChart {
   padding: 16px 0 0;
 }
@@ -886,7 +922,7 @@ button.ytKpiCell {
   gap: 8px;
   padding: 16px !important;
   width: 314px;
-  border-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid #fff3;
 }
 
 .overviewSideCard .sideTitle {
@@ -1102,7 +1138,7 @@ button.ytKpiCell {
 }
 
 .revenueRail {
-  --studio-analytics-chart-bar: #56b0aa;
+  --studio-analytics-chart-bar: #39cfc2;
   width: min(1264px, calc(100% - 48px));
   max-width: 1264px;
   margin: 0 auto;
@@ -1113,11 +1149,10 @@ button.ytKpiCell {
 .revenueRail .ytHeroCard,
 .revenueRail .tableCard {
   border-radius: 16px;
-  border-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid #fff3;
 }
 
-.revenueRail .revenueBreakdownCard,
-.revenueRail .revenueSourcesCard {
+.revenueRail .revenueBreakdownCard {
   min-height: 455px;
 }
 
@@ -1218,6 +1253,7 @@ button.ytKpiCell {
 
 .blockCard {
   min-height: 0;
+  border: 1px solid #fff3;
 }
 
 .innerTabs {
@@ -1367,12 +1403,12 @@ button.ytKpiCell {
 
 .revenueSourceRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 184px auto;
+  grid-template-columns: minmax(225px, 1fr) minmax(48px, 128px) auto;
   align-items: center;
   min-height: 46px;
   color: #f1f1f1;
   font-size: 14px;
-  gap: 18px;
+  gap: 12px;
 }
 
 .revenueSourceLabel {
@@ -1387,8 +1423,12 @@ button.ytKpiCell {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  width: 184px;
-  min-width: 184px;
+  width: 128px;
+  min-width: 48px;
+}
+
+.revenueSourceSparkArea .revenueMetricBar {
+  max-width: 100%;
 }
 
 .revenueSourceRow strong {
@@ -1399,24 +1439,114 @@ button.ytKpiCell {
   white-space: nowrap;
 }
 
+.revenueSourceEmpty {
+  padding: 18px 0;
+  color: #f1f1f1;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
 .revenueBreakdownCard .tableHeader,
 .revenueSourcesCard .tableHeader,
 .revenuePerformanceCard .tableHeader {
   padding-bottom: 8px;
 }
 
-.revenueBreakdownCard .tableHeader {
+.revenueBreakdownCard .tableHeader,
+.revenueSourcesCard .tableHeader {
   padding-top: 24px;
 }
 
 .revenueSourcesCard .innerTabs {
-  margin: 8px 24px 6px;
+  gap: 8px;
+  margin: 8px 24px 22px;
+}
+
+.revenueSourcesCard .innerTab {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 18px;
+  outline: 0;
+  background: #282828;
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 36px;
+}
+
+.revenueSourcesCard .innerTab:focus {
+  outline: 0;
+  box-shadow: none;
+}
+
+.revenueSourcesCard .innerTabActive {
+  background: #f1f1f1;
+  color: #0f0f0f;
+}
+
+.revenueSourcesCard {
+  min-height: 0;
+}
+
+.revenueSourcesCard .revenueCardFooter {
+  margin-top: 0;
+  padding: 18px 0 24px 24px;
+}
+
+.revenuePerformanceCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.revenuePerformanceCard .tableHeader {
+  min-height: 68px;
+  padding: 24px 22px 8px;
+}
+
+.revenuePerformanceCard .cardTitle {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+}
+
+.revenuePerformanceCard .cardSub {
+  margin-top: 0;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.revenuePerformanceCard .innerTabs {
+  gap: 8px;
+  margin: 8px 22px 0;
+}
+
+.revenuePerformanceCard .innerTab {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 18px;
+  outline: 0;
+  background: #282828;
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 36px;
+}
+
+.revenuePerformanceCard .innerTab:focus {
+  outline: 0;
+  box-shadow: none;
+}
+
+.revenuePerformanceCard .innerTabActive {
+  background: #f1f1f1;
+  color: #0f0f0f;
 }
 
 .revenueMetricRows {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
   padding: 12px 24px 0;
 }
 
@@ -1469,96 +1599,64 @@ button.ytKpiCell {
   padding: 18px 0 22px 24px;
 }
 
-.revenuePerformanceLead {
+.revenuePerformanceStats {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 24px 0;
+  padding: 40px 30px 0;
 }
 
-.revenuePerformanceLead strong {
+.revenuePerformancePrimary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.revenuePerformancePrimary strong {
+  min-height: 32px;
   color: #f1f1f1;
-  font-size: 37px;
-  font-weight: 500;
-  line-height: 44px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 32px;
 }
 
-.revenuePerformanceLead span,
-.performanceMetricCompact span {
+.revenuePerformancePrimary span {
   color: #aaa;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.revenuePerformanceMetricRows {
+  display: grid;
+  gap: 2px;
+}
+
+.revenuePerformanceMetricLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 36px;
+  gap: 24px;
+}
+
+.revenuePerformanceMetricLine span,
+.revenuePerformanceMetricLine strong {
+  color: #f1f1f1;
   font-size: 13px;
+  font-weight: 500;
   line-height: 19px;
 }
 
-.revenuePerformanceSummaryCompact {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  padding: 20px 24px 6px;
-}
-
-.performanceMetricCompact {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.performanceMetricCompact strong {
-  color: #f1f1f1;
-  font-size: 19px;
-  font-weight: 500;
-  line-height: 24px;
-}
-
-.revenuePerformanceList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px 24px 0;
-}
-
-.revenuePerformanceRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 184px auto;
-  align-items: center;
-  min-height: 32px;
-  gap: 12px;
-}
-
-.revenuePerformanceVideo {
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.revenuePerformanceThumb {
-  width: 56px;
-  aspect-ratio: 16 / 9;
-  border-radius: 4px;
-  overflow: hidden;
-  background: #1f1f1f;
-}
-
-.revenuePerformanceThumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.revenuePerformanceMeta {
-  min-width: 0;
-}
-
-.revenuePerformanceTitle {
-  color: #f1f1f1;
-  font-size: 13px;
-  line-height: 18px;
+.revenuePerformanceMetricLine strong {
+  min-width: 72px;
+  text-align: right;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.revenuePerformanceCard .revenueCardFooter {
+  margin-top: auto;
+  padding: 28px 0 30px 30px;
 }
 
 .revenuePerformanceSummary {

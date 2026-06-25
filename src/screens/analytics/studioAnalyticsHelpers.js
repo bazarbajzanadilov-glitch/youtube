@@ -7,8 +7,8 @@ import {
 } from '../../lib/analyticsFormat.js'
 
 export const ANALYTICS_BLUE = '#41b4d9'
-export const ANALYTICS_PURPLE = '#41b4d9'
-export const ANALYTICS_TEAL = '#41b4d9'
+export const ANALYTICS_PURPLE = '#bc69f3'
+export const ANALYTICS_TEAL = '#39cfc2'
 export const ANALYTICS_MUTED = '#aaa'
 
 const NBSP = '\u00a0'

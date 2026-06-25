@@ -16,7 +16,7 @@ const ITEMS = [
   { key: 'copyright', label: 'Обнаружение контен...', Icon: SideCopyright },
   { key: 'monetize', label: 'Монетизация', Icon: SideMonetize },
   { key: 'channel', label: 'Настройка канала', Icon: SideMagic },
-  { key: 'audio', label: 'Creator Music (бета)', Icon: SideAudio },
+  { key: 'audio', label: 'Creator Music (beta)', Icon: SideAudio },
 ]
 
 export default function SidebarExpanded({ active = 'monetize' }) {
@@ -44,17 +44,15 @@ export default function SidebarExpanded({ active = 'monetize' }) {
               <span className={s.itemLabel}>{label}</span>
             </button>
           ))}
+          <button type="button" className={`${s.item} ${active === 'settings' ? s.active : ''}`} onClick={() => go('settings')}>
+            <span className={s.itemIcon}><SideSettings/></span>
+            <span className={s.itemLabel}>Настройки</span>
+          </button>
+          <button type="button" className={s.item} onClick={() => showToast('Отправить отзыв')}>
+            <span className={s.itemIcon}><SideFeedback/></span>
+            <span className={s.itemLabel}>Отправить отзыв</span>
+          </button>
         </div>
-      </div>
-      <div className={s.bottom}>
-        <button type="button" className={`${s.item} ${active === 'settings' ? s.active : ''}`} onClick={() => go('settings')}>
-          <span className={s.itemIcon}><SideSettings/></span>
-          <span className={s.itemLabel}>Настройки</span>
-        </button>
-        <button type="button" className={s.item} onClick={() => showToast('Отправить отзыв')}>
-          <span className={s.itemIcon}><SideFeedback/></span>
-          <span className={s.itemLabel}>Отправить отзыв</span>
-        </button>
       </div>
     </div>
   )

@@ -170,8 +170,8 @@ export default function OverviewTab({ data, onOpenAdmin }) {
   }
   const chart = chartByMetric[metric]
   const heroChartMargin = metric === 'revenue'
-    ? { top: 12, right: 88, left: 0, bottom: 6 }
-    : { top: 12, right: 48, left: 0, bottom: 6 }
+    ? { top: 12, right: 48, left: 24, bottom: 6 }
+    : { top: 12, right: 48, left: 24, bottom: 6 }
   const heroYAxisWidth = metric === 'revenue' ? 80 : 44
   const heroFillTopOpacity = 0.1
   const heroFillBottomOpacity = 0

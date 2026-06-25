@@ -72,7 +72,7 @@ export default function Screen9AudioLibrary() {
       <TopBar/>
       <Sidebar active="audio"/>
       <div className={s.main}>
-        <h1 className={s.title}>Creator Music (бета)</h1>
+        <h1 className={s.title}>Creator Music (beta)</h1>
 
         <div className={s.hScroll} ref={tableScrollRef} onScroll={() => syncScroll(tableScrollRef, fixedScrollRef)}>
           <div className={s.contentRail}>

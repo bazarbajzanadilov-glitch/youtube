@@ -10,7 +10,6 @@ import {
 } from '../../lib/analyticsFormat.js'
 import s from './AnalyticsTabs.module.css'
 import {
-  ANALYTICS_PURPLE,
   avgWatchPretty,
   comparePreviousText,
   ctrPretty,
@@ -21,6 +20,8 @@ import { KpiDownCircleIcon } from '../icons.jsx'
 const TYPE_FILTERS = ['Все', 'Shorts', 'Прямой эфир']
 const TRAFFIC_TABS = ['Общие', 'Внешние источники', 'Поиск на YouTube', 'Рекомендуемые видео', 'Плейлисты']
 const TYPE_KEYS = ['all', 'short', 'live']
+const CONTENT_CHART_COLOR = '#8e8cff'
+const CONTENT_CHART_UNDER_GRID_COLOR = '#3c3c3f'
 
 function normalizeVideoType(video) {
   if (['video', 'short', 'live'].includes(video?.type)) return video.type
@@ -103,7 +104,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
   }
 
   return (
-    <div className={s.tabStack}>
+    <div className={`${s.tabStack} ${s.contentTabStack}`}>
       <div className={s.filterChips}>
         {TYPE_FILTERS.map((item, index) => (
               <button
@@ -146,12 +147,17 @@ export default function ContentTab({ data, onOpenAdmin }) {
             data={filteredSeries}
             dataKey="views"
             xKey="date"
-            color={ANALYTICS_PURPLE}
+            color={CONTENT_CHART_COLOR}
+            fillColor={CONTENT_CHART_COLOR}
             height={174}
             name="Просмотры"
             formatY={formatCompactNumber}
             formatTooltipValue={formatNumberRu}
             yAxisOrientation="right"
+            fillTopOpacity={0.1}
+            fillBottomOpacity={0}
+            gridUnderWaterColor={CONTENT_CHART_UNDER_GRID_COLOR}
+            gridUnderWaterOpacity={1}
           />
         </div>
         <div className={s.ytHeroFooter}>
