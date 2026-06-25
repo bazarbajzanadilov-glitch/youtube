@@ -186,9 +186,10 @@ function TimelineMarkersOverlay({ markers, onHover, onLeave }) {
       maxPlotWidth,
       Math.max(MARKER_TOOLTIP_MIN_WIDTH, preferredWidth),
     )
-    const leftEdge = plotArea.x
-    const rightLimit = Math.max(leftEdge, plotArea.x + plotArea.width - tooltipWidth - MARKER_TOOLTIP_EDGE_GAP)
-    const safeX = Math.max(0, Math.min(leftEdge, rightLimit))
+    const minLeft = viewportGap
+    const maxLeft = Math.max(minLeft, viewportWidth - tooltipWidth - viewportGap)
+    const preferredLeft = markerX - (tooltipWidth / 2)
+    const safeX = Math.max(minLeft, Math.min(maxLeft, preferredLeft))
     const railY = alignGridCoordinate(plotArea.y + plotArea.height + TIMELINE_RAIL_OFFSET)
     onHover?.({
       x: safeX,
@@ -362,10 +363,13 @@ function mergeTimelineMarkers(...groups) {
       if (!video?.id || videos.some((item) => item.id === video.id)) return
       videos.push(video)
     })
+    const mergedCount = Math.max(previous?.count || 0, count, videos.length)
     merged.set(date, {
+      ...previous,
       ...marker,
       date,
-      count: Math.max(previous?.count || 0, count),
+      count: mergedCount,
+      label: marker.label || previous?.label || `${mergedCount} ${mergedCount === 1 ? 'опубликованное видео' : 'опубликованных видео'}`,
       videos,
     })
   })
