@@ -30,7 +30,7 @@ export function formatTenge(amount) {
 }
 
 export function formatTengeChart(amount) {
-  return formatTengeFull(amount, '')
+  return formatTengeFull(amount)
 }
 
 export function formatTengeShort(amount) {
