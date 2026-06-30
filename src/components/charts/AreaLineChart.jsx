@@ -444,7 +444,7 @@ export default function AreaLineChart({
   curve = 'linear',
   showAreaFill = true,
   margin,
-  yAxisWidth = 48,
+  yAxisWidth = ANALYTICS_AREA_CHART_DEFAULT_PROPS.yAxisWidth,
   yTicks,
   yTickCount = ANALYTICS_AREA_CHART_DEFAULT_PROPS.yTickCount,
   yValueScale = 1,

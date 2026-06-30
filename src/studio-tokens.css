@@ -57,9 +57,9 @@
   --studio-main-pad-x: 24px;
   --studio-main-pad-bottom: 48px;
   --studio-main-padding: var(--studio-main-pad-y) var(--studio-main-pad-x) var(--studio-main-pad-bottom);
-  --studio-analytics-kpi-value-font-size: 2.4rem;
+  --studio-analytics-kpi-value-font-size: 24px;
   --studio-analytics-kpi-value-font-weight: 600;
-  --studio-analytics-kpi-value-line-height: 1.15;
+  --studio-analytics-kpi-value-line-height: 28px;
   --studio-analytics-card-border: var(--studio-card-border);
   --studio-analytics-card-radius: var(--studio-radius-xl);
   --studio-analytics-hero-chart-pad-top: 10px;
@@ -95,4 +95,17 @@
   --studio-page-title-mobile-font-size: var(--ytcp-font-yt-headline1-font-size);
   --studio-page-title-font-weight: var(--ytcp-font-yt-headline1-font-weight);
   --studio-page-title-line-height: var(--ytcp-font-yt-headline1-line-height);
+}
+
+@media (max-width: 720px) {
+  :root {
+    --studio-topbar-height: 52px;
+    --studio-main-pad-y: 14px;
+    --studio-main-pad-x: 12px;
+    --studio-main-pad-bottom: 28px;
+    --studio-main-min-height: calc(100svh - var(--studio-topbar-height));
+    --studio-page-title-font-size: 2.7rem;
+    --studio-page-title-mobile-font-size: 2.7rem;
+    --studio-page-title-line-height: 3.25rem;
+  }
 }

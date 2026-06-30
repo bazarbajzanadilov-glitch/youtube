@@ -2,11 +2,13 @@
  * Локальные форматтеры для аналитики. Используют ru-RU.
  */
 
+const NBSP = '\u00a0'
+
 export function formatCompactNumber(n) {
   const v = Number(n) || 0
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(1).replace('.', ',') + ' млн'
-  if (v >= 10_000) return (v / 1_000).toFixed(0) + ' тыс.'
-  if (v >= 1_000) return (v / 1_000).toFixed(1).replace('.', ',') + ' тыс.'
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1).replace('.', ',')}${NBSP}млн`
+  if (v >= 10_000) return `${(v / 1_000).toFixed(0)}${NBSP}тыс.`
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1).replace('.', ',')}${NBSP}тыс.`
   return Math.round(v).toLocaleString('ru-RU')
 }
 

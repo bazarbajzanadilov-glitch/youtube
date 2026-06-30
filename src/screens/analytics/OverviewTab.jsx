@@ -31,6 +31,7 @@ import {
   buildPublishedVideoMarkers,
   ctrPretty,
   daysSinceLong,
+  formatTengeChart,
   formatTengeAxis,
   formatTenge,
   kpiTrend,
@@ -138,13 +139,13 @@ export default function OverviewTab({ data, onOpenAdmin }) {
       dataKey: 'revenue',
       name: 'Расчетный доход',
       formatY: formatTengeAxis,
-      formatTooltipValue: formatTenge,
+      formatTooltipValue: formatTengeChart,
       color: ANALYTICS_BLUE,
     },
   }
   const chart = chartByMetric[metric]
   const publishedMarkers = buildPublishedVideoMarkers(chart.data, content?.allVideos || [], 'date')
-  const heroYAxisWidth = metric === 'revenue' ? 80 : 44
+  const heroYAxisWidth = metric === 'revenue' ? 108 : 62
   const topVideo = overview.topVideos[0]
   const replayViews = newestVideo ? Math.max(1, Math.round((newestVideo.views || 0) * (newestVideo.type === 'live' ? 0.01 : 0.08))) : 0
   const aiInsights = [

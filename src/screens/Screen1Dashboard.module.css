@@ -625,3 +625,75 @@
   cursor: pointer;
 }
 .footerLink:hover { color: var(--studio-text-muted); }
+
+@media (max-width: 720px) {
+  .page {
+    min-height: 100svh;
+  }
+
+  .main {
+    margin-left: 0;
+    padding: var(--studio-main-padding);
+  }
+
+  .headerRow {
+    max-width: none;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .pageTitle {
+    font-size: var(--studio-page-title-mobile-font-size);
+    line-height: var(--studio-page-title-line-height);
+  }
+
+  .actions {
+    gap: 2px;
+  }
+
+  .actionBtn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: none;
+    gap: 14px;
+  }
+
+  .col {
+    gap: 14px;
+  }
+
+  .card {
+    padding: 18px 16px;
+    border-radius: var(--studio-radius-md);
+  }
+
+  .analyticsCard,
+  .ideasCard,
+  .violationsCard {
+    min-height: auto;
+  }
+
+  .ideaBody {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 16px;
+  }
+
+  .ideaArt {
+    display: none;
+  }
+
+  .publishedMeta {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .footer {
+    margin-top: 24px;
+    padding-bottom: 0;
+  }
+}

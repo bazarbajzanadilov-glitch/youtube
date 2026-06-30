@@ -78,8 +78,9 @@ export function computeMetrics(views, seed = Math.random()) {
 
 export function formatViews(n) {
   if (n == null) return '—'
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace('.', ',') + ' млн'
-  if (n >= 1_000) return (n / 1_000).toFixed(1).replace('.', ',') + ' тыс.'
+  const NBSP = '\u00a0'
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')}${NBSP}млн`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace('.', ',')}${NBSP}тыс.`
   return String(n)
 }
 

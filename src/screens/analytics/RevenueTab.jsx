@@ -12,6 +12,7 @@ import {
   ANALYTICS_TEAL,
   buildPublishedVideoMarkers,
   formatTenge,
+  formatTengeChart,
   formatTengeAxis,
 } from './studioAnalyticsHelpers.js'
 
@@ -260,7 +261,7 @@ export default function RevenueTab({ data }) {
           <AreaLineChart
             {...analyticsAreaChartProps({
               yValueScale: 512,
-              yAxisWidth: 88,
+              yAxisWidth: 112,
               tooltipClassName: s.revenueHeroTooltip,
               tooltipLabelClassName: s.revenueHeroTooltipLabel,
               tooltipValueClassName: s.revenueHeroTooltipValue,
@@ -277,7 +278,7 @@ export default function RevenueTab({ data }) {
             name="Расчетный доход"
             formatY={formatTengeAxis}
             xTickFormatter={formatDateLong}
-            formatTooltipValue={formatTenge}
+            formatTooltipValue={formatTengeChart}
             formatTooltipLabel={formatRevenueTooltipLabel}
             processingWindow={processingWindow}
             eventMarkers={publishedMarkers}

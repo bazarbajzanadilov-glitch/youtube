@@ -13,28 +13,32 @@ export const ANALYTICS_MUTED = '#aaa'
 
 const NBSP = '\u00a0'
 
-export function formatTenge(amount) {
-  const value = (Number(amount) || 0) * 512
+function tengeValue(amount) {
+  return (Number(amount) || 0) * 512
+}
+
+function formatTengeFull(amount, currencyGap = NBSP) {
+  const value = tengeValue(amount)
   return `${value.toLocaleString('ru-RU', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}${NBSP}₸`
+  })}${currencyGap}₸`
+}
+
+export function formatTenge(amount) {
+  return formatTengeFull(amount)
+}
+
+export function formatTengeChart(amount) {
+  return formatTengeFull(amount, '')
 }
 
 export function formatTengeShort(amount) {
-  const value = (Number(amount) || 0) * 512
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.', ',')}${NBSP}млн${NBSP}₸`
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace('.', ',')}${NBSP}тыс.${NBSP}₸`
-  return `${value.toFixed(0)}${NBSP}₸`
+  return formatTengeChart(amount)
 }
 
 export function formatTengeAxis(amount) {
-  const value = (Number(amount) || 0) * 512
-  const hasFraction = Math.abs(value - Math.round(value)) > 0.005
-  return `${value.toLocaleString('ru-RU', {
-    minimumFractionDigits: hasFraction ? 2 : 0,
-    maximumFractionDigits: 2,
-  })}${NBSP}₸`
+  return formatTengeChart(amount)
 }
 
 export function rangePrefix(range) {

@@ -62,3 +62,26 @@ textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: transparent;
 }
+
+@media (max-width: 720px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-width: 0;
+  }
+
+  #root [class*="_page_"] {
+    min-width: 0 !important;
+    overflow-x: hidden;
+  }
+
+  #root [class*="_main_"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    padding: var(--studio-main-padding) !important;
+  }
+}

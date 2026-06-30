@@ -6,6 +6,22 @@ import { bootstrapFromFile } from './storage/videoStore.js'
 
 bootstrapFromFile()
 
+function removeForeignDevGlobalStyles() {
+  if (!import.meta.env.DEV || typeof document === 'undefined') return
+
+  document.querySelectorAll('style[data-vite-dev-id]').forEach((style) => {
+    const css = style.textContent || ''
+    const referencesStudioTokens = css.includes('--studio-') || css.includes('var(--studio-')
+    const hasGlobalBaseRule = /(^|\})\s*(?:html|body|#root|\*)\b/.test(css)
+
+    if (hasGlobalBaseRule && !referencesStudioTokens) {
+      style.remove()
+    }
+  })
+}
+
+removeForeignDevGlobalStyles()
+
 /**
  * Recharts ResponsiveContainer первый раз рендерит c containerWidth=-1 до
  * измерения через ResizeObserver, и пишет в console.warn. Чарт после этого

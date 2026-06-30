@@ -286,6 +286,40 @@ function smoothPreserveTotal(values, window = 3, seed = 1, startWeekday = 0) {
   return normalizeToTotal(shaped, total)
 }
 
+function addMetricPeaksPreserveTotal(values, seed = 1, intensity = 0.24) {
+  if (!Array.isArray(values) || values.length < 6) return values
+  const total = values.reduce((sum, value) => sum + (Number(value) || 0), 0)
+  if (total <= 0) return values
+
+  const rand = seededRevenue(seed)
+  const shaped = values.map((value, index) => {
+    const safe = Math.max(0, Number(value) || 0)
+    const micro = 1 + (rand() - 0.5) * intensity * 0.42
+    const dayPulse = 1 + Math.sin((index + rand() * 0.35) * Math.PI * 0.86) * intensity * 0.1
+    return safe * micro * dayPulse
+  })
+
+  const peakCount = Math.min(4, Math.max(2, Math.round(values.length / 10)))
+  const used = []
+  for (let i = 0; i < peakCount; i += 1) {
+    const candidate = 1 + Math.floor(rand() * Math.max(1, values.length - 2))
+    if (used.some((index) => Math.abs(index - candidate) < 3)) continue
+    used.push(candidate)
+
+    const boost = 1 + intensity * (0.72 + rand() * 0.72)
+    shaped[candidate] *= boost
+    if (candidate - 1 >= 0) shaped[candidate - 1] *= 1 + (boost - 1) * 0.22
+    if (candidate + 1 < shaped.length) shaped[candidate + 1] *= 1 + (boost - 1) * 0.16
+
+    const valley = candidate + (rand() > 0.5 ? 2 : -2)
+    if (valley >= 0 && valley < shaped.length) {
+      shaped[valley] *= 1 - intensity * (0.18 + rand() * 0.16)
+    }
+  }
+
+  return normalizeToTotal(shaped, total)
+}
+
 function buildSeriesForVideos(videos, channel, range, granularity) {
   const { dates, map } = buildDailyMap(range.from, range.days)
   videos.forEach((video) => attachVideoContribution({ video, channel, range, dayMap: map }))
@@ -346,16 +380,25 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const { dates, map } = buildDailyMap(range.from, range.days)
   videos.forEach((v) => attachVideoContribution({ video: v, channel, range, dayMap: map }))
 
-  /* Сырые слоты + 3-дневное скользящее среднее для канальной серии — убирает
-     single-day всплески. Сумма сохраняется через rescale. */
+  /* Сырые слоты + 3-дневное скользящее среднее для канальной серии. Для просмотров
+     и watch time возвращаем часть ломаной YouTube Studio фактуры; доход оставляем
+     более ровным, как в оригинальной вкладке revenue. */
   const rawViews = dates.map(({ date }) => map.get(date).views)
   const rawWatch = dates.map(({ date }) => map.get(date).watchTime)
   const rawRev = dates.map(({ date }) => map.get(date).revenue)
   const rawLikes = dates.map(({ date }) => map.get(date).likes)
   const rawComm = dates.map(({ date }) => map.get(date).comments)
 
-  const smoothedViews = smoothPreserveTotal(rawViews, 3, channelSeed + 21, range.from.getDay())
-  const smoothedWatch = smoothPreserveTotal(rawWatch, 3, channelSeed + 22, range.from.getDay())
+  const smoothedViews = addMetricPeaksPreserveTotal(
+    smoothPreserveTotal(rawViews, 3, channelSeed + 21, range.from.getDay()),
+    channelSeed + 121,
+    0.26,
+  )
+  const smoothedWatch = addMetricPeaksPreserveTotal(
+    smoothPreserveTotal(rawWatch, 3, channelSeed + 22, range.from.getDay()),
+    channelSeed + 122,
+    0.22,
+  )
   const smoothedRev = smoothPreserveTotal(rawRev, 3, channelSeed + 23, range.from.getDay())
   const smoothedLikes = smoothPreserveTotal(rawLikes, 3, channelSeed + 24, range.from.getDay())
   const smoothedComm = smoothPreserveTotal(rawComm, 3, channelSeed + 25, range.from.getDay())

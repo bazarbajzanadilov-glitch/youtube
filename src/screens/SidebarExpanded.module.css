@@ -122,3 +122,29 @@
   flex-direction: column;
   gap: 2px;
 }
+
+@media (max-width: 720px) {
+  .sidebar {
+    top: var(--studio-topbar-height);
+    bottom: 0;
+    z-index: 160;
+    width: min(284px, 86vw);
+    box-shadow: 24px 0 48px rgba(0, 0, 0, 0.45);
+  }
+
+  .channel {
+    padding: 14px 0 10px;
+    transform: none;
+  }
+
+  .channelAvatar {
+    width: 76px;
+    height: 76px;
+    margin-bottom: 8px;
+  }
+
+  .item {
+    margin-right: 12px;
+    width: calc(100% - 24px);
+  }
+}

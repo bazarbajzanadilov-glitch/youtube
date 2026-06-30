@@ -37,6 +37,7 @@ export const ANALYTICS_AREA_CHART_DEFAULT_PROPS = {
   yTickCount: 4,
   xTickFontSize: 11,
   yTickFontSize: 11,
+  yAxisWidth: 62,
   fillTopOpacity: 0.1,
   fillBottomOpacity: 0,
   gridLineColor: ANALYTICS_CHART_GEOMETRY.gridLineColor,
