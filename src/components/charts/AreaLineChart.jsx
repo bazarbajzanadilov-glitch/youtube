@@ -9,7 +9,7 @@ import ChartTooltip from '../ui/ChartTooltip.jsx'
 import { CHART_COLORS } from '../../lib/chartColors.js'
 import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 import { formatDateLong } from '../../lib/analyticsFormat.js'
-import { buildPeakAxisTicks, maxByDataKey, projectValueToPeakAxis } from './chartAxis.js'
+import { buildNiceAxisTicks, maxByDataKey, projectValueToPeakAxis } from './chartAxis.js'
 import { ANALYTICS_AREA_CHART_DEFAULT_PROPS, ANALYTICS_CHART_GEOMETRY } from './analyticsChartDefaults.js'
 
 function defaultXTickFormatter(value) {
@@ -55,20 +55,6 @@ function finiteNumber(value) {
 
 function alignGridCoordinate(value) {
   return Math.round(value) + 0.5
-}
-
-function cleanAxisTick(value) {
-  return Number((Number(value) || 0).toFixed(8))
-}
-
-function forceTickCount(ticks, count) {
-  const safeCount = Math.max(2, Number(count) || 0)
-  if (!Array.isArray(ticks) || ticks.length === 0 || ticks.length === safeCount) return ticks
-
-  const maxTick = Number(ticks[ticks.length - 1]) || 0
-  const axisMax = maxTick > 0 ? maxTick : safeCount - 1
-  const step = axisMax / (safeCount - 1)
-  return Array.from({ length: safeCount }, (_, index) => cleanAxisTick(index * step))
 }
 
 function UniformGrid({ lineCount = 4, gridLineColor = GRID_LINE_COLOR }) {
@@ -471,6 +457,7 @@ export default function AreaLineChart({
   const chartId = useId().replace(/:/g, '')
   const gradientId = `${chartId}-gradient`
   const chartFillColor = fillColor || color
+  const hasUniformFill = Math.abs((Number(fillTopOpacity) || 0) - (Number(fillBottomOpacity) || 0)) < 0.0001
   const last = data.length > 0 ? data[data.length - 1] : null
   const tooltipFormatValue = formatTooltipValue || ((val) => formatY(val))
   const hasMarkers = eventMarkers.length > 0 && data.length > 0
@@ -507,17 +494,19 @@ export default function AreaLineChart({
     strokeOpacity: 0.32,
     strokeWidth: 1,
   }
-  const autoYTicks = forceTickCount(buildPeakAxisTicks(maxByDataKey(data, dataKey), {
+  const autoYTicks = buildNiceAxisTicks(maxByDataKey(data, dataKey), {
     scale: yValueScale,
     targetTickCount: yTickCount,
-    maxTickCount: yTickCount,
-  }), yTickCount)
+  })
+  const resolvedAutoYTicks = Array.isArray(autoYTicks) && autoYTicks.length >= 2
+    ? autoYTicks
+    : [0, 1]
   const useProjectedYAxis = !yTicks && !yDomain
   const projectedDataKey = useProjectedYAxis ? `${dataKey}__axisPosition` : dataKey
   const chartData = useProjectedYAxis
     ? data.map((row) => ({
       ...row,
-      [projectedDataKey]: projectValueToPeakAxis(row?.[dataKey], autoYTicks),
+      [projectedDataKey]: projectValueToPeakAxis(row?.[dataKey], resolvedAutoYTicks),
     }))
     : data
   const processingStartDate = String(processingWindow?.startDate || '').slice(0, 10)
@@ -528,11 +517,14 @@ export default function AreaLineChart({
       return { ...row, [projectedDataKey]: null }
     })
     : chartData
-  const chartYTicks = yTicks || (yDomain ? undefined : autoYTicks?.map((_, index) => index))
-  const chartYDomain = yDomain || [0, Math.max(1, (autoYTicks?.length || 2) - 1)]
+  const chartYTicks = yTicks || (yDomain ? undefined : resolvedAutoYTicks.map((_, index) => index))
+  const chartYDomain = yDomain || [0, Math.max(1, resolvedAutoYTicks.length - 1)]
   const chartFormatY = useProjectedYAxis
-    ? (tick) => formatY(autoYTicks?.[Math.round(Number(tick) || 0)] ?? 0)
+    ? (tick) => formatY(resolvedAutoYTicks[Math.round(Number(tick) || 0)] ?? 0)
     : formatY
+  const gridLineCount = Array.isArray(chartYTicks) && chartYTicks.length >= 2
+    ? chartYTicks.length
+    : Math.max(2, Number(yTickCount) || ANALYTICS_AREA_CHART_DEFAULT_PROPS.yTickCount)
   const xTicks = buildEvenTicks(data, xKey)
   const timelineMarkers = mergeTimelineMarkers(markerIndexes, processingMarkerIndexes)
   const clearMarkerHideTimer = () => {
@@ -676,8 +668,8 @@ export default function AreaLineChart({
                 name={name}
                 stroke="none"
                 strokeWidth={0}
-                fill={`url(#${gradientId})`}
-                fillOpacity={1}
+                fill={hasUniformFill ? chartFillColor : `url(#${gradientId})`}
+                fillOpacity={hasUniformFill ? fillTopOpacity : 1}
                 isAnimationActive={false}
                 activeDot={false}
                 dot={false}
@@ -711,7 +703,7 @@ export default function AreaLineChart({
             />
             {showGrid ? (
               <UniformGrid
-                lineCount={yTickCount}
+                lineCount={gridLineCount}
                 gridLineColor={gridLineColor}
               />
             ) : null}

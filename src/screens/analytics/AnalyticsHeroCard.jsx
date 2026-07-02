@@ -7,7 +7,6 @@ export default function AnalyticsHeroCard({
   children,
   chart,
   chartClassName = '',
-  chartStyle,
   footerClassName = '',
   actionLabel = 'Подробнее',
   actionProps = {},
@@ -15,7 +14,7 @@ export default function AnalyticsHeroCard({
   return (
     <Card padding="none" depth="lg" className={`${s.ytHeroCard} ${className}`} data-analytics-hero="true">
       {children}
-      <div className={`${s.ytHeroChart} ${chartClassName}`} style={chartStyle}>
+      <div className={`${s.ytHeroChart} ${chartClassName}`}>
         {chart}
       </div>
       <div className={`${s.ytHeroFooter} ${footerClassName}`} data-analytics-hero-footer="true">

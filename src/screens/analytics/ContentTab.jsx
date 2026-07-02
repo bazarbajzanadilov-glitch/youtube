@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
-import { analyticsAreaChartProps } from '../../components/charts/analyticsChartDefaults.js'
+import { analyticsHeroChartProps } from '../../components/charts/analyticsChartDefaults.js'
 import {
   formatCompactNumber,
   formatNumberRu,
@@ -115,7 +115,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
       <AnalyticsHeroCard
         chart={(
           <AreaLineChart
-            {...analyticsAreaChartProps()}
+            {...analyticsHeroChartProps(s, { color: CONTENT_CHART_COLOR })}
             data={filteredSeries}
             dataKey="views"
             xKey="date"

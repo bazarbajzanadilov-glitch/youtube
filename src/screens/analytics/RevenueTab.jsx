@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
-import { analyticsAreaChartProps } from '../../components/charts/analyticsChartDefaults.js'
+import { analyticsHeroChartProps } from '../../components/charts/analyticsChartDefaults.js'
 import { formatDateLong, formatNumberRu } from '../../lib/analyticsFormat.js'
 import clockIcon from '../../assets/clock.svg'
 import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
@@ -259,16 +259,10 @@ export default function RevenueTab({ data }) {
       <AnalyticsHeroCard
         chart={(
           <AreaLineChart
-            {...analyticsAreaChartProps({
+            {...analyticsHeroChartProps(s, {
+              color: REVENUE_LINE_COLOR,
               yValueScale: 512,
               yAxisWidth: 112,
-              tooltipClassName: s.revenueHeroTooltip,
-              tooltipLabelClassName: s.revenueHeroTooltipLabel,
-              tooltipValueClassName: s.revenueHeroTooltipValue,
-              tooltipCursor: { stroke: '#6c6c6c', strokeOpacity: 0.8, strokeWidth: 1 },
-              fillTopOpacity: 0.16,
-              fillBottomOpacity: 0.03,
-              activeDotProps: { r: 5, stroke: '#282828', strokeWidth: 2, fill: REVENUE_LINE_COLOR },
             })}
             data={monetization?.series || []}
             dataKey="revenue"

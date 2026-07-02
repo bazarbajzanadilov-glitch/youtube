@@ -176,29 +176,29 @@ button.ytKpiCell {
   padding: var(--studio-analytics-hero-chart-pad-top) 0 0;
 }
 
-.revenueHeroTooltip {
-  min-width: 170px;
-  padding: 18px 20px;
+.analyticsHeroTooltip {
+  min-width: 146px;
+  padding: 18px 10px;
   border-color: #4a4a4a;
   border-radius: 16px;
   background: #0f0f0f;
   box-shadow: none;
 }
 
-.revenueHeroTooltipLabel {
-  margin-bottom: 10px;
-  color: #a0a0a0;
-  font-size: 13px;
+.analyticsHeroTooltipLabel {
+  margin-bottom: 5px;
+  color: #f1f1f1;
+  font-size: 12px;
   font-weight: 500;
-  line-height: 20px;
+  line-height: 18px;
   text-transform: none;
 }
 
-.revenueHeroTooltipValue {
-  color: #39cfc2;
-  font-size: 22px;
+.analyticsHeroTooltipValue {
+  color: var(--chart-tooltip-accent, var(--studio-analytics-chart-bar));
+  font-size: 23px;
   font-weight: 500;
-  line-height: 30px;
+  line-height: 31px;
 }
 
 .ytHeroFooter {
@@ -856,31 +856,6 @@ button.ytKpiCell {
 .overviewHeroCard .ytHeroFooter {
   min-height: var(--studio-analytics-hero-footer-min-height);
   padding: 0 var(--studio-analytics-hero-footer-pad-x) var(--studio-analytics-hero-footer-pad-bottom);
-}
-
-.overviewHeroTooltip {
-  min-width: 170px;
-  padding: 18px 20px;
-  border-color: #4a4a4a;
-  border-radius: 16px;
-  background: rgba(40, 40, 40, 0.98);
-  box-shadow: none;
-}
-
-.overviewHeroTooltipLabel {
-  margin-bottom: 10px;
-  color: #a0a0a0;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 20px;
-  text-transform: none;
-}
-
-.overviewHeroTooltipValue {
-  color: var(--overview-tooltip-accent, var(--studio-analytics-chart-bar));
-  font-size: 22px;
-  font-weight: 500;
-  line-height: 30px;
 }
 
 .overviewAICard {

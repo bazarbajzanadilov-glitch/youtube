@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
-import { analyticsAreaChartProps } from '../../components/charts/analyticsChartDefaults.js'
+import { analyticsHeroChartProps } from '../../components/charts/analyticsChartDefaults.js'
 import RealtimeMiniChart from '../../components/charts/RealtimeMiniChart.jsx'
 import RealtimeIndicator from '../../components/ui/RealtimeIndicator.jsx'
 import { FAST_CHART_ANIMATION_SECONDS } from '../../components/charts/chartAnimation.js'
@@ -209,18 +209,13 @@ export default function OverviewTab({ data, onOpenAdmin }) {
       <div className={`${s.analyticsMain} ${s.overviewMain}`}>
         <AnalyticsHeroCard
           className={`${s.overviewHeroCard} ${s.overviewInset}`}
-          chartStyle={{ '--overview-tooltip-accent': chart.color }}
           chart={(
             <AreaLineChart
-              {...analyticsAreaChartProps({
+              {...analyticsHeroChartProps(s, {
+                color: chart.color,
                 margin: { top: 12, bottom: 6 },
                 yValueScale: metric === 'revenue' ? 512 : 1,
                 yAxisWidth: heroYAxisWidth,
-                tooltipClassName: s.overviewHeroTooltip,
-                tooltipLabelClassName: s.overviewHeroTooltipLabel,
-                tooltipValueClassName: s.overviewHeroTooltipValue,
-                tooltipCursor: { stroke: '#6c6c6c', strokeOpacity: 0.8, strokeWidth: 1 },
-                activeDotProps: { r: 5, stroke: '#282828', strokeWidth: 2, fill: chart.color },
               })}
               data={chart.data}
               dataKey={chart.dataKey}

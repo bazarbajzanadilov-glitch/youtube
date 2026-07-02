@@ -1,6 +1,26 @@
 import s from './ChartTooltip.module.css'
 import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 
+function pickTooltipAccentColor(payloadItem) {
+  const candidates = [
+    payloadItem?.stroke,
+    payloadItem?.color,
+    payloadItem?.payload?.color,
+    payloadItem?.fill,
+  ]
+
+  return candidates.find((candidate) => (
+    typeof candidate === 'string'
+    && candidate.trim() !== ''
+    && candidate.trim() !== 'none'
+    && candidate.trim() !== 'transparent'
+    && candidate.trim() !== 'initial'
+    && candidate.trim() !== 'inherit'
+    && candidate.trim() !== 'unset'
+    && !candidate.trim().startsWith('url(')
+  )) || null
+}
+
 export default function ChartTooltip({
   active,
   payload,
@@ -26,7 +46,7 @@ export default function ChartTooltip({
     ? numericValues.reduce((sum, value) => sum + value, 0)
     : (first.value ?? first.payload?.[first.dataKey])
   const formatted = raw == null ? '' : (formatValue ? formatValue(raw, first) : String(raw))
-  const accentColor = first?.color || first?.stroke || first?.fill || first?.payload?.color || null
+  const accentColor = pickTooltipAccentColor(first)
 
   return (
     <div

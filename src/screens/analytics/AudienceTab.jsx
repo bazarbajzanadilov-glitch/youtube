@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
-import { analyticsAreaChartProps } from '../../components/charts/analyticsChartDefaults.js'
+import { analyticsHeroChartProps } from '../../components/charts/analyticsChartDefaults.js'
 import Heatmap7x24 from '../../components/charts/Heatmap7x24.jsx'
 import HorizontalBarChart from '../../components/charts/HorizontalBarChart.jsx'
 import {
@@ -98,7 +98,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
         className={s.audienceHeroCard}
         chart={(
           <AreaLineChart
-            {...analyticsAreaChartProps()}
+            {...analyticsHeroChartProps(s, { color: AUDIENCE_CHART_COLOR })}
             data={chart.data}
             dataKey={chart.dataKey}
             xKey="date"

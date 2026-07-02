@@ -1,4 +1,4 @@
-const NICE_STEPS = [1, 2, 2.5, 5, 10]
+const NICE_STEPS = [1, 2, 2.5, 3, 4, 5, 10]
 const NICE_AXIS_MAX_MULTIPLIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 const STEP_EPSILON = 1e-8
 
@@ -76,13 +76,17 @@ function axisStep(axisMax, targetTickCount, maxTickCount) {
 export function buildNiceAxisTicks(maxValue, { scale = 1, targetTickCount = 5 } = {}) {
   const safeScale = Number(scale) > 0 ? Number(scale) : 1
   const displayMax = Math.max(0, Number(maxValue) || 0) * safeScale
-  if (displayMax === 0) return [0, cleanTick(1 / safeScale)]
+  const safeTickCount = Math.max(2, Number(targetTickCount) || 2)
+  if (displayMax === 0) {
+    return Array.from({ length: safeTickCount }, (_, index) => cleanTick(index / safeScale))
+  }
 
-  const step = niceStep(displayMax, targetTickCount)
-  const axisMax = Math.max(step, Math.ceil(displayMax / step) * step)
-  const count = Math.max(1, Math.round(axisMax / step))
+  const intervalCount = safeTickCount - 1
+  const step = stepCandidates(displayMax)
+    .find((candidate) => (candidate * intervalCount) >= displayMax - STEP_EPSILON)
+    || niceStep(displayMax, safeTickCount)
 
-  return Array.from({ length: count + 1 }, (_, index) => cleanTick((index * step) / safeScale))
+  return Array.from({ length: safeTickCount }, (_, index) => cleanTick((index * step) / safeScale))
 }
 
 export function buildPeakAxisTicks(maxValue, { scale = 1, targetTickCount = 5, maxTickCount = 6 } = {}) {
