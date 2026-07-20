@@ -386,14 +386,18 @@ function buildTimelineTickLayouts(ticks, plotArea, formatter) {
       const isLast = index === ticks.length - 1
       const label = formatTimelineTickLabel(tick, formatter)
       const labelWidth = Math.min(plotArea.width, isFirst || isLast ? edgeWidth : middleWidth)
-      const labelX = x - (labelWidth / 2)
+      const labelX = isFirst
+        ? x
+        : isLast
+          ? x - labelWidth
+          : x - (labelWidth / 2)
       return {
         tick,
         label,
         x,
         labelX,
         labelWidth,
-        textAlign: 'center',
+        textAlign: isFirst ? 'left' : isLast ? 'right' : 'center',
       }
     })
     .filter(Boolean)

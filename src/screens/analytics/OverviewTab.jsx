@@ -89,7 +89,6 @@ export default function OverviewTab({ data, onOpenAdmin }) {
     initial: realtime.last48,
     seed: realtime.generatorSeed,
     intervalMs: 5000,
-    baseSubscribers: 0,
   })
 
   if ((overview.topVideos?.length || 0) === 0) {
@@ -339,7 +338,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
         <Card padding="lg" depth="md" className={`${s.sideCard} ${s.overviewSideCard}`}>
           <div className={s.sideTitle}>Текущая статистика</div>
           <RealtimeIndicator />
-          <div className={s.sideBig}>{formatNumberRu((channel?.subscriberCount || 0) + realtimeFeed.subDelta)}</div>
+          <div className={s.sideBig}>{formatNumberRu(channel?.subscriberCount || 0)}</div>
           <div className={s.sideLabel}>Подписчики</div>
           <button type="button" className={s.ytPillBtn}>Подробнее</button>
 
