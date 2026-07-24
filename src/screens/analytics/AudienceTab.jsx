@@ -15,8 +15,7 @@ import {
   ANALYTICS_PURPLE,
   buildPublishedVideoMarkers,
   signedNumber,
-  subscriberPeriodSummary,
-  subscriberTooltipRows,
+  usualComparison,
   videoDate,
 } from './studioAnalyticsHelpers.js'
 import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
@@ -64,8 +63,6 @@ export default function AudienceTab({ data, onOpenAdmin }) {
       data: audience.subscribers,
       dataKey: 'subscribers',
       name: 'Подписчики',
-      allowNegative: true,
-      tooltipRows: subscriberTooltipRows,
     },
   }
   const chart = chartByMetric[metric]
@@ -110,8 +107,6 @@ export default function AudienceTab({ data, onOpenAdmin }) {
             name={chart.name}
             formatY={formatCompactNumber}
             formatTooltipValue={formatNumberRu}
-            allowNegative={chart.allowNegative}
-            tooltipRows={chart.tooltipRows}
             eventMarkers={publishedMarkers}
           />
         )}
@@ -128,8 +123,8 @@ export default function AudienceTab({ data, onOpenAdmin }) {
           <MetricKpiCell
             label="Подписчики"
             value={signedNumber(audience.kpis.subscribers.value)}
-            note={subscriberPeriodSummary(audience.kpis.subscribers)}
-            trend={audience.kpis.subscribers.value > 0 ? 'up' : audience.kpis.subscribers.value < 0 ? 'down' : 'neutral'}
+            note={usualComparison(audience.kpis.subscribers, formatCompactNumber)}
+            trend={audience.kpis.subscribers.value > 0 ? 'up' : 'neutral'}
             active={metric === 'subscribers'}
             onClick={() => setMetric('subscribers')}
           />

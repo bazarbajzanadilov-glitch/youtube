@@ -269,7 +269,7 @@ export function aggregateSubscriberSeries(daily, granularity) {
     const bucket = buckets.get(key)
     bucket.gained += Math.max(0, Number(row.gained) || 0)
     bucket.lost += Math.max(0, Number(row.lost) || 0)
-    bucket.subscribers = bucket.gained - bucket.lost
+    bucket.subscribers = bucket.gained
   }
   return Array.from(buckets.values()).sort((a, b) => a.date.localeCompare(b.date))
 }
@@ -290,7 +290,7 @@ export function buildSubscriberSeries(channel, dates) {
       date,
       gained: row.gained,
       lost: row.lost,
-      subscribers: row.gained - row.lost,
+      subscribers: row.gained,
     }
   })
 }
@@ -501,7 +501,11 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const subscribers = aggregateSubscriberSeries(subscribersDaily, granularity)
   const subscribersGained = subscribersDaily.reduce((sum, row) => sum + row.gained, 0)
   const subscribersLost = subscribersDaily.reduce((sum, row) => sum + row.lost, 0)
-  const subscribersDelta = subscribersGained - subscribersLost
+  const subscribersValue = subscribersDaily.reduce((sum, row) => sum + row.subscribers, 0)
+  const previousSubscriberDates = buildDailyMap(addDays(range.from, -range.days), range.days).dates
+  const previousSubscribersValue = buildSubscriberSeries(channel, previousSubscriberDates)
+    .reduce((sum, row) => sum + row.subscribers, 0)
+  const subscribersDelta = isLifetime ? 0 : pctDelta(subscribersValue, previousSubscribersValue)
 
   const traffic = generateTrafficShares(channelSeed)
   const devices = generateDeviceShares(channelSeed + 1)
@@ -543,7 +547,8 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
         value: totalWatchHours, delta: pctDelta(totalWatchHours, prevWatchHours), lifetime: lifetime.watchHours,
       },
       subscribers: {
-        value: subscribersDelta,
+        value: subscribersValue,
+        delta: subscribersDelta,
         gained: subscribersGained,
         lost: subscribersLost,
         absolute: channel.subscriberCount || 0,
@@ -564,7 +569,8 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     },
     audience: {
       subscribers: {
-        value: subscribersDelta,
+        value: subscribersValue,
+        delta: subscribersDelta,
         gained: subscribersGained,
         lost: subscribersLost,
         absolute: channel.subscriberCount || 0,
