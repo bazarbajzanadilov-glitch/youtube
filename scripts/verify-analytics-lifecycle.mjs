@@ -145,6 +145,17 @@ assert.equal(
   'overview and audience should use the same subscriber KPI',
 )
 
+const subscriberLifetime = build([], subscriberChannel, { kind: 'lifetime' }, { today })
+assert.equal(
+  subscriberLifetime.overview.kpis.subscribers.value,
+  8,
+  'lifetime subscriber KPI should include the complete stored subscriber history',
+)
+assert.ok(
+  subscriberLifetime.range.from <= new Date('2026-05-08'),
+  'lifetime range should start from subscriber history even when the channel has no videos',
+)
+
 const changedAbsoluteSubscriberCount = build(
   [],
   { ...subscriberChannel, subscriberCount: 999999 },

@@ -54,7 +54,7 @@ export function getAnalyticsEndDate(today = new Date()) {
   return startOfDay(addDays(getAlmatyCalendarDate(today), -1))
 }
 
-export function resolveRange(range, videos, today = new Date()) {
+export function resolveRange(range, videos, today = new Date(), channel = {}) {
   const todayD = getAnalyticsEndDate(today)
   const yearMatch = /^year-(\d{4})$/.exec(range?.kind || '')
   if (yearMatch) {
@@ -88,6 +88,12 @@ export function resolveRange(range, videos, today = new Date()) {
     for (const v of videos) {
       if (v.date) {
         const d = startOfDay(v.date)
+        if (d < earliest) earliest = d
+      }
+    }
+    for (const row of Array.isArray(channel?.subscriberDailyStats) ? channel.subscriberDailyStats : []) {
+      if (row?.date) {
+        const d = startOfDay(row.date)
         if (d < earliest) earliest = d
       }
     }
@@ -422,7 +428,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const videos = Array.isArray(videosInput) ? videosInput : []
   const channel = channelInput || {}
   const today = options.today || new Date()
-  const range = resolveRange(rangeInput, videos, today)
+  const range = resolveRange(rangeInput, videos, today, channel)
   const channelSeed = hashSeed(channel.channelName || 'channel', channel.country || 'RU', range.kind)
 
   const lifetime = computeLifetime(videos, channel)
