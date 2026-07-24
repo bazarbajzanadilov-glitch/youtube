@@ -41,6 +41,7 @@ export default function TopBar() {
         <button type="button" className={`${s.iconBtn} ${s.sparkleBtn}`} onClick={() => showToast('Спросить у Студии')} aria-label="Спросить у Студии"><SparkleIcon size={24}/></button>
         <button type="button" className={s.iconBtn} onClick={handleHardReset} aria-label="Уведомления"><BellIcon size={24}/></button>
         <button type="button" className={s.createBtn} onClick={() => go('admin')}><PlusBoxIcon size={24}/>Создать</button>
+        <a className={s.siteLogout} href="/api/site-logout">Выйти</a>
         <button type="button" className={s.avatarBtn} onClick={() => showToast('Аккаунт')} aria-label="Аккаунт">
           <div className={s.avatar} style={{ backgroundImage: `url(${avatarUrl})` }}/>
         </button>

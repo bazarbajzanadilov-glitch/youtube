@@ -13,7 +13,7 @@ const BannerArt = ({ name }) => <div className={s.bannerGenerated}>{name}</div>
 
 export default function Screen8aProfile() {
   const { go, showToast } = useContext(NavContext)
-  const { channel, update: updateChannel } = useChannel()
+  const { channel } = useChannel()
   const [activeTab, setActiveTab] = useState(0)
   const avatarUrl = channel.avatar || DEFAULT_AVATAR
   return (
@@ -25,8 +25,8 @@ export default function Screen8aProfile() {
           <h1 className={s.title}>Настройка канала</h1>
           <div className={s.actionsRight}>
             <button type="button" className={s.linkBtn}>Посмотреть на канале</button>
-            <button type="button" className={s.cancel}>Отмена</button>
-            <button type="button" className={s.publish}>Опубликовать</button>
+            <button type="button" className={s.cancel} onClick={() => go('dashboard')}>Закрыть</button>
+            <button type="button" className={s.publish} onClick={() => go('admin')}>Открыть админку</button>
           </div>
         </div>
         <div className={s.tabs}>
@@ -81,7 +81,7 @@ export default function Screen8aProfile() {
           <input
             className={s.input}
             value={channel.channelName}
-            onChange={(e) => updateChannel({ channelName: e.target.value })}
+            readOnly
           />
         </div>
 

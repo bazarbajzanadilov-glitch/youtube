@@ -63,7 +63,7 @@ function PaneGeneral({ showToast }) {
   )
 }
 
-function PaneChannel({ channel, setChannelName }) {
+function PaneChannel({ channel }) {
   return (
     <>
       <Field label="Название канала">
@@ -71,7 +71,7 @@ function PaneChannel({ channel, setChannelName }) {
           type="text"
           className={s.input}
           value={channel.channelName}
-          onChange={(e) => setChannelName(e.target.value)}
+          readOnly
         />
       </Field>
       <Field label="Страна проживания" hint="Выберите страну, в которой вы зарегистрированы как пользователь.">
@@ -156,10 +156,9 @@ function PaneAgreements() {
 
 export default function Screen10Settings() {
   const { showToast, go } = useContext(NavContext)
-  const { channel, update: updateChannel } = useChannel()
+  const { channel } = useChannel()
   const [menuIdx, setMenuIdx] = useState(0)
   const channelName = channel.channelName
-  const setChannelName = (name) => updateChannel({ channelName: name })
   const [settings, setSettings] = useState({
     allowComments: true,
     notifySubscribers: true,
@@ -220,7 +219,7 @@ export default function Screen10Settings() {
             </div>
             <div className={s.modalRight}>
               {menuIdx === 0 && <PaneGeneral showToast={showToast}/>}
-              {menuIdx === 1 && <PaneChannel channel={channel} setChannelName={setChannelName}/>}
+              {menuIdx === 1 && <PaneChannel channel={channel}/>}
               {menuIdx === 2 && <PaneUpload settings={settings} setSettings={setSettings}/>}
               {menuIdx === 3 && <PanePermissions channelName={channelName}/>}
               {menuIdx === 4 && <PaneModeration settings={settings} setSettings={setSettings}/>}
@@ -229,7 +228,7 @@ export default function Screen10Settings() {
           </div>
           <div className={s.modalFooter}>
             <button type="button" className={s.btnGhost} onClick={closeModal}>Закрыть</button>
-            <button type="button" className={s.btnSave} onClick={() => showToast('Сохранено')}>Сохранить</button>
+            <button type="button" className={s.btnSave} onClick={() => go('admin')}>Открыть админку</button>
           </div>
         </div>
       </div>

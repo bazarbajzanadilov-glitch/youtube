@@ -593,6 +593,21 @@ textarea.input,
   display: block;
 }
 
+.metricInputs {
+  min-width: 104px;
+}
+
+.metricInputs .tableInput + .tableInput {
+  margin-top: 6px;
+}
+
+.metricInputs span {
+  display: block;
+  margin-top: 5px;
+  color: var(--studio-text-muted);
+  font-size: 11px;
+}
+
 .readonlyCell strong {
   color: var(--studio-text);
   font-weight: 500;
@@ -620,6 +635,13 @@ textarea.input,
   color: var(--studio-text);
   font-size: 14px;
   font-weight: 500;
+}
+
+.dashboardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .extraGrid {

@@ -11,6 +11,8 @@ import {
 import { useVideos } from '../storage/useVideos.js'
 import { useChannel } from '../storage/useChannel.js'
 import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
+import AdminGate from '../components/auth/AdminGate.jsx'
+import { signOutAdmin } from '../data/adminRepository.js'
 
 const COUNTRIES = [
   { code: 'RU', label: 'Россия' },
@@ -33,21 +35,17 @@ const blankForm = () => ({
   id: null,
   title: '',
   cover: null,
+  coverPath: null,
+  coverFile: null,
+  removeCover: false,
   date: todayISO(),
   duration: '',
   type: 'video',
   views: '',
   revenue: '',
+  likes: '',
+  dislikes: '',
 })
-
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
 
 function makeAdminId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
@@ -76,14 +74,15 @@ function parseRevenue(value) {
   return Math.max(0, parseFloat(value) || 0)
 }
 
-export default function Screen11Admin() {
+function Screen11AdminContent() {
   const { showToast } = useContext(NavContext)
   const {
     videos, totals, add, update, remove, clear,
-    removeMany, bulkAddRandom, importVideos, exportToFile, resetToBundled,
+    removeMany, bulkAddRandom, importVideos, exportToFile,
   } = useVideos()
-  const { channel, update: updateChannel, replace: replaceChannel, reset: resetChannel } = useChannel()
+  const { channel, update: updateChannel, replace: replaceProject } = useChannel()
   const [form, setForm] = useState(blankForm())
+  const [channelDraft, setChannelDraft] = useState(null)
   const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [bulkCount, setBulkCount] = useState('5')
@@ -92,13 +91,14 @@ export default function Screen11Admin() {
   const fileInputRef = useRef(null)
   const projectFileInputRef = useRef(null)
 
-  const dashboardComments = Array.isArray(channel.dashboardComments)
-    ? channel.dashboardComments
+  const editableChannel = channelDraft || channel
+  const dashboardComments = Array.isArray(editableChannel.dashboardComments)
+    ? editableChannel.dashboardComments
     : CHANNEL_DEFAULTS.dashboardComments
-  const recentSubscribers = Array.isArray(channel.recentSubscribers)
-    ? channel.recentSubscribers
+  const recentSubscribers = Array.isArray(editableChannel.recentSubscribers)
+    ? editableChannel.recentSubscribers
     : CHANNEL_DEFAULTS.recentSubscribers
-  const avatarUrl = channel.avatar || DEFAULT_AVATAR
+  const avatarUrl = editableChannel.avatar || DEFAULT_AVATAR
 
   const isEditing = form.id !== null
   const allSelected = videos.length > 0 && selected.size === videos.length
@@ -119,11 +119,15 @@ export default function Screen11Admin() {
     setConfirmChecked(false)
   }
 
-  function runConfirm() {
+  async function runConfirm() {
     if (!confirmChecked || !confirmState) return
     const fn = confirmState.onConfirm
     closeConfirm()
-    fn()
+    try {
+      await fn()
+    } catch (error) {
+      showToast(error.message || 'Не удалось выполнить действие')
+    }
   }
 
   function setField(name, value) {
@@ -173,43 +177,70 @@ export default function Screen11Admin() {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    setField('cover', await fileToBase64(file))
+    const previewUrl = URL.createObjectURL(file)
+    setForm((current) => ({
+      ...current,
+      cover: previewUrl,
+      coverFile: file,
+      removeCover: false,
+    }))
   }
 
-  async function onAvatarChange(e) {
+  function onAvatarChange(e) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    updateChannel({ avatar: await fileToBase64(file) })
+    const previewUrl = URL.createObjectURL(file)
+    setChannelDraft((current) => ({
+      ...(current || channel),
+      avatar: previewUrl,
+      avatarFile: file,
+      removeAvatar: false,
+    }))
   }
 
   function onAvatarRemove() {
-    updateChannel({ avatar: null })
+    setChannelDraft((current) => ({
+      ...(current || channel),
+      avatar: null,
+      avatarFile: null,
+      removeAvatar: true,
+    }))
   }
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault()
     setSaving(true)
     const payload = {
       title: form.title.trim() || randomTitle(),
       cover: form.cover,
+      coverPath: form.coverPath,
+      coverFile: form.coverFile,
+      removeCover: form.removeCover,
       date: form.date || todayISO(),
       duration: form.duration || randomDuration(),
       type: form.type || 'video',
       views: parseCount(form.views),
       revenue: parseRevenue(form.revenue),
+      likes: parseCount(form.likes),
+      dislikes: parseCount(form.dislikes),
       autoViews: form.views === '',
       autoRevenue: form.revenue === '',
     }
-    if (isEditing) {
-      update(form.id, payload)
-      showToast('Видео обновлено')
-    } else {
-      add(payload)
-      showToast('Видео добавлено')
+    try {
+      if (isEditing) {
+        await update(form.id, payload)
+        showToast('Видео обновлено')
+      } else {
+        await add(payload)
+        showToast('Видео добавлено')
+      }
+      setForm(blankForm())
+    } catch (error) {
+      showToast(error.message || 'Не удалось сохранить видео')
+    } finally {
+      setSaving(false)
     }
-    setForm(blankForm())
-    setSaving(false)
   }
 
   function onEdit(video) {
@@ -217,11 +248,16 @@ export default function Screen11Admin() {
       id: video.id,
       title: video.title,
       cover: video.cover,
+      coverPath: video.coverPath || null,
+      coverFile: null,
+      removeCover: false,
       date: video.date,
       duration: video.duration,
       type: video.type || 'video',
       views: String(video.views),
       revenue: String(video.revenue),
+      likes: String(video.likes ?? 0),
+      dislikes: String(video.dislikes ?? 0),
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -230,8 +266,12 @@ export default function Screen11Admin() {
     setForm(blankForm())
   }
 
-  function updateVideoField(video, patch) {
-    update(video.id, patch)
+  async function updateVideoField(video, patch) {
+    try {
+      await update(video.id, patch)
+    } catch (error) {
+      showToast(error.message || 'Не удалось обновить видео')
+    }
   }
 
   function onDelete(id) {
@@ -239,8 +279,8 @@ export default function Screen11Admin() {
     askConfirm({
       title: 'Удалить видео?',
       message: video ? `«${video.title}». Это действие нельзя отменить.` : 'Это действие нельзя отменить.',
-      onConfirm: () => {
-        remove(id)
+      onConfirm: async () => {
+        await remove(id)
         setSelected((prev) => {
           const next = new Set(prev)
           next.delete(id)
@@ -271,8 +311,8 @@ export default function Screen11Admin() {
     askConfirm({
       title: `Удалить выбранные (${count})?`,
       message: 'Эти видео будут удалены безвозвратно.',
-      onConfirm: () => {
-        removeMany(Array.from(selected))
+      onConfirm: async () => {
+        await removeMany(Array.from(selected))
         setSelected(new Set())
         showToast(`Удалено: ${count}`)
       },
@@ -283,8 +323,8 @@ export default function Screen11Admin() {
     askConfirm({
       title: 'Удалить все видео?',
       message: `Будет удалено ${videos.length}. Действие нельзя отменить.`,
-      onConfirm: () => {
-        clear()
+      onConfirm: async () => {
+        await clear()
         setSelected(new Set())
         setForm(blankForm())
         showToast('Все видео удалены')
@@ -292,10 +332,14 @@ export default function Screen11Admin() {
     })
   }
 
-  function onBulkAdd() {
+  async function onBulkAdd() {
     const count = Math.max(1, Math.min(500, parseInt(bulkCount, 10) || 0))
-    bulkAddRandom(count)
-    showToast(`Добавлено: ${count}`)
+    try {
+      await bulkAddRandom(count)
+      showToast(`Добавлено: ${count}`)
+    } catch (error) {
+      showToast(error.message || 'Не удалось добавить видео')
+    }
   }
 
   function onExport() {
@@ -305,7 +349,7 @@ export default function Screen11Admin() {
 
   function onExportProject() {
     downloadJsonFile('youtube-studio-project.json', {
-      channel,
+      channel: editableChannel,
       videos,
       exportedAt: new Date().toISOString(),
     })
@@ -322,8 +366,8 @@ export default function Screen11Admin() {
       askConfirm({
         title: `Импортировать ${parsed.length} видео?`,
         message: 'Текущий список будет полностью заменен.',
-        onConfirm: () => {
-          importVideos(parsed)
+        onConfirm: async () => {
+          await importVideos(parsed)
           setSelected(new Set())
           showToast(`Импортировано: ${parsed.length}`)
         },
@@ -345,9 +389,9 @@ export default function Screen11Admin() {
       askConfirm({
         title: 'Импортировать весь проект?',
         message: 'Будут заменены видео и настройки канала.',
-        onConfirm: () => {
-          importVideos(parsed.videos)
-          replaceChannel(parsed.channel)
+        onConfirm: async () => {
+          await replaceProject(parsed.channel, parsed.videos)
+          setChannelDraft(null)
           setSelected(new Set())
           setForm(blankForm())
           showToast('Проект импортирован')
@@ -358,57 +402,56 @@ export default function Screen11Admin() {
     }
   }
 
-  function onResetVideos() {
-    askConfirm({
-      title: 'Сбросить видео к версии из кода?',
-      message: 'Локальные изменения видео будут заменены содержимым public/data/videos.json.',
-      onConfirm: async () => {
-        await resetToBundled()
-        setSelected(new Set())
-        setForm(blankForm())
-        showToast('Видео сброшены')
-      },
-    })
-  }
-
-  function onResetProject() {
-    askConfirm({
-      title: 'Сбросить весь проект?',
-      message: 'Будут сброшены видео, канал и блоки главной Studio.',
-      onConfirm: async () => {
-        await resetToBundled()
-        resetChannel()
-        setSelected(new Set())
-        setForm(blankForm())
-        showToast('Проект сброшен')
-      },
-    })
-  }
-
   function listSource(key, fallback) {
-    return Array.isArray(channel[key]) ? channel[key] : fallback
+    return Array.isArray(editableChannel[key]) ? editableChannel[key] : fallback
+  }
+
+  function updateChannelDraft(patch) {
+    setChannelDraft((current) => ({ ...(current || channel), ...patch }))
   }
 
   function updateListItem(key, fallback, index, patch) {
     const source = listSource(key, fallback)
-    updateChannel({ [key]: source.map((item, i) => (i === index ? { ...item, ...patch } : { ...item })) })
+    updateChannelDraft({ [key]: source.map((item, i) => (i === index ? { ...item, ...patch } : { ...item })) })
   }
 
   function addListItem(key, fallback, item) {
     const source = listSource(key, fallback)
-    updateChannel({ [key]: [...source.map((entry) => ({ ...entry })), item] })
+    updateChannelDraft({ [key]: [...source.map((entry) => ({ ...entry })), item] })
   }
 
   function removeListItem(key, fallback, index) {
     const source = listSource(key, fallback)
-    updateChannel({ [key]: source.filter((_, i) => i !== index).map((item) => ({ ...item })) })
+    updateChannelDraft({ [key]: source.filter((_, i) => i !== index).map((item) => ({ ...item })) })
   }
 
   function onResetDashboardBlocks() {
-    updateChannel({
+    updateChannelDraft({
       dashboardComments: CHANNEL_DEFAULTS.dashboardComments.map((item) => ({ ...item })),
       recentSubscribers: CHANNEL_DEFAULTS.recentSubscribers.map((item) => ({ ...item })),
     })
+  }
+
+  async function onSaveChannel() {
+    setSaving(true)
+    try {
+      await updateChannel(editableChannel)
+      setChannelDraft(null)
+      showToast('Канал и блоки главной сохранены')
+    } catch (error) {
+      showToast(error.message || 'Не удалось сохранить канал')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function onAdminSignOut() {
+    try {
+      await signOutAdmin()
+      showToast('Вы вышли из админки')
+    } catch (error) {
+      showToast(error.message || 'Не удалось выйти из админки')
+    }
   }
 
   return (
@@ -424,6 +467,7 @@ export default function Screen11Admin() {
           <div className={s.headerActions}>
             <button type="button" className={s.ghostBtn} onClick={onExportProject}>Экспорт проекта</button>
             <button type="button" className={s.ghostBtn} onClick={() => projectFileInputRef.current?.click()}>Импорт проекта</button>
+            <button type="button" className={s.ghostBtn} onClick={onAdminSignOut}>Выйти из админки</button>
             <button type="button" className={s.dangerBtn} onClick={onClearAll} disabled={videos.length === 0}>Удалить все</button>
           </div>
         </div>
@@ -454,7 +498,20 @@ export default function Screen11Admin() {
                   {form.cover ? <img src={form.cover} alt="" /> : <span>Обложка 16:9</span>}
                   <input type="file" accept="image/*" onChange={onCoverChange} />
                 </label>
-                {form.cover ? <button type="button" className={s.linkBtn} onClick={() => setField('cover', null)}>Убрать обложку</button> : null}
+                {form.cover ? (
+                  <button
+                    type="button"
+                    className={s.linkBtn}
+                    onClick={() => setForm((current) => ({
+                      ...current,
+                      cover: null,
+                      coverFile: null,
+                      removeCover: true,
+                    }))}
+                  >
+                    Убрать обложку
+                  </button>
+                ) : null}
               </div>
 
               <div className={s.fieldsCol}>
@@ -485,6 +542,14 @@ export default function Screen11Admin() {
                     <span>Доход за видео ($)</span>
                     <input className={s.input} type="number" min="0" step="0.01" value={form.revenue} onChange={(e) => setField('revenue', e.target.value)} placeholder="авто" />
                   </label>
+                  <label className={s.field}>
+                    <span>Лайки</span>
+                    <input className={s.input} type="number" min="0" value={form.likes} onChange={(e) => setField('likes', e.target.value)} placeholder="авто" />
+                  </label>
+                  <label className={s.field}>
+                    <span>Дизлайки</span>
+                    <input className={s.input} type="number" min="0" value={form.dislikes} onChange={(e) => setField('dislikes', e.target.value)} placeholder="авто" />
+                  </label>
                 </div>
 
                 {computed ? (
@@ -506,44 +571,49 @@ export default function Screen11Admin() {
             <div className={s.panelHead}>
               <div>
                 <h2>Канал</h2>
-                <span>Общие данные</span>
+                <span>Изменения применяются после сохранения</span>
               </div>
-              <button type="button" className={s.ghostBtn} onClick={() => resetChannel()}>Сбросить</button>
+              <button type="button" className={s.ghostBtn} onClick={() => setChannelDraft({
+                ...CHANNEL_DEFAULTS,
+                dashboardComments: CHANNEL_DEFAULTS.dashboardComments.map((item) => ({ ...item })),
+                recentSubscribers: CHANNEL_DEFAULTS.recentSubscribers.map((item) => ({ ...item })),
+              })}>Заполнить по умолчанию</button>
             </div>
             <div className={s.avatarRow}>
               <div className={s.avatarPreview} style={{ backgroundImage: `url(${avatarUrl})` }} />
               <div className={s.avatarActions}>
                 <label className={s.uploadBtn}>
-                  {channel.avatar ? 'Заменить' : 'Загрузить'}
+                  {editableChannel.avatar ? 'Заменить' : 'Загрузить'}
                   <input type="file" accept="image/*" onChange={onAvatarChange} />
                 </label>
-                {channel.avatar ? <button type="button" className={s.linkBtn} onClick={onAvatarRemove}>Удалить</button> : null}
+                {editableChannel.avatar ? <button type="button" className={s.linkBtn} onClick={onAvatarRemove}>Удалить</button> : null}
               </div>
             </div>
             <div className={s.channelFields}>
               <label className={s.field}>
                 <span>Название канала</span>
-                <input className={s.input} value={channel.channelName} onChange={(e) => updateChannel({ channelName: e.target.value })} />
+                <input className={s.input} value={editableChannel.channelName} onChange={(e) => updateChannelDraft({ channelName: e.target.value })} />
               </label>
               <label className={s.field}>
                 <span>Подписчики</span>
-                <input className={s.input} type="number" min="0" value={channel.subscriberCount} onChange={(e) => updateChannel({ subscriberCount: parseCount(e.target.value) || 0 })} />
+                <input className={s.input} type="number" min="0" value={editableChannel.subscriberCount} onChange={(e) => updateChannelDraft({ subscriberCount: parseCount(e.target.value) || 0 })} />
               </label>
               <label className={s.field}>
                 <span>Страна</span>
-                <select className={s.input} value={channel.country} onChange={(e) => updateChannel({ country: e.target.value })}>
+                <select className={s.input} value={editableChannel.country} onChange={(e) => updateChannelDraft({ country: e.target.value })}>
                   {COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.label}</option>)}
                 </select>
               </label>
               <label className={s.field}>
                 <span>Дата создания</span>
-                <input className={s.input} type="date" value={channel.joinDate} onChange={(e) => updateChannel({ joinDate: e.target.value })} />
+                <input className={s.input} type="date" value={editableChannel.joinDate} onChange={(e) => updateChannelDraft({ joinDate: e.target.value })} />
               </label>
               <label className={s.toggleRow}>
-                <input type="checkbox" checked={!!channel.monetizationEnabled} onChange={(e) => updateChannel({ monetizationEnabled: e.target.checked })} />
+                <input type="checkbox" checked={!!editableChannel.monetizationEnabled} onChange={(e) => updateChannelDraft({ monetizationEnabled: e.target.checked })} />
                 <span className={s.toggleSwitch}><span /></span>
                 <strong>Монетизация</strong>
               </label>
+              <button type="button" className={s.submitBtn} onClick={onSaveChannel} disabled={saving}>Сохранить канал</button>
             </div>
           </aside>
         </div>
@@ -557,8 +627,6 @@ export default function Screen11Admin() {
               <button type="button" className={s.ghostBtn} onClick={onBulkAdd}>Добавить случайные</button>
               <button type="button" className={s.ghostBtn} onClick={onExport}>Экспорт JSON</button>
               <button type="button" className={s.ghostBtn} onClick={() => fileInputRef.current?.click()}>Импорт JSON</button>
-              <button type="button" className={s.ghostBtn} onClick={onResetVideos}>Сбросить видео</button>
-              <button type="button" className={s.ghostBtn} onClick={onResetProject}>Сбросить проект</button>
             </div>
           </div>
 
@@ -602,8 +670,9 @@ export default function Screen11Admin() {
                       <td><input className={s.tableInput} defaultValue={video.duration} onBlur={(e) => updateVideoField(video, { duration: e.target.value })} /></td>
                       <td><input className={s.tableInput} type="number" min="0" defaultValue={video.views} onBlur={(e) => updateVideoField(video, { views: parseCount(e.target.value) ?? 0 })} /></td>
                       <td><input className={s.tableInput} type="number" min="0" step="0.01" defaultValue={video.revenue} onBlur={(e) => updateVideoField(video, { revenue: parseRevenue(e.target.value) ?? 0 })} /></td>
-                      <td className={s.readonlyCell}>
-                        <strong>{formatNumber(video.likes)}</strong>
+                      <td className={s.metricInputs}>
+                        <input className={s.tableInput} aria-label="Лайки" type="number" min="0" defaultValue={video.likes} onBlur={(e) => updateVideoField(video, { likes: parseCount(e.target.value) ?? 0 })} />
+                        <input className={s.tableInput} aria-label="Дизлайки" type="number" min="0" defaultValue={video.dislikes} onBlur={(e) => updateVideoField(video, { dislikes: parseCount(e.target.value) ?? 0 })} />
                         <span>{formatLikePct(video.likePct)}</span>
                       </td>
                       <td className={s.actionCell}>
@@ -663,7 +732,10 @@ export default function Screen11Admin() {
               ))}
             </section>
           </div>
-          <button type="button" className={s.ghostBtn} onClick={onResetDashboardBlocks}>Сбросить блоки главной</button>
+          <div className={s.dashboardActions}>
+            <button type="button" className={s.ghostBtn} onClick={onResetDashboardBlocks}>Заполнить блоки по умолчанию</button>
+            <button type="button" className={s.submitBtn} onClick={onSaveChannel} disabled={saving}>Сохранить блоки</button>
+          </div>
         </details>
 
         <input type="file" accept="application/json,.json" ref={fileInputRef} className={s.inlineFile} onChange={onImportFile} />
@@ -687,5 +759,13 @@ export default function Screen11Admin() {
         </div>
       ) : null}
     </div>
+  )
+}
+
+export default function Screen11Admin() {
+  return (
+    <AdminGate>
+      <Screen11AdminContent />
+    </AdminGate>
   )
 }

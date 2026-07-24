@@ -123,7 +123,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
       dataKey: 'watchTimeHours',
       name: 'Время просмотра',
       formatY: formatHours,
-      formatTooltipValue: (v) => `${formatHours(v)} ч`,
+      formatTooltipValue: formatHours,
       color: ANALYTICS_BLUE,
     },
     subscribers: {

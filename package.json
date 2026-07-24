@@ -4,14 +4,19 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "start": "vite",
+    "dev": "node scripts/dev-secure.mjs",
+    "dev:secure": "node scripts/dev-secure.mjs",
+    "start": "node scripts/dev-secure.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "verify:analytics": "node scripts/verify-analytics-lifecycle.mjs",
+    "verify:site-session": "node scripts/verify-site-session.mjs",
+    "seed:supabase-media": "node scripts/seed-supabase-media.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.110.8",
+    "@vercel/functions": "3.7.5",
     "framer-motion": "^12.38.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -26,6 +31,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "supabase": "2.109.1",
     "vite": "^8.0.10"
   }
 }

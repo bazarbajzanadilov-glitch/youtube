@@ -14,6 +14,7 @@ import Screen9AudioLibrary from './screens/Screen9AudioLibrary.jsx'
 import Screen10Settings from './screens/Screen10Settings.jsx'
 import Screen11Admin from './screens/Screen11Admin.jsx'
 import { continueDoubleHardResetIfNeeded } from './lib/hardResetSite.js'
+import { useVideos } from './storage/useVideos.js'
 
 const SCREENS = [
   { key: 'home', route: 'dashboard', name: 'Панель управления каналом', Component: Screen1Dashboard },
@@ -47,6 +48,7 @@ const ROUTE_ALIASES = {
 const EXPANDED_SIDEBAR_MIN_WIDTH = 1200
 
 function normalizeHashRoute() {
+  if (new URLSearchParams(window.location.search).get('adminSetup') === '1') return 'admin'
   const raw = window.location.hash.replace(/^#\/?/, '') || 'dashboard'
   return ROUTE_ALIASES[raw] || raw
 }
@@ -61,6 +63,7 @@ function shouldStartExpanded() {
 }
 
 export default function App() {
+  const { loading: projectLoading, error: projectError, refetch } = useVideos()
   const [route, setRoute] = useState(() => normalizeHashRoute())
   const [toast, setToast] = useState(null)
   const [sidebarExpanded, setSidebarExpanded] = useState(() => shouldStartExpanded())
@@ -120,6 +123,23 @@ export default function App() {
   const contextValue = useMemo(() => ({ go, showToast, route, current, sidebarExpanded, toggleSidebar }), [go, showToast, route, current, sidebarExpanded, toggleSidebar])
 
   const sidebarWidth = sidebarExpanded ? 'var(--studio-sidebar-expanded-width)' : 'var(--studio-sidebar-compact-width)'
+
+  if (projectLoading || projectError) {
+    return (
+      <div className={styles.dataState}>
+        <div className={styles.dataStateCard}>
+          <div className={styles.dataStateMark}>YT</div>
+          <h1>{projectLoading ? 'Загружаем данные Studio…' : 'Данные временно недоступны'}</h1>
+          <p>
+            {projectLoading
+              ? 'Получаем канал, видео и аналитику из Supabase.'
+              : projectError}
+          </p>
+          {projectError ? <button type="button" onClick={refetch}>Повторить</button> : null}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <NavContext.Provider value={contextValue}>
