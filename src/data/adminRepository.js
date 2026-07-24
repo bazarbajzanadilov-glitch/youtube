@@ -137,6 +137,20 @@ function dashboardLists(channel) {
   return { comments, subscribers }
 }
 
+function subscriberStatsToRows(stats) {
+  const byDate = new Map()
+  for (const item of Array.isArray(stats) ? stats : []) {
+    const date = String(item?.date || '').slice(0, 10)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+    byDate.set(date, {
+      date,
+      gained: Math.max(0, Number.parseInt(item.gained, 10) || 0),
+      lost: Math.max(0, Number.parseInt(item.lost, 10) || 0),
+    })
+  }
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
+}
+
 export async function getAdminSession() {
   const supabase = getSupabaseClient()
   const { data, error } = await supabase.auth.getSession()
@@ -309,6 +323,16 @@ export async function replaceVideos(videos) {
     'Не удалось импортировать видео',
   )
   await removeUnreferencedMediaPaths(existing.map((item) => item.cover_path))
+}
+
+export async function replaceSubscriberDailyStats(stats) {
+  const supabase = getSupabaseClient()
+  requireNoError(
+    await supabase.rpc('replace_subscriber_daily_stats', {
+      p_stats: subscriberStatsToRows(stats),
+    }),
+    'Не удалось сохранить историю подписчиков',
+  )
 }
 
 export async function saveChannel(channel, previous) {

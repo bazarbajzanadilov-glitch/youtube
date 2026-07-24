@@ -477,6 +477,15 @@ textarea.input,
   margin-bottom: 14px;
 }
 
+.sectionHint {
+  display: block;
+  max-width: 760px;
+  margin-top: 5px;
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .toolbar {
   justify-content: flex-end;
 }
@@ -499,6 +508,48 @@ textarea.input,
   overflow-x: auto;
   border: 1px solid var(--studio-border);
   border-radius: 10px;
+}
+
+.subscriberStatsTableWrap {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.subscriberStatsTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #202020;
+}
+
+.subscriberStatsTable th:nth-child(1),
+.subscriberStatsTable th:nth-child(2),
+.subscriberStatsTable th:nth-child(3),
+.subscriberStatsTable th:nth-child(4),
+.subscriberStatsTable th:nth-child(5) {
+  width: auto;
+}
+
+.subscriberStatsTable td {
+  min-width: 150px;
+}
+
+.subscriberStatsTable td:last-child {
+  min-width: 110px;
+}
+
+.positiveNet,
+.negativeNet {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.positiveNet {
+  color: #72d9a0;
+}
+
+.negativeNet {
+  color: #ff8a8a;
 }
 
 .table {

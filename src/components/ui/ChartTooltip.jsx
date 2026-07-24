@@ -32,6 +32,7 @@ export default function ChartTooltip({
   labelClassName = '',
   valueClassName = '',
   rawValueKey,
+  detailRows,
 }) {
   if (!active || !payload || payload.length === 0) return null
 
@@ -47,6 +48,9 @@ export default function ChartTooltip({
     : (first.value ?? first.payload?.[first.dataKey])
   const formatted = raw == null ? '' : (formatValue ? formatValue(raw, first) : String(raw))
   const accentColor = pickTooltipAccentColor(first)
+  const rows = typeof detailRows === 'function'
+    ? detailRows(first.payload || {}, first)
+    : []
 
   return (
     <div
@@ -54,7 +58,18 @@ export default function ChartTooltip({
       style={accentColor ? { '--chart-tooltip-accent': accentColor } : undefined}
     >
       {lbl ? <div className={[s.label, labelClassName].filter(Boolean).join(' ')}>{lbl}</div> : null}
-      <div className={[s.value, valueClassName].filter(Boolean).join(' ')}>{formatted}{valueSuffix}</div>
+      {rows.length > 0 ? (
+        <div className={s.details}>
+          {rows.map((row) => (
+            <div className={[s.detailRow, row.emphasis ? s.detailEmphasis : ''].filter(Boolean).join(' ')} key={row.label}>
+              <span>{row.label}</span>
+              <strong>{row.value}</strong>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={[s.value, valueClassName].filter(Boolean).join(' ')}>{formatted}{valueSuffix}</div>
+      )}
     </div>
   )
 }

@@ -103,3 +103,36 @@ set name = excluded.name,
     count_label = excluded.count_label,
     avatar_color = excluded.avatar_color,
     position = excluded.position;
+
+with seeded_days as (
+  select
+    day::date as date,
+    day::date - date '2026-04-25' as day_offset
+  from generate_series(
+    date '2026-04-25',
+    date '2026-07-23',
+    interval '1 day'
+  ) as day
+),
+seeded_stats as (
+  select
+    date,
+    case
+      when day_offset = 89 then 1
+      when mod(day_offset, 29) = 0 then 2
+      when mod(day_offset, 6) in (1, 3) then 1
+      else 0
+    end as gained,
+    case when mod(day_offset, 17) = 0 then 1 else 0 end as lost
+  from seeded_days
+)
+insert into public.subscriber_daily_stats (channel_id, date, gained, lost)
+select
+  '00000000-0000-0000-0000-000000000001',
+  seeded_stats.date,
+  seeded_stats.gained,
+  seeded_stats.lost
+from seeded_stats
+on conflict (channel_id, date) do update
+set gained = excluded.gained,
+    lost = excluded.lost;

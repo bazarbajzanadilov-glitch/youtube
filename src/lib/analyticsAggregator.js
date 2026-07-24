@@ -258,15 +258,41 @@ function bucketKey(dateIso, granularity) {
   return dateIso
 }
 
-function downsampleSubscribers(daily, granularity) {
-  if (daily.length === 0) return daily
+export function aggregateSubscriberSeries(daily, granularity) {
+  if (granularity === 'day' || daily.length === 0) return daily
   const buckets = new Map()
   for (const row of daily) {
     const key = bucketKey(row.date, granularity)
-    /* для подписчиков берём последнее значение бакета — кумулятивная метрика */
-    buckets.set(key, { date: key, subscribers: row.subscribers })
+    if (!buckets.has(key)) {
+      buckets.set(key, { date: key, gained: 0, lost: 0, subscribers: 0 })
+    }
+    const bucket = buckets.get(key)
+    bucket.gained += Math.max(0, Number(row.gained) || 0)
+    bucket.lost += Math.max(0, Number(row.lost) || 0)
+    bucket.subscribers = bucket.gained - bucket.lost
   }
   return Array.from(buckets.values()).sort((a, b) => a.date.localeCompare(b.date))
+}
+
+export function buildSubscriberSeries(channel, dates) {
+  const byDate = new Map()
+  for (const item of Array.isArray(channel?.subscriberDailyStats) ? channel.subscriberDailyStats : []) {
+    const date = String(item?.date || '').slice(0, 10)
+    if (!date) continue
+    const gained = Math.max(0, Number(item.gained) || 0)
+    const lost = Math.max(0, Number(item.lost) || 0)
+    byDate.set(date, { gained, lost })
+  }
+
+  return dates.map(({ date }) => {
+    const row = byDate.get(date) || { gained: 0, lost: 0 }
+    return {
+      date,
+      gained: row.gained,
+      lost: row.lost,
+      subscribers: row.gained - row.lost,
+    }
+  })
 }
 
 function bucketSeries(series, granularity) {
@@ -471,15 +497,11 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
 
   const prev = buildPrevSeries(videos, channel, range)
   const prevWatchHours = prev.watch / 3600
-  const subscribersDaily = buildSubscriberSeries(channel, channelSeed, dates)
-  /* Для подписчиков делаем downsampling (последняя точка каждого бакета — это
-     текущее число подписчиков на конец недели/месяца). */
-  const subscribers = granularity === 'day'
-    ? subscribersDaily
-    : downsampleSubscribers(subscribersDaily, granularity)
-  const subscribersDelta = subscribers.length > 0
-    ? subscribers[subscribers.length - 1].subscribers - subscribers[0].subscribers
-    : 0
+  const subscribersDaily = buildSubscriberSeries(channel, dates)
+  const subscribers = aggregateSubscriberSeries(subscribersDaily, granularity)
+  const subscribersGained = subscribersDaily.reduce((sum, row) => sum + row.gained, 0)
+  const subscribersLost = subscribersDaily.reduce((sum, row) => sum + row.lost, 0)
+  const subscribersDelta = subscribersGained - subscribersLost
 
   const traffic = generateTrafficShares(channelSeed)
   const devices = generateDeviceShares(channelSeed + 1)
@@ -520,7 +542,12 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       watchTime: {
         value: totalWatchHours, delta: pctDelta(totalWatchHours, prevWatchHours), lifetime: lifetime.watchHours,
       },
-      subscribers: { value: subscribersDelta, absolute: channel.subscriberCount || 0 },
+      subscribers: {
+        value: subscribersDelta,
+        gained: subscribersGained,
+        lost: subscribersLost,
+        absolute: channel.subscriberCount || 0,
+      },
       likes: {
         value: totalLikes, delta: pctDelta(totalLikes, prev.likes), lifetime: lifetime.likes,
       },
@@ -536,7 +563,12 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       avgDuration: { value: avgDurationSec, delta: 0 },
     },
     audience: {
-      subscribers: { value: subscribersDelta, absolute: channel.subscriberCount || 0 },
+      subscribers: {
+        value: subscribersDelta,
+        gained: subscribersGained,
+        lost: subscribersLost,
+        absolute: channel.subscriberCount || 0,
+      },
       uniqueViewers: { value: Math.round(totalViews * 0.7), delta: 0 },
       returning: { value: 100 - Math.round((returningRaw[returningRaw.length - 1]?.newRatio ?? 0.6) * 100), delta: 0 },
       avgViews: { value: videos.length > 0 ? Math.round(totalViews / Math.max(1, videos.length)) : 0, delta: 0 },
@@ -606,33 +638,6 @@ function buildFormatShares(videos) {
     { key: 'short', label: 'Shorts', score: totals.short / max },
     { key: 'live', label: 'Трансляции', score: totals.live / max },
   ]
-}
-
-/* === subscribers === */
-function buildSubscriberSeries(channel, channelSeed, dates) {
-  const target = Math.max(0, Number(channel.subscriberCount) || 0)
-  if (target === 0 || dates.length === 0) {
-    return dates.map((d) => ({ date: d.date, subscribers: 0 }))
-  }
-  const startFraction = 0.78 + ((channelSeed % 1000) / 1000) * 0.18
-  const start = Math.round(target * Math.min(0.98, startFraction))
-  const totalDelta = target - start
-  const shape = generateDailyShape({
-    seed: channelSeed,
-    days: dates.length,
-    profile: 'gradualGrowth',
-    startWeekday: 0,
-  })
-  const sumShape = shape.reduce((s, x) => s + x, 0) || 1
-  const cumulative = []
-  let acc = start
-  for (let i = 0; i < dates.length; i += 1) {
-    const inc = (shape[i] / sumShape) * totalDelta
-    acc += inc
-    cumulative.push({ date: dates[i].date, subscribers: Math.round(acc) })
-  }
-  if (cumulative.length > 0) cumulative[cumulative.length - 1].subscribers = target
-  return cumulative
 }
 
 /* === realtime: 48 баров (1 бар = 1 час), последний — «сейчас» === */

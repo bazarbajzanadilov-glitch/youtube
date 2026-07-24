@@ -9,7 +9,13 @@ import ChartTooltip from '../ui/ChartTooltip.jsx'
 import { CHART_COLORS } from '../../lib/chartColors.js'
 import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 import { formatDateLong } from '../../lib/analyticsFormat.js'
-import { buildNiceAxisTicks, maxByDataKey, projectValueToPeakAxis } from './chartAxis.js'
+import {
+  buildNiceAxisTicks,
+  buildSignedAxisTicks,
+  maxByDataKey,
+  minByDataKey,
+  projectValueToPeakAxis,
+} from './chartAxis.js'
 import { ANALYTICS_AREA_CHART_DEFAULT_PROPS, ANALYTICS_CHART_GEOMETRY } from './analyticsChartDefaults.js'
 
 function defaultXTickFormatter(value) {
@@ -451,6 +457,8 @@ export default function AreaLineChart({
   fillBottomOpacity = ANALYTICS_AREA_CHART_DEFAULT_PROPS.fillBottomOpacity,
   gridLineColor = ANALYTICS_AREA_CHART_DEFAULT_PROPS.gridLineColor,
   processingWindow,
+  allowNegative = false,
+  tooltipRows,
 }) {
   const [processingTooltip, setProcessingTooltip] = useState(null)
   const [markerTooltip, setMarkerTooltip] = useState(null)
@@ -498,10 +506,14 @@ export default function AreaLineChart({
     strokeOpacity: 0.32,
     strokeWidth: 1,
   }
-  const autoYTicks = buildNiceAxisTicks(maxByDataKey(data, dataKey), {
-    scale: yValueScale,
-    targetTickCount: yTickCount,
-  })
+  const minDataValue = minByDataKey(data, dataKey)
+  const maxDataValue = maxByDataKey(data, dataKey)
+  const autoYTicks = allowNegative && minDataValue < 0
+    ? buildSignedAxisTicks(minDataValue, maxDataValue, { targetTickCount: yTickCount })
+    : buildNiceAxisTicks(maxDataValue, {
+      scale: yValueScale,
+      targetTickCount: yTickCount,
+    })
   const resolvedAutoYTicks = Array.isArray(autoYTicks) && autoYTicks.length >= 2
     ? autoYTicks
     : [0, 1]
@@ -523,6 +535,9 @@ export default function AreaLineChart({
     : chartData
   const chartYTicks = yTicks || (yDomain ? undefined : resolvedAutoYTicks.map((_, index) => index))
   const chartYDomain = yDomain || [0, Math.max(1, resolvedAutoYTicks.length - 1)]
+  const chartBaseValue = useProjectedYAxis
+    ? projectValueToPeakAxis(0, resolvedAutoYTicks)
+    : 0
   const chartFormatY = useProjectedYAxis
     ? (tick) => formatY(resolvedAutoYTicks[Math.round(Number(tick) || 0)] ?? 0)
     : formatY
@@ -674,6 +689,7 @@ export default function AreaLineChart({
                 strokeWidth={0}
                 fill={hasUniformFill ? chartFillColor : `url(#${gradientId})`}
                 fillOpacity={hasUniformFill ? fillTopOpacity : 1}
+                baseValue={chartBaseValue}
                 isAnimationActive={false}
                 activeDot={false}
                 dot={false}
@@ -731,6 +747,7 @@ export default function AreaLineChart({
                   labelClassName={tooltipLabelClassName}
                   valueClassName={tooltipValueClassName}
                   rawValueKey={useProjectedYAxis ? dataKey : undefined}
+                  detailRows={tooltipRows}
                 />
               )}
               wrapperStyle={{ outline: 'none' }}
@@ -746,6 +763,7 @@ export default function AreaLineChart({
               strokeWidth={2}
               fill="transparent"
               fillOpacity={0}
+              baseValue={chartBaseValue}
               isAnimationActive={false}
               animationDuration={0}
               animationEasing="ease-out"

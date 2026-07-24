@@ -38,4 +38,5 @@ export const CHANNEL_DEFAULTS = {
   avatarPath: null,
   dashboardComments: DEFAULT_DASHBOARD_COMMENTS,
   recentSubscribers: DEFAULT_RECENT_SUBSCRIBERS,
+  subscriberDailyStats: [],
 }

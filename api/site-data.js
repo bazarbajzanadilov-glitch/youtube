@@ -47,17 +47,25 @@ export default async function handler(request, response) {
 
   try {
     const supabase = serverClient()
-    const [channelResult, videosResult, commentsResult, subscribersResult] = await Promise.all([
+    const [
+      channelResult,
+      videosResult,
+      commentsResult,
+      subscribersResult,
+      subscriberDailyStatsResult,
+    ] = await Promise.all([
       supabase.from('channels').select('*').limit(1).single(),
       supabase.from('videos').select('*').order('published_at', { ascending: false }),
       supabase.from('dashboard_comments').select('*').order('position', { ascending: true }),
       supabase.from('recent_subscribers').select('*').order('position', { ascending: true }),
+      supabase.from('subscriber_daily_stats').select('date, gained, lost').order('date', { ascending: true }),
     ])
 
     const channelRow = requireData(channelResult, 'Канал')
     const videoRows = requireData(videosResult, 'Видео')
     const commentRows = requireData(commentsResult, 'Комментарии')
     const subscriberRows = requireData(subscribersResult, 'Подписчики')
+    const subscriberDailyRows = requireData(subscriberDailyStatsResult, 'История подписчиков')
 
     const dashboardComments = commentRows.map((item) => ({
       id: item.id,
@@ -71,6 +79,11 @@ export default async function handler(request, response) {
       name: item.name,
       count: item.count_label,
       avatarColor: item.avatar_color,
+    }))
+    const subscriberDailyStats = subscriberDailyRows.map((item) => ({
+      date: item.date,
+      gained: Math.max(0, Number(item.gained) || 0),
+      lost: Math.max(0, Number(item.lost) || 0),
     }))
 
     const [avatar, videos] = await Promise.all([
@@ -111,6 +124,7 @@ export default async function handler(request, response) {
       avatarPath: channelRow.avatar_path,
       dashboardComments,
       recentSubscribers,
+      subscriberDailyStats,
     }
 
     response.setHeader('Cache-Control', 'private, no-store')
@@ -119,6 +133,7 @@ export default async function handler(request, response) {
       videos,
       dashboardComments,
       recentSubscribers,
+      subscriberDailyStats,
     })
   } catch (error) {
     console.error('site-data', error?.message || error)

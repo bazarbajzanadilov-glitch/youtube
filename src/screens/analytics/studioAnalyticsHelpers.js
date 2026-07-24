@@ -199,6 +199,23 @@ export function signedNumber(value) {
   return `${n >= 0 ? '+' : ''}${formatNumberRu(n)}`
 }
 
+export function subscriberTooltipRows(row) {
+  const gained = Math.max(0, Math.round(Number(row?.gained) || 0))
+  const lost = Math.max(0, Math.round(Number(row?.lost) || 0))
+  return [
+    { label: 'Подписались', value: signedNumber(gained) },
+    { label: 'Отписались', value: lost > 0 ? `−${formatNumberRu(lost)}` : '0' },
+    { label: 'Итог', value: signedNumber(gained - lost), emphasis: true },
+  ]
+}
+
+export function subscriberPeriodSummary(kpi) {
+  const gained = Math.max(0, Math.round(Number(kpi?.gained) || 0))
+  const lost = Math.max(0, Math.round(Number(kpi?.lost) || 0))
+  const lostLabel = lost > 0 ? `−${formatNumberRu(lost)}` : '0'
+  return `Подписались ${signedNumber(gained)} · Отписались ${lostLabel}`
+}
+
 export function videoDate(video) {
   return formatDateLong(video?.date)
 }

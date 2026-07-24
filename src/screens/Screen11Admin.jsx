@@ -49,6 +49,7 @@ const ANALYTICS_PROFILES = [
 ]
 
 const todayISO = () => getAlmatyDateISO()
+const analyticsYesterdayISO = () => getAlmatyDateISO(new Date(Date.now() - 86400000))
 const DEFAULT_AVATAR = '/studio-assets/trading-avatar.svg'
 const blankForm = () => ({
   id: null,
@@ -96,6 +97,17 @@ function parseRevenue(value) {
   return Math.max(0, parseFloat(value) || 0)
 }
 
+function previousISO(value) {
+  const date = new Date(`${value}T12:00:00.000Z`)
+  date.setUTCDate(date.getUTCDate() - 1)
+  return date.toISOString().slice(0, 10)
+}
+
+function formatSignedCount(value) {
+  const count = Number(value) || 0
+  return `${count >= 0 ? '+' : ''}${formatNumber(count)}`
+}
+
 function revokeBlobUrl(value) {
   if (String(value || '').startsWith('blob:')) URL.revokeObjectURL(value)
 }
@@ -106,10 +118,17 @@ function Screen11AdminContent() {
     videos, totals, add, update, remove, clear,
     removeMany, bulkAddRandom, importVideos, exportToFile,
   } = useVideos()
-  const { channel, update: updateChannel, replace: replaceProject } = useChannel()
+  const {
+    channel,
+    update: updateChannel,
+    updateSubscriberDailyStats,
+    replace: replaceProject,
+  } = useChannel()
   const [form, setForm] = useState(blankForm())
   const [channelDraft, setChannelDraft] = useState(null)
+  const [subscriberStatsDraft, setSubscriberStatsDraft] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [savingSubscriberStats, setSavingSubscriberStats] = useState(false)
   const [sitePassword, setSitePassword] = useState('')
   const [sitePasswordConfirm, setSitePasswordConfirm] = useState('')
   const [savingSitePassword, setSavingSitePassword] = useState(false)
@@ -128,6 +147,20 @@ function Screen11AdminContent() {
   const recentSubscribers = Array.isArray(editableChannel.recentSubscribers)
     ? editableChannel.recentSubscribers
     : CHANNEL_DEFAULTS.recentSubscribers
+  const subscriberDailyStats = useMemo(
+    () => (
+      Array.isArray(subscriberStatsDraft)
+        ? subscriberStatsDraft
+        : (Array.isArray(channel.subscriberDailyStats) ? channel.subscriberDailyStats : [])
+    ),
+    [channel.subscriberDailyStats, subscriberStatsDraft],
+  )
+  const subscriberStatsRows = useMemo(
+    () => subscriberDailyStats
+      .map((row, sourceIndex) => ({ ...row, sourceIndex }))
+      .sort((a, b) => b.date.localeCompare(a.date)),
+    [subscriberDailyStats],
+  )
   const avatarUrl = editableChannel.avatar || DEFAULT_AVATAR
 
   const isEditing = form.id !== null
@@ -429,7 +462,7 @@ function Screen11AdminContent() {
 
   function onExportProject() {
     downloadJsonFile('youtube-studio-project.json', {
-      channel: editableChannel,
+      channel: { ...editableChannel, subscriberDailyStats },
       videos,
       exportedAt: new Date().toISOString(),
     })
@@ -523,6 +556,46 @@ function Screen11AdminContent() {
       showToast(error.message || 'Не удалось сохранить канал')
     } finally {
       setSaving(false)
+    }
+  }
+
+  function updateSubscriberStat(sourceIndex, patch) {
+    setSubscriberStatsDraft((current) => {
+      const source = Array.isArray(current) ? current : subscriberDailyStats
+      return source.map((row, index) => (
+        index === sourceIndex ? { ...row, ...patch } : { ...row }
+      ))
+    })
+  }
+
+  function addSubscriberStat() {
+    const occupiedDates = new Set(subscriberDailyStats.map((row) => row.date))
+    let date = analyticsYesterdayISO()
+    while (occupiedDates.has(date)) date = previousISO(date)
+    setSubscriberStatsDraft([
+      ...subscriberDailyStats.map((row) => ({ ...row })),
+      { date, gained: 0, lost: 0 },
+    ])
+  }
+
+  function removeSubscriberStat(sourceIndex) {
+    setSubscriberStatsDraft(
+      subscriberDailyStats
+        .filter((_, index) => index !== sourceIndex)
+        .map((row) => ({ ...row })),
+    )
+  }
+
+  async function onSaveSubscriberStats() {
+    setSavingSubscriberStats(true)
+    try {
+      await updateSubscriberDailyStats(subscriberDailyStats)
+      setSubscriberStatsDraft(null)
+      showToast('История подписчиков сохранена и аналитика обновлена')
+    } catch (error) {
+      showToast(error.message || 'Не удалось сохранить историю подписчиков')
+    } finally {
+      setSavingSubscriberStats(false)
     }
   }
 
@@ -857,6 +930,88 @@ function Screen11AdminContent() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className={`${s.librarySection} ${s.subscriberHistorySection}`}>
+          <div className={s.libraryHead}>
+            <div>
+              <h2>История подписчиков ({subscriberDailyStats.length})</h2>
+              <span className={s.sectionHint}>
+                Аналитика считает чистое изменение как «подписались − отписались». Общий размер канала редактируется отдельно выше.
+              </span>
+            </div>
+            <div className={s.toolbar}>
+              <button type="button" className={s.ghostBtn} onClick={addSubscriberStat}>Добавить день</button>
+              <button
+                type="button"
+                className={s.submitBtn}
+                onClick={onSaveSubscriberStats}
+                disabled={savingSubscriberStats || subscriberStatsDraft === null}
+              >
+                {savingSubscriberStats ? 'Сохранение…' : 'Сохранить историю'}
+              </button>
+            </div>
+          </div>
+
+          {subscriberStatsRows.length === 0 ? (
+            <div className={s.empty}>Истории пока нет. Добавьте первый день.</div>
+          ) : (
+            <div className={`${s.tableWrap} ${s.subscriberStatsTableWrap}`}>
+              <table className={`${s.table} ${s.subscriberStatsTable}`}>
+                <thead>
+                  <tr>
+                    <th>Дата</th>
+                    <th>Подписались</th>
+                    <th>Отписались</th>
+                    <th>Итог</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subscriberStatsRows.map((row) => {
+                    const gained = Math.max(0, Number(row.gained) || 0)
+                    const lost = Math.max(0, Number(row.lost) || 0)
+                    const net = gained - lost
+                    return (
+                      <tr key={`${row.date}-${row.sourceIndex}`}>
+                        <td>
+                          <input
+                            className={s.tableInput}
+                            type="date"
+                            max={analyticsYesterdayISO()}
+                            value={row.date}
+                            onChange={(event) => updateSubscriberStat(row.sourceIndex, { date: event.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className={s.tableInput}
+                            type="number"
+                            min="0"
+                            value={row.gained}
+                            onChange={(event) => updateSubscriberStat(row.sourceIndex, { gained: parseCount(event.target.value) ?? 0 })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className={s.tableInput}
+                            type="number"
+                            min="0"
+                            value={row.lost}
+                            onChange={(event) => updateSubscriberStat(row.sourceIndex, { lost: parseCount(event.target.value) ?? 0 })}
+                          />
+                        </td>
+                        <td className={net < 0 ? s.negativeNet : s.positiveNet}>{formatSignedCount(net)}</td>
+                        <td className={s.actionCell}>
+                          <button type="button" className={s.deleteBtn} onClick={() => removeSubscriberStat(row.sourceIndex)}>Удалить</button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

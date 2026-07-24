@@ -27,7 +27,6 @@ import {
   ANALYTICS_BLUE,
   avgWatchPercent,
   avgWatchPretty,
-  absoluteUsualComparison,
   buildPublishedVideoMarkers,
   ctrPretty,
   daysSinceLong,
@@ -37,6 +36,8 @@ import {
   kpiTrend,
   liveEndedLong,
   signedNumber,
+  subscriberPeriodSummary,
+  subscriberTooltipRows,
   usualComparison,
   videoDate,
 } from './studioAnalyticsHelpers.js'
@@ -133,6 +134,8 @@ export default function OverviewTab({ data, onOpenAdmin }) {
       formatY: formatCompactNumber,
       formatTooltipValue: formatNumberRu,
       color: ANALYTICS_BLUE,
+      allowNegative: true,
+      tooltipRows: subscriberTooltipRows,
     },
     revenue: {
       data: overview.series,
@@ -225,6 +228,8 @@ export default function OverviewTab({ data, onOpenAdmin }) {
               formatY={chart.formatY}
               xTickFormatter={formatDateLong}
               formatTooltipValue={chart.formatTooltipValue}
+              allowNegative={chart.allowNegative}
+              tooltipRows={chart.tooltipRows}
               eventMarkers={publishedMarkers}
             />
           )}
@@ -251,7 +256,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
             <MetricKpiCell
               label="Подписчики"
               value={signedNumber(overview.kpis.subscribers.value)}
-              note={absoluteUsualComparison(overview.kpis.subscribers.value, formatNumberRu)}
+              note={subscriberPeriodSummary(overview.kpis.subscribers)}
               trend={overview.kpis.subscribers.value > 0 ? 'up' : overview.kpis.subscribers.value < 0 ? 'down' : 'neutral'}
               active={metric === 'subscribers'}
               accentColor={chartByMetric.subscribers.color}

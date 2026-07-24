@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 
 import {
+  aggregateSubscriberSeries,
   build,
+  buildSubscriberSeries,
   getAnalyticsEndDate,
   resolveRange,
 } from '../src/lib/analyticsAggregator.js'
@@ -119,5 +121,65 @@ assert.equal(
 
 const normalized = normalizeToTotal(lifecycle, oldStats.views)
 assert.equal(Math.round(normalized.reduce((sum, value) => sum + value, 0)), oldStats.views)
+
+const subscriberChannel = {
+  ...channel,
+  subscriberDailyStats: [
+    { date: '2026-05-08', gained: 5, lost: 2 },
+    { date: '2026-05-09', gained: 1, lost: 4 },
+    { date: '2026-05-10', gained: 2, lost: 0 },
+  ],
+}
+const subscriberAnalytics = build([], subscriberChannel, { kind: '7d' }, { today })
+const positiveSubscriberDay = subscriberAnalytics.audience.subscribers.find((row) => row.date === '2026-05-08')
+const negativeSubscriberDay = subscriberAnalytics.audience.subscribers.find((row) => row.date === '2026-05-09')
+
+assert.equal(positiveSubscriberDay.subscribers, 3, 'gained=5 and lost=2 should produce +3')
+assert.equal(negativeSubscriberDay.subscribers, -3, 'gained=1 and lost=4 should produce -3 without clipping')
+assert.equal(subscriberAnalytics.overview.kpis.subscribers.value, 2, 'period KPI should sum every daily net change')
+assert.equal(subscriberAnalytics.overview.kpis.subscribers.gained, 8)
+assert.equal(subscriberAnalytics.overview.kpis.subscribers.lost, 6)
+assert.equal(
+  subscriberAnalytics.overview.kpis.subscribers.value,
+  subscriberAnalytics.audience.kpis.subscribers.value,
+  'overview and audience should use the same subscriber KPI',
+)
+
+const changedAbsoluteSubscriberCount = build(
+  [],
+  { ...subscriberChannel, subscriberCount: 999999 },
+  { kind: '7d' },
+  { today },
+)
+assert.deepEqual(
+  changedAbsoluteSubscriberCount.audience.subscribers,
+  subscriberAnalytics.audience.subscribers,
+  'the current total subscriber count must not generate or change subscriber history',
+)
+
+const rawSubscriberSeries = buildSubscriberSeries(subscriberChannel, [
+  { date: '2026-05-08' },
+  { date: '2026-05-09' },
+  { date: '2026-05-11' },
+])
+assert.deepEqual(rawSubscriberSeries, [
+  { date: '2026-05-08', gained: 5, lost: 2, subscribers: 3 },
+  { date: '2026-05-09', gained: 1, lost: 4, subscribers: -3 },
+  { date: '2026-05-11', gained: 0, lost: 0, subscribers: 0 },
+])
+
+const subscriberBucketsSource = [
+  { date: '2026-01-31', gained: 5, lost: 2, subscribers: 3 },
+  { date: '2026-02-01', gained: 1, lost: 4, subscribers: -3 },
+  { date: '2026-02-02', gained: 2, lost: 0, subscribers: 2 },
+]
+assert.deepEqual(aggregateSubscriberSeries(subscriberBucketsSource, 'week'), [
+  { date: '2026-01-26', gained: 6, lost: 6, subscribers: 0 },
+  { date: '2026-02-02', gained: 2, lost: 0, subscribers: 2 },
+])
+assert.deepEqual(aggregateSubscriberSeries(subscriberBucketsSource, 'month'), [
+  { date: '2026-01-01', gained: 5, lost: 2, subscribers: 3 },
+  { date: '2026-02-01', gained: 3, lost: 4, subscribers: -1 },
+])
 
 console.log('analytics lifecycle verification passed')

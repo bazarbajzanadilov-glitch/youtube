@@ -89,6 +89,23 @@ export function buildNiceAxisTicks(maxValue, { scale = 1, targetTickCount = 5 } 
   return Array.from({ length: safeTickCount }, (_, index) => cleanTick((index * step) / safeScale))
 }
 
+export function buildSignedAxisTicks(minValue, maxValue, { targetTickCount = 5 } = {}) {
+  const safeMin = Math.min(0, Number(minValue) || 0)
+  const safeMax = Math.max(0, Number(maxValue) || 0)
+  const safeTickCount = Math.max(3, Number(targetTickCount) || 3)
+  const span = safeMax - safeMin
+  if (span === 0) return [-1, 0, 1]
+
+  const step = niceStep(span, safeTickCount)
+  const axisMin = Math.floor(safeMin / step) * step
+  const axisMax = Math.ceil(safeMax / step) * step
+  const ticks = []
+  for (let value = axisMin; value <= axisMax + STEP_EPSILON; value += step) {
+    ticks.push(cleanTick(value))
+  }
+  return ticks.length >= 2 ? ticks : [cleanTick(axisMin), cleanTick(axisMax || step)]
+}
+
 export function buildPeakAxisTicks(maxValue, { scale = 1, targetTickCount = 5, maxTickCount = 6 } = {}) {
   const safeScale = Number(scale) > 0 ? Number(scale) : 1
   const displayMax = Math.max(0, Number(maxValue) || 0) * safeScale
@@ -110,10 +127,12 @@ export function buildPeakAxisTicks(maxValue, { scale = 1, targetTickCount = 5, m
 }
 
 export function projectValueToPeakAxis(value, ticks) {
-  const numericValue = Math.max(0, Number(value) || 0)
+  const numericValue = Number(value) || 0
   if (!Array.isArray(ticks) || ticks.length < 2) return numericValue
   const lastIndex = ticks.length - 1
+  const minValue = Number(ticks[0]) || 0
   const maxValue = Number(ticks[lastIndex]) || 0
+  if (numericValue <= minValue) return 0
   if (numericValue >= maxValue) return lastIndex
 
   for (let index = 0; index < lastIndex; index += 1) {
@@ -131,6 +150,11 @@ export function projectValueToPeakAxis(value, ticks) {
 export function maxByDataKey(data, key) {
   if (!Array.isArray(data)) return 0
   return data.reduce((max, row) => Math.max(max, Number(row?.[key]) || 0), 0)
+}
+
+export function minByDataKey(data, key) {
+  if (!Array.isArray(data)) return 0
+  return data.reduce((min, row) => Math.min(min, Number(row?.[key]) || 0), 0)
 }
 
 export function maxByStackedBars(data, bars) {

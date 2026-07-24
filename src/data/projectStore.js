@@ -194,12 +194,22 @@ export async function saveRemoteChannel(next) {
   return merged
 }
 
+export async function saveRemoteSubscriberDailyStats(stats) {
+  await mutate(() => adminRepository.replaceSubscriberDailyStats(stats))
+}
+
 export async function replaceRemoteProject(channel, videos) {
   const normalizedVideos = Array.isArray(videos)
     ? videos
       .filter((video) => video && typeof video === 'object')
       .map((video) => ({ ...normalizeVideo(video), coverPath: video.coverPath || null }))
     : []
-  const nextChannel = { ...CHANNEL_DEFAULTS, ...channel }
-  await mutate(() => adminRepository.replaceProject(nextChannel, normalizedVideos))
+  const subscriberDailyStats = Array.isArray(channel?.subscriberDailyStats)
+    ? channel.subscriberDailyStats
+    : snapshot.channel.subscriberDailyStats
+  const nextChannel = { ...CHANNEL_DEFAULTS, ...channel, subscriberDailyStats }
+  await mutate(async () => {
+    await adminRepository.replaceProject(nextChannel, normalizedVideos)
+    await adminRepository.replaceSubscriberDailyStats(nextChannel.subscriberDailyStats)
+  })
 }
