@@ -6,6 +6,7 @@ import {
   inferProfile,
   seededRng,
 } from '../lib/analyticsEngine.js'
+import { getAlmatyDateISO } from '../lib/almatyDate.js'
 
 const RU_TRANSLIT = {
   а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo',
@@ -30,7 +31,7 @@ const RANDOM_WORDS_C = [
 ]
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  return getAlmatyDateISO()
 }
 
 function parseNonNegativeInteger(value) {

@@ -16,6 +16,14 @@ import {
   signOutAdmin,
   updateSitePassword,
 } from '../data/adminRepository.js'
+import {
+  formatImageBytes,
+  MAX_SOURCE_IMAGE_BYTES,
+  MAX_STORED_IMAGE_BYTES,
+  prepareStudioImage,
+  STUDIO_IMAGE_ACCEPT,
+} from '../lib/studioImage.js'
+import { getAlmatyDateISO } from '../lib/almatyDate.js'
 
 const COUNTRIES = [
   { code: 'RU', label: 'Россия' },
@@ -32,7 +40,15 @@ const CONTENT_TYPES = [
   { value: 'live', label: 'Трансляция' },
 ]
 
-const todayISO = () => new Date().toISOString().slice(0, 10)
+const ANALYTICS_PROFILES = [
+  { value: 'gradualGrowth', label: 'Плавный рост' },
+  { value: 'viralSpike', label: 'Вирусный всплеск' },
+  { value: 'steady', label: 'Стабильный' },
+  { value: 'decayAfterPeak', label: 'Спад после пика' },
+  { value: 'seasonal', label: 'Сезонный' },
+]
+
+const todayISO = () => getAlmatyDateISO()
 const DEFAULT_AVATAR = '/studio-assets/trading-avatar.svg'
 const blankForm = () => ({
   id: null,
@@ -44,10 +60,13 @@ const blankForm = () => ({
   date: todayISO(),
   duration: '',
   type: 'video',
+  profile: 'gradualGrowth',
   views: '',
   revenue: '',
   likes: '',
   dislikes: '',
+  autoViews: true,
+  autoRevenue: true,
 })
 
 function makeAdminId(prefix) {
@@ -77,6 +96,10 @@ function parseRevenue(value) {
   return Math.max(0, parseFloat(value) || 0)
 }
 
+function revokeBlobUrl(value) {
+  if (String(value || '').startsWith('blob:')) URL.revokeObjectURL(value)
+}
+
 function Screen11AdminContent() {
   const { showToast } = useContext(NavContext)
   const {
@@ -90,6 +113,7 @@ function Screen11AdminContent() {
   const [sitePassword, setSitePassword] = useState('')
   const [sitePasswordConfirm, setSitePasswordConfirm] = useState('')
   const [savingSitePassword, setSavingSitePassword] = useState(false)
+  const [processingImage, setProcessingImage] = useState(null)
   const [selected, setSelected] = useState(() => new Set())
   const [bulkCount, setBulkCount] = useState('5')
   const [confirmState, setConfirmState] = useState(null)
@@ -139,6 +163,8 @@ function Screen11AdminContent() {
   function setField(name, value) {
     setForm((current) => {
       const next = { ...current, [name]: value }
+      if (name === 'views') next.autoViews = false
+      if (name === 'revenue') next.autoRevenue = false
       if (name === 'date' && (current.views === '' || current.revenue === '')) {
         const stats = generateVideoStats({
           id: current.id || undefined,
@@ -183,35 +209,76 @@ function Screen11AdminContent() {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    const previewUrl = URL.createObjectURL(file)
-    setForm((current) => ({
-      ...current,
-      cover: previewUrl,
-      coverFile: file,
-      removeCover: false,
-    }))
+    setProcessingImage('cover')
+    try {
+      const prepared = await prepareStudioImage(file, 'cover')
+      const previewUrl = URL.createObjectURL(prepared.file)
+      setForm((current) => {
+        revokeBlobUrl(current.cover)
+        return {
+          ...current,
+          cover: previewUrl,
+          coverFile: prepared.file,
+          removeCover: false,
+        }
+      })
+      showToast(`Обложка: ${formatImageBytes(prepared.originalBytes)} → ${formatImageBytes(prepared.outputBytes)} WebP`)
+    } catch (error) {
+      showToast(error.message || 'Не удалось обработать обложку')
+    } finally {
+      setProcessingImage(null)
+    }
   }
 
-  function onAvatarChange(e) {
+  async function onAvatarChange(e) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    const previewUrl = URL.createObjectURL(file)
-    setChannelDraft((current) => ({
-      ...(current || channel),
-      avatar: previewUrl,
-      avatarFile: file,
-      removeAvatar: false,
-    }))
+    setProcessingImage('avatar')
+    try {
+      const prepared = await prepareStudioImage(file, 'avatar')
+      const previewUrl = URL.createObjectURL(prepared.file)
+      setChannelDraft((current) => {
+        const source = current || channel
+        revokeBlobUrl(source.avatar)
+        return {
+          ...source,
+          avatar: previewUrl,
+          avatarFile: prepared.file,
+          removeAvatar: false,
+        }
+      })
+      showToast(`Аватар: ${formatImageBytes(prepared.originalBytes)} → ${formatImageBytes(prepared.outputBytes)} WebP`)
+    } catch (error) {
+      showToast(error.message || 'Не удалось обработать аватар')
+    } finally {
+      setProcessingImage(null)
+    }
   }
 
   function onAvatarRemove() {
-    setChannelDraft((current) => ({
-      ...(current || channel),
-      avatar: null,
-      avatarFile: null,
-      removeAvatar: true,
-    }))
+    setChannelDraft((current) => {
+      const source = current || channel
+      revokeBlobUrl(source.avatar)
+      return {
+        ...source,
+        avatar: null,
+        avatarFile: null,
+        removeAvatar: true,
+      }
+    })
+  }
+
+  function onCoverRemove() {
+    setForm((current) => {
+      revokeBlobUrl(current.cover)
+      return {
+        ...current,
+        cover: null,
+        coverFile: null,
+        removeCover: true,
+      }
+    })
   }
 
   async function onSubmit(e) {
@@ -226,12 +293,13 @@ function Screen11AdminContent() {
       date: form.date || todayISO(),
       duration: form.duration || randomDuration(),
       type: form.type || 'video',
-      views: parseCount(form.views),
-      revenue: parseRevenue(form.revenue),
+      profile: form.profile || 'gradualGrowth',
+      views: form.autoViews ? undefined : parseCount(form.views),
+      revenue: form.autoRevenue ? undefined : parseRevenue(form.revenue),
       likes: parseCount(form.likes),
       dislikes: parseCount(form.dislikes),
-      autoViews: form.views === '',
-      autoRevenue: form.revenue === '',
+      autoViews: form.autoViews,
+      autoRevenue: form.autoRevenue,
     }
     try {
       if (isEditing) {
@@ -241,6 +309,7 @@ function Screen11AdminContent() {
         await add(payload)
         showToast('Видео добавлено')
       }
+      revokeBlobUrl(form.cover)
       setForm(blankForm())
     } catch (error) {
       showToast(error.message || 'Не удалось сохранить видео')
@@ -250,6 +319,7 @@ function Screen11AdminContent() {
   }
 
   function onEdit(video) {
+    revokeBlobUrl(form.cover)
     setForm({
       id: video.id,
       title: video.title,
@@ -260,15 +330,19 @@ function Screen11AdminContent() {
       date: video.date,
       duration: video.duration,
       type: video.type || 'video',
+      profile: video.profile || 'gradualGrowth',
       views: String(video.views),
       revenue: String(video.revenue),
       likes: String(video.likes ?? 0),
       dislikes: String(video.dislikes ?? 0),
+      autoViews: video._autoStats?.views === true,
+      autoRevenue: video._autoStats?.revenue === true,
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function onCancelEdit() {
+    revokeBlobUrl(form.cover)
     setForm(blankForm())
   }
 
@@ -442,6 +516,7 @@ function Screen11AdminContent() {
     setSaving(true)
     try {
       await updateChannel(editableChannel)
+      revokeBlobUrl(editableChannel.avatar)
       setChannelDraft(null)
       showToast('Канал и блоки главной сохранены')
     } catch (error) {
@@ -563,19 +638,26 @@ function Screen11AdminContent() {
             <div className={s.videoFormGrid}>
               <div className={s.coverCol}>
                 <label className={s.coverDrop}>
-                  {form.cover ? <img src={form.cover} alt="" /> : <span>Обложка 16:9</span>}
-                  <input type="file" accept="image/*" onChange={onCoverChange} />
+                  {processingImage === 'cover'
+                    ? <span>Сжимаем в WebP…</span>
+                    : form.cover
+                      ? <img src={form.cover} alt="" />
+                      : <span>Обложка 16:9</span>}
+                  <input
+                    type="file"
+                    accept={STUDIO_IMAGE_ACCEPT}
+                    onChange={onCoverChange}
+                    disabled={processingImage !== null}
+                  />
                 </label>
+                <div className={s.mediaHint}>
+                  JPEG, PNG или WebP · до {formatImageBytes(MAX_SOURCE_IMAGE_BYTES)} · после обработки до {formatImageBytes(MAX_STORED_IMAGE_BYTES)}
+                </div>
                 {form.cover ? (
                   <button
                     type="button"
                     className={s.linkBtn}
-                    onClick={() => setForm((current) => ({
-                      ...current,
-                      cover: null,
-                      coverFile: null,
-                      removeCover: true,
-                    }))}
+                    onClick={onCoverRemove}
                   >
                     Убрать обложку
                   </button>
@@ -603,12 +685,26 @@ function Screen11AdminContent() {
                     </select>
                   </label>
                   <label className={s.field}>
+                    <span>Профиль аналитики</span>
+                    <select className={s.input} value={form.profile} onChange={(e) => setField('profile', e.target.value)}>
+                      {ANALYTICS_PROFILES.map((profile) => <option key={profile.value} value={profile.value}>{profile.label}</option>)}
+                    </select>
+                  </label>
+                  <label className={s.field}>
                     <span>Просмотры</span>
-                    <input className={s.input} type="number" min="0" value={form.views} onChange={(e) => setField('views', e.target.value)} placeholder="авто" />
+                    <input className={s.input} type="number" min="0" value={form.views} onChange={(e) => setField('views', e.target.value)} placeholder="авто" disabled={form.autoViews} />
+                    <span className={s.autoCheck}>
+                      <input type="checkbox" checked={form.autoViews} onChange={(e) => setField('autoViews', e.target.checked)} />
+                      Автоматически пересчитывать
+                    </span>
                   </label>
                   <label className={s.field}>
                     <span>Доход за видео ($)</span>
-                    <input className={s.input} type="number" min="0" step="0.01" value={form.revenue} onChange={(e) => setField('revenue', e.target.value)} placeholder="авто" />
+                    <input className={s.input} type="number" min="0" step="0.01" value={form.revenue} onChange={(e) => setField('revenue', e.target.value)} placeholder="авто" disabled={form.autoRevenue} />
+                    <span className={s.autoCheck}>
+                      <input type="checkbox" checked={form.autoRevenue} onChange={(e) => setField('autoRevenue', e.target.checked)} />
+                      Автоматически пересчитывать
+                    </span>
                   </label>
                   <label className={s.field}>
                     <span>Лайки</span>
@@ -628,7 +724,7 @@ function Screen11AdminContent() {
                   </div>
                 ) : null}
 
-                <button type="submit" className={s.submitBtn} disabled={saving}>
+                <button type="submit" className={s.submitBtn} disabled={saving || processingImage !== null}>
                   {isEditing ? 'Сохранить видео' : 'Добавить видео'}
                 </button>
               </div>
@@ -651,10 +747,22 @@ function Screen11AdminContent() {
               <div className={s.avatarPreview} style={{ backgroundImage: `url(${avatarUrl})` }} />
               <div className={s.avatarActions}>
                 <label className={s.uploadBtn}>
-                  {editableChannel.avatar ? 'Заменить' : 'Загрузить'}
-                  <input type="file" accept="image/*" onChange={onAvatarChange} />
+                  {processingImage === 'avatar'
+                    ? 'Сжимаем…'
+                    : editableChannel.avatar
+                      ? 'Заменить'
+                      : 'Загрузить'}
+                  <input
+                    type="file"
+                    accept={STUDIO_IMAGE_ACCEPT}
+                    onChange={onAvatarChange}
+                    disabled={processingImage !== null}
+                  />
                 </label>
                 {editableChannel.avatar ? <button type="button" className={s.linkBtn} onClick={onAvatarRemove}>Удалить</button> : null}
+                <div className={s.mediaHint}>
+                  До {formatImageBytes(MAX_SOURCE_IMAGE_BYTES)}, хранится как WebP до {formatImageBytes(MAX_STORED_IMAGE_BYTES)}
+                </div>
               </div>
             </div>
             <div className={s.channelFields}>
@@ -681,7 +789,7 @@ function Screen11AdminContent() {
                 <span className={s.toggleSwitch}><span /></span>
                 <strong>Монетизация</strong>
               </label>
-              <button type="button" className={s.submitBtn} onClick={onSaveChannel} disabled={saving}>Сохранить канал</button>
+              <button type="button" className={s.submitBtn} onClick={onSaveChannel} disabled={saving || processingImage !== null}>Сохранить канал</button>
             </div>
           </aside>
         </div>

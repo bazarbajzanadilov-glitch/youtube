@@ -97,8 +97,20 @@ export async function loadRemoteProject({ force = false } = {}) {
 }
 
 async function mutate(action) {
-  await action()
-  await loadRemoteProject({ force: true })
+  let actionError = null
+  try {
+    await action()
+  } catch (error) {
+    actionError = error
+  }
+
+  try {
+    await loadRemoteProject({ force: true })
+  } catch (loadError) {
+    if (!actionError) throw loadError
+  }
+
+  if (actionError) throw actionError
 }
 
 export async function addRemoteVideo(input) {

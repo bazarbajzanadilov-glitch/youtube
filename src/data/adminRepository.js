@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../lib/supabaseClient.js'
+import { validatePreparedStudioImage } from '../lib/studioImage.js'
 
 export const STUDIO_CHANNEL_ID = '00000000-0000-0000-0000-000000000001'
 const MEDIA_BUCKET = 'studio-media'
@@ -21,30 +22,58 @@ function durationToSeconds(value) {
   return Math.max(0, parts[0] || 0)
 }
 
-function mediaExtension(file) {
-  const fromName = String(file?.name || '').split('.').pop()?.toLowerCase()
-  if (fromName && /^[a-z0-9]{2,5}$/.test(fromName)) return fromName
-  const fromType = String(file?.type || '').split('/').pop()?.toLowerCase()
-  return fromType && /^[a-z0-9]{2,5}$/.test(fromType) ? fromType : 'bin'
-}
-
 async function uploadMedia(file, folder) {
   if (!file) return null
+  validatePreparedStudioImage(file)
   const supabase = getSupabaseClient()
-  const path = `channels/${STUDIO_CHANNEL_ID}/${folder}/${crypto.randomUUID()}.${mediaExtension(file)}`
+  const path = `channels/${STUDIO_CHANNEL_ID}/${folder}/${crypto.randomUUID()}.webp`
   const result = await supabase.storage
     .from(MEDIA_BUCKET)
-    .upload(path, file, { cacheControl: '3600', upsert: false })
+    .upload(path, file, {
+      cacheControl: '31536000',
+      contentType: 'image/webp',
+      upsert: false,
+    })
 
   requireNoError(result, 'Не удалось загрузить изображение')
   return path
 }
 
-async function removeMedia(path) {
-  if (!path || String(path).startsWith('static:')) return
+async function removeMediaPaths(paths) {
+  const removable = [...new Set(
+    (Array.isArray(paths) ? paths : [paths])
+      .filter((path) => path && !String(path).startsWith('static:')),
+  )]
+  if (!removable.length) return
   const supabase = getSupabaseClient()
-  const result = await supabase.storage.from(MEDIA_BUCKET).remove([path])
-  requireNoError(result, 'Не удалось удалить старое изображение')
+  const result = await supabase.storage.from(MEDIA_BUCKET).remove(removable)
+  requireNoError(result, 'Не удалось удалить изображение из хранилища')
+}
+
+async function removeMedia(path) {
+  await removeMediaPaths([path])
+}
+
+async function removeUnreferencedMediaPaths(paths) {
+  const candidates = [...new Set(
+    (Array.isArray(paths) ? paths : [paths])
+      .filter((path) => path && !String(path).startsWith('static:')),
+  )]
+  if (!candidates.length) return
+
+  const supabase = getSupabaseClient()
+  const [videoRefs, channelRefs] = await Promise.all([
+    supabase.from('videos').select('cover_path').in('cover_path', candidates),
+    supabase.from('channels').select('avatar_path').in('avatar_path', candidates),
+  ])
+  const referenced = new Set([
+    ...requireNoError(videoRefs, 'Не удалось проверить ссылки на обложки')
+      .map((item) => item.cover_path),
+    ...requireNoError(channelRefs, 'Не удалось проверить ссылки на аватар')
+      .map((item) => item.avatar_path),
+  ].filter(Boolean))
+
+  await removeMediaPaths(candidates.filter((path) => !referenced.has(path)))
 }
 
 function videoToRow(video, coverPath) {
@@ -211,8 +240,13 @@ export async function createVideo(video) {
   const uploadedPath = video.coverFile
     ? await uploadMedia(video.coverFile, `videos/${video.id}`)
     : null
-  const row = videoToRow(video, uploadedPath || video.coverPath)
-  requireNoError(await supabase.from('videos').insert(row), 'Не удалось добавить видео')
+  try {
+    const row = videoToRow(video, uploadedPath || video.coverPath)
+    requireNoError(await supabase.from('videos').insert(row), 'Не удалось добавить видео')
+  } catch (error) {
+    if (uploadedPath) await removeMedia(uploadedPath).catch(() => {})
+    throw error
+  }
 }
 
 export async function updateVideo(video, previous) {
@@ -223,26 +257,36 @@ export async function updateVideo(video, previous) {
   const nextPath = video.removeCover ? null : (uploadedPath || video.coverPath || previous?.coverPath || null)
   const row = videoToRow(video, nextPath)
 
-  requireNoError(
-    await supabase.from('videos').update(row).eq('id', video.id),
-    'Не удалось обновить видео',
-  )
+  try {
+    requireNoError(
+      await supabase.from('videos').update(row).eq('id', video.id),
+      'Не удалось обновить видео',
+    )
+  } catch (error) {
+    if (uploadedPath) await removeMedia(uploadedPath).catch(() => {})
+    throw error
+  }
 
   if (uploadedPath && previous?.coverPath && previous.coverPath !== uploadedPath) {
-    await removeMedia(previous.coverPath)
+    await removeUnreferencedMediaPaths([previous.coverPath])
   }
   if (video.removeCover && previous?.coverPath) {
-    await removeMedia(previous.coverPath)
+    await removeUnreferencedMediaPaths([previous.coverPath])
   }
 }
 
 export async function deleteVideos(ids) {
   if (!ids.length) return
   const supabase = getSupabaseClient()
+  const existing = requireNoError(
+    await supabase.from('videos').select('cover_path').in('id', ids),
+    'Не удалось получить изображения удаляемых видео',
+  )
   requireNoError(
     await supabase.from('videos').delete().in('id', ids),
     'Не удалось удалить видео',
   )
+  await removeUnreferencedMediaPaths(existing.map((item) => item.cover_path))
 }
 
 export async function insertVideos(videos) {
@@ -254,12 +298,17 @@ export async function insertVideos(videos) {
 
 export async function replaceVideos(videos) {
   const supabase = getSupabaseClient()
+  const existing = requireNoError(
+    await supabase.from('videos').select('cover_path').eq('channel_id', STUDIO_CHANNEL_ID),
+    'Не удалось получить текущие изображения видео',
+  )
   requireNoError(
     await supabase.rpc('replace_videos', {
       p_videos: videos.map((video) => videoToRow(video)),
     }),
     'Не удалось импортировать видео',
   )
+  await removeUnreferencedMediaPaths(existing.map((item) => item.cover_path))
 }
 
 export async function saveChannel(channel, previous) {
@@ -272,25 +321,36 @@ export async function saveChannel(channel, previous) {
     : (uploadedPath || channel.avatarPath || previous?.avatarPath || null)
   const lists = dashboardLists(channel)
 
-  requireNoError(
-    await supabase.rpc('save_channel_project', {
-      p_channel: channelToRow(channel, nextAvatarPath),
-      p_comments: lists.comments,
-      p_subscribers: lists.subscribers,
-    }),
-    'Не удалось сохранить канал',
-  )
+  try {
+    requireNoError(
+      await supabase.rpc('save_channel_project', {
+        p_channel: channelToRow(channel, nextAvatarPath),
+        p_comments: lists.comments,
+        p_subscribers: lists.subscribers,
+      }),
+      'Не удалось сохранить канал',
+    )
+  } catch (error) {
+    if (uploadedPath) await removeMedia(uploadedPath).catch(() => {})
+    throw error
+  }
 
   if (uploadedPath && previous?.avatarPath && previous.avatarPath !== uploadedPath) {
-    await removeMedia(previous.avatarPath)
+    await removeUnreferencedMediaPaths([previous.avatarPath])
   }
   if (channel.removeAvatar && previous?.avatarPath) {
-    await removeMedia(previous.avatarPath)
+    await removeUnreferencedMediaPaths([previous.avatarPath])
   }
 }
 
 export async function replaceProject(channel, videos) {
   const supabase = getSupabaseClient()
+  const [currentChannel, currentVideos] = await Promise.all([
+    supabase.from('channels').select('avatar_path').eq('id', STUDIO_CHANNEL_ID).maybeSingle(),
+    supabase.from('videos').select('cover_path').eq('channel_id', STUDIO_CHANNEL_ID),
+  ])
+  requireNoError(currentChannel, 'Не удалось получить текущее изображение канала')
+  requireNoError(currentVideos, 'Не удалось получить текущие изображения видео')
   const lists = dashboardLists(channel)
   requireNoError(
     await supabase.rpc('replace_project', {
@@ -301,4 +361,9 @@ export async function replaceProject(channel, videos) {
     }),
     'Не удалось импортировать проект',
   )
+
+  await removeUnreferencedMediaPaths([
+    currentChannel.data?.avatar_path,
+    ...currentVideos.data.map((item) => item.cover_path),
+  ])
 }

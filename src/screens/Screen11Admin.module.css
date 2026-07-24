@@ -157,6 +157,12 @@
   gap: 8px;
 }
 
+.mediaHint {
+  color: var(--studio-text-subtle);
+  font-size: 11px;
+  line-height: 16px;
+}
+
 .coverDrop {
   position: relative;
   display: flex;
@@ -225,6 +231,22 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
+}
+
+.field .autoCheck {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.autoCheck input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--studio-link);
 }
 
 .input,

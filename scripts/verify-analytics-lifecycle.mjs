@@ -10,6 +10,7 @@ import {
   hashSeed,
   normalizeToTotal,
 } from '../src/lib/analyticsEngine.js'
+import { getAlmatyDateISO } from '../src/lib/almatyDate.js'
 import { generateVideoStats } from '../src/storage/videoStore.js'
 
 const today = new Date('2026-05-12T12:00:00')
@@ -88,6 +89,8 @@ function localIso(date) {
 
 const beforeAlmatyMidnight = new Date('2026-07-23T18:59:59.000Z')
 const afterAlmatyMidnight = new Date('2026-07-23T19:00:00.000Z')
+assert.equal(getAlmatyDateISO(beforeAlmatyMidnight), '2026-07-23')
+assert.equal(getAlmatyDateISO(afterAlmatyMidnight), '2026-07-24')
 assert.equal(
   localIso(getAnalyticsEndDate(beforeAlmatyMidnight)),
   '2026-07-22',

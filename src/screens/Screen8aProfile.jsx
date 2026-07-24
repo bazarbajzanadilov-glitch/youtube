@@ -12,7 +12,7 @@ const LogoPlayer = () => <div className={s.logoGenerated}>TI</div>
 const BannerArt = ({ name }) => <div className={s.bannerGenerated}>{name}</div>
 
 export default function Screen8aProfile() {
-  const { go, showToast } = useContext(NavContext)
+  const { go } = useContext(NavContext)
   const { channel } = useChannel()
   const [activeTab, setActiveTab] = useState(0)
   const avatarUrl = channel.avatar || DEFAULT_AVATAR
@@ -52,7 +52,7 @@ export default function Screen8aProfile() {
             <div className={s.bannerPreview}><BannerArt name={channel.channelName}/></div>
             <div>
               <div className={s.helperText}>Чтобы баннер выглядел оптимально на всех устройствах, используйте изображение размером не менее 2048 x 1152 пикс. Размер файла — не более 6 МБ.</div>
-              <button type="button" className={s.uploadBtn} onClick={() => showToast('Изменить баннер')}>Изменить</button>
+              <button type="button" className={s.uploadBtn} disabled>Формируется автоматически</button>
             </div>
           </div>
         </div>
@@ -68,8 +68,7 @@ export default function Screen8aProfile() {
             <div>
               <div className={s.helperTextWide}>Рекомендуемое разрешение изображения — не менее 98 x 98 пикселей в формате PNG или GIF. Анимированные изображения не поддерживаются. Размер файла — не более 4 МБ.</div>
               <div className={s.inlineActionRow}>
-                <button type="button" className={s.uploadBtn}>Изменить</button>
-                <button type="button" className={s.uploadBtn}>Удалить</button>
+                <button type="button" className={s.uploadBtn} onClick={() => go('admin')}>Изменить в админке</button>
               </div>
             </div>
           </div>
@@ -88,14 +87,14 @@ export default function Screen8aProfile() {
         <div className={s.section}>
           <div className={s.sectionTitle}>Псевдоним</div>
           <div className={s.sectionDesc}>Уникальное имя с символом @, по которому зрители смогут найти ваш канал.</div>
-          <input className={s.input} defaultValue="@inside-trading"/>
+          <input className={s.input} defaultValue="@inside-trading" readOnly/>
           <div className={s.urlBelow}>https://www.youtube.com/@inside-trading</div>
         </div>
 
         <div className={s.section}>
           <div className={s.sectionTitle}>Описание канала</div>
-          <textarea className={s.textarea} defaultValue="Разборы сделок, риск-менеджмент и дневник дохода от трейдинга."/>
-          <button type="button" className={s.addPill}><PlusIcon size={14}/>Добавить перевод</button>
+          <textarea className={s.textarea} defaultValue="Разборы сделок, риск-менеджмент и дневник дохода от трейдинга." readOnly/>
+          <button type="button" className={s.addPill} disabled><PlusIcon size={14}/>Только просмотр</button>
         </div>
 
         <div className={s.section}>
@@ -110,7 +109,7 @@ export default function Screen8aProfile() {
         <div className={s.section}>
           <div className={s.sectionTitle}>Ссылки</div>
           <div className={s.sectionDesc}>Добавьте ссылки на сайты и соцсети. Они могут появляться в разделе "О канале".</div>
-          <button type="button" className={s.addPill}><PlusIcon size={14}/>Добавить ссылку</button>
+          <button type="button" className={s.addPill} disabled><PlusIcon size={14}/>Только просмотр</button>
         </div>
 
         <div className={s.section}>
@@ -124,7 +123,7 @@ export default function Screen8aProfile() {
           <div className={s.sectionDesc}>Загрузите водяной знак, который будет показываться в правом нижнем углу ваших видео.</div>
           <div className={s.row}>
             <div className={s.logoPreview}><LogoPlayer/></div>
-            <div><div className={s.helperText}>Рекомендуемый размер изображения — 150 x 150 пикселей в формате PNG, GIF, BMP или JPEG. Размер файла — не более 1 МБ.</div><button type="button" className={s.uploadBtn}>Изменить</button></div>
+            <div><div className={s.helperText}>Рекомендуемый размер изображения — 150 x 150 пикселей в формате PNG, GIF, BMP или JPEG. Размер файла — не более 1 МБ.</div><button type="button" className={s.uploadBtn} disabled>Только просмотр</button></div>
           </div>
         </div>
       </div>

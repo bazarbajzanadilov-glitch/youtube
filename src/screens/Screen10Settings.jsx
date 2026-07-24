@@ -8,14 +8,15 @@ import { useChannel } from '../storage/useChannel.js'
 
 const MENU = ['Общие', 'Канал', 'Загрузка видео', 'Разрешения', 'Модерация сообщества', 'Соглашения']
 
-const Toggle = ({ on, onClick, label }) => (
+const Toggle = ({ on, label }) => (
   <div className={s.toggleRow}>
     <span className={s.toggleLabel}>{label}</span>
     <button
       type="button"
       className={`${s.toggle} ${on ? s.toggleOn : ''}`}
-      onClick={onClick}
       aria-pressed={on}
+      aria-readonly="true"
+      disabled
     >
       <span className={s.toggleThumb}/>
     </button>
@@ -31,7 +32,7 @@ const Field = ({ label, hint, children }) => (
 )
 
 const Select = ({ label, value }) => (
-  <button type="button" className={s.selectField}>
+  <button type="button" className={s.selectField} disabled>
     <span className={s.selectLabel}>{label}</span>
     <span className={s.selectValue}>
       {value}
@@ -78,23 +79,23 @@ function PaneChannel({ channel }) {
         <Select label="Страна" value={COUNTRY_LABELS[channel.country] || 'Казахстан'}/>
       </Field>
       <Field label="Ключевые слова" hint="Через запятую укажите слова, которые описывают содержание канала.">
-        <input type="text" className={s.input} placeholder="Например, трейдинг, рынок, доход" defaultValue="trading, income, market breakdown"/>
+        <input type="text" className={s.input} defaultValue="trading, income, market breakdown" readOnly/>
       </Field>
     </>
   )
 }
 
-function PaneUpload({ settings, setSettings }) {
+function PaneUpload() {
   return (
     <>
       <Field label="Описание по умолчанию" hint="Шаблон описания, который будет применяться к новым видео.">
-        <textarea className={s.textarea} rows="3" defaultValue="Подпишитесь на канал, чтобы не пропускать новые видео!"/>
+        <textarea className={s.textarea} rows="3" defaultValue="Подпишитесь на канал, чтобы не пропускать новые видео!" readOnly/>
       </Field>
       <Field label="Видимость" hint="Этот параметр будет применяться по умолчанию.">
         <Select label="Доступ" value="Доступ по ссылке"/>
       </Field>
-      <Toggle on={settings.allowComments} onClick={() => setSettings({ ...settings, allowComments: !settings.allowComments })} label="Разрешить комментарии"/>
-      <Toggle on={settings.notifySubscribers} onClick={() => setSettings({ ...settings, notifySubscribers: !settings.notifySubscribers })} label="Уведомлять подписчиков"/>
+      <Toggle on label="Разрешить комментарии"/>
+      <Toggle on label="Уведомлять подписчиков"/>
     </>
   )
 }
@@ -120,13 +121,13 @@ function PanePermissions({ channelName }) {
   )
 }
 
-function PaneModeration({ settings, setSettings }) {
+function PaneModeration() {
   return (
     <>
-      <Toggle on={settings.holdForReview} onClick={() => setSettings({ ...settings, holdForReview: !settings.holdForReview })} label="Удерживать потенциально неуместные комментарии для проверки"/>
-      <Toggle on={settings.holdLinks} onClick={() => setSettings({ ...settings, holdLinks: !settings.holdLinks })} label="Удерживать комментарии со ссылками"/>
+      <Toggle on label="Удерживать потенциально неуместные комментарии для проверки"/>
+      <Toggle on={false} label="Удерживать комментарии со ссылками"/>
       <Field label="Заблокированные слова" hint="Через запятую укажите слова или фразы, которые будут блокироваться.">
-        <textarea className={s.textarea} rows="2" placeholder="спам, реклама"/>
+        <textarea className={s.textarea} rows="2" placeholder="спам, реклама" readOnly/>
       </Field>
     </>
   )
@@ -159,12 +160,6 @@ export default function Screen10Settings() {
   const { channel } = useChannel()
   const [menuIdx, setMenuIdx] = useState(0)
   const channelName = channel.channelName
-  const [settings, setSettings] = useState({
-    allowComments: true,
-    notifySubscribers: true,
-    holdForReview: true,
-    holdLinks: false,
-  })
   const modalTitleId = useId()
   const closeModal = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -220,9 +215,9 @@ export default function Screen10Settings() {
             <div className={s.modalRight}>
               {menuIdx === 0 && <PaneGeneral showToast={showToast}/>}
               {menuIdx === 1 && <PaneChannel channel={channel}/>}
-              {menuIdx === 2 && <PaneUpload settings={settings} setSettings={setSettings}/>}
+              {menuIdx === 2 && <PaneUpload/>}
               {menuIdx === 3 && <PanePermissions channelName={channelName}/>}
-              {menuIdx === 4 && <PaneModeration settings={settings} setSettings={setSettings}/>}
+              {menuIdx === 4 && <PaneModeration/>}
               {menuIdx === 5 && <PaneAgreements/>}
             </div>
           </div>
