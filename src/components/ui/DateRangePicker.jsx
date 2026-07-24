@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import s from './DateRangePicker.module.css'
 import { ChevronDown } from '../../screens/icons.jsx'
 import { RANGE_OPTIONS, getAnalyticsEndDate } from '../../lib/analyticsAggregator.js'
+import { toCalendarDate } from '../../lib/analyticsEngine.js'
 
 const RU_MONTHS = ['янв.','февр.','мар.','апр.','мая','июн.','июл.','авг.','сент.','окт.','нояб.','дек.']
 const RU_MONTH_LABELS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
@@ -15,7 +16,7 @@ function formatRangeLabel(range) {
   const monthMatch = /^month-(\d{4})-(\d{2})$/.exec(range.kind || '')
   if (monthMatch) return RU_MONTH_LABELS[Number(monthMatch[2]) - 1] || range.label || 'Месяц'
   if (range.kind === 'custom' && range.from && range.to) {
-    const f = new Date(range.from); const t = new Date(range.to)
+    const f = toCalendarDate(range.from); const t = toCalendarDate(range.to)
     return `${f.getDate()} ${RU_MONTHS[f.getMonth()]} – ${t.getDate()} ${RU_MONTHS[t.getMonth()]} ${t.getFullYear()}`
   }
   const opt = RANGE_OPTIONS.find((r) => r.kind === range.kind)
@@ -32,8 +33,8 @@ function formatDateRangeSub(range) {
   const fixedRange = getFixedRange(range)
   if (fixedRange) return formatDateRange(fixedRange.from, fixedRange.to)
   if (range.kind === 'custom' && range.from && range.to) {
-    const from = new Date(range.from)
-    const to = new Date(range.to)
+    const from = toCalendarDate(range.from)
+    const to = toCalendarDate(range.to)
     return formatDateRange(from, to)
   }
   const opt = RANGE_OPTIONS.find((r) => r.kind === range.kind)
@@ -84,10 +85,11 @@ function pad2(value) {
 }
 
 function buildMenuGroups(today = new Date()) {
-  const year = today.getFullYear()
+  const reportingEnd = getAnalyticsEndDate(today)
+  const year = reportingEnd.getFullYear()
   const monthGroups = []
   for (let i = 0; i < 3; i += 1) {
-    const date = new Date(year, today.getMonth() - i, 1)
+    const date = new Date(year, reportingEnd.getMonth() - i, 1)
     const optionYear = date.getFullYear()
     const optionMonth = date.getMonth()
     monthGroups.push({

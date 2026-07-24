@@ -31,25 +31,34 @@ export function hashSeed(...parts) {
 /* === date helpers === */
 export const DAY_MS = 86400000
 
+export function toCalendarDate(value) {
+  if (value instanceof Date) return new Date(value.getTime())
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''))
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  }
+  return new Date(value)
+}
+
 export function isoDay(d) {
-  const dt = d instanceof Date ? d : new Date(d)
+  const dt = toCalendarDate(d)
   const y = dt.getFullYear()
   const m = String(dt.getMonth() + 1).padStart(2, '0')
   const day = String(dt.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
 }
 export function addDays(d, n) {
-  const dt = d instanceof Date ? new Date(d.getTime()) : new Date(d)
+  const dt = toCalendarDate(d)
   dt.setDate(dt.getDate() + n)
   return dt
 }
 export function daysBetween(a, b) {
-  const ax = a instanceof Date ? a : new Date(a)
-  const bx = b instanceof Date ? b : new Date(b)
+  const ax = toCalendarDate(a)
+  const bx = toCalendarDate(b)
   return Math.round((bx.getTime() - ax.getTime()) / DAY_MS)
 }
 export function startOfDay(d) {
-  const dt = d instanceof Date ? new Date(d.getTime()) : new Date(d)
+  const dt = toCalendarDate(d)
   dt.setHours(0, 0, 0, 0)
   return dt
 }
@@ -57,7 +66,7 @@ export function startOfDay(d) {
 /* === profiles === */
 
 export function inferProfile(video, today = new Date()) {
-  const ageDays = Math.max(0, daysBetween(new Date(video.date), today))
+  const ageDays = Math.max(0, daysBetween(toCalendarDate(video.date), today))
   const v = Number(video.views) || 0
   if (v > 200000 && ageDays < 30) return 'viralSpike'
   if (ageDays > 180) return 'decayAfterPeak'
@@ -122,7 +131,7 @@ function profileParams(profile, rand) {
 
 export function getVideoAgeDays(date, today = new Date()) {
   if (!date) return 0
-  const publish = startOfDay(new Date(date))
+  const publish = startOfDay(date)
   const todayD = startOfDay(today)
   if (Number.isNaN(publish.getTime()) || publish > todayD) return 0
   return Math.max(0, daysBetween(publish, todayD))

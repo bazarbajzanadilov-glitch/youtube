@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 
-import { build } from '../src/lib/analyticsAggregator.js'
+import {
+  build,
+  getAnalyticsEndDate,
+  resolveRange,
+} from '../src/lib/analyticsAggregator.js'
 import {
   generateLifecycleShape,
   hashSeed,
@@ -73,6 +77,42 @@ const futureVideo = {
 const futureAnalytics = build([futureVideo], channel, { kind: '7d' }, { today })
 assert.equal(futureAnalytics.overview.kpis.views.value, 0, 'future videos should not contribute views')
 assert.equal(futureAnalytics.monetization.kpis.revenue.value, 0, 'future videos should not contribute revenue')
+
+function localIso(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+const beforeAlmatyMidnight = new Date('2026-07-23T18:59:59.000Z')
+const afterAlmatyMidnight = new Date('2026-07-23T19:00:00.000Z')
+assert.equal(
+  localIso(getAnalyticsEndDate(beforeAlmatyMidnight)),
+  '2026-07-22',
+  'before midnight in Almaty the completed reporting day should be July 22',
+)
+assert.equal(
+  localIso(getAnalyticsEndDate(afterAlmatyMidnight)),
+  '2026-07-23',
+  'after midnight in Almaty the completed reporting day should be July 23',
+)
+
+const almatyRange = resolveRange({ kind: '7d' }, [], afterAlmatyMidnight)
+assert.equal(localIso(almatyRange.from), '2026-07-17')
+assert.equal(localIso(almatyRange.to), '2026-07-23')
+
+const clampedCustomRange = resolveRange({
+  kind: 'custom',
+  from: '2026-07-20',
+  to: '2026-07-24',
+}, [], afterAlmatyMidnight)
+assert.equal(
+  localIso(clampedCustomRange.to),
+  '2026-07-23',
+  'custom analytics ranges must exclude the current Almaty day',
+)
 
 const normalized = normalizeToTotal(lifecycle, oldStats.views)
 assert.equal(Math.round(normalized.reduce((sum, value) => sum + value, 0)), oldStats.views)

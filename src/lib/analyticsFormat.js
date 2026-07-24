@@ -2,6 +2,8 @@
  * Локальные форматтеры для аналитики. Используют ru-RU.
  */
 
+import { toCalendarDate } from './analyticsEngine.js'
+
 const NBSP = '\u00a0'
 
 export function formatCompactNumber(n) {
@@ -55,7 +57,7 @@ export function formatNumberRu(n) {
 
 export function formatDateLong(iso) {
   if (!iso) return ''
-  const d = new Date(iso)
+  const d = toCalendarDate(iso)
   const m = ['янв.','февр.','мар.','апр.','мая','июн.','июл.','авг.','сент.','окт.','нояб.','дек.'][d.getMonth()]
   return `${d.getDate()} ${m} ${d.getFullYear()} г.`
 }

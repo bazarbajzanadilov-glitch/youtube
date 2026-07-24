@@ -11,6 +11,7 @@
 
 import {
   hashSeed, isoDay, addDays, daysBetween, startOfDay,
+  toCalendarDate,
   generateDailyShape, generateLifecycleShape, normalizeToTotal, inferProfile,
   movingAverage,
   generateRetention, generateHourlyHeatmap,
@@ -29,8 +30,28 @@ export const RANGE_OPTIONS = [
   { kind: 'custom', label: 'Другой диапазон дат', days: null },
 ]
 
+export const ANALYTICS_TIME_ZONE = 'Asia/Almaty'
+
+const almatyDateParts = new Intl.DateTimeFormat('en-US', {
+  timeZone: ANALYTICS_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+function getAlmatyCalendarDate(value = new Date()) {
+  const instant = value instanceof Date ? value : new Date(value)
+  const parts = Object.fromEntries(
+    almatyDateParts
+      .formatToParts(instant)
+      .filter(({ type }) => type !== 'literal')
+      .map(({ type, value: partValue }) => [type, Number(partValue)]),
+  )
+  return new Date(parts.year, parts.month - 1, parts.day)
+}
+
 export function getAnalyticsEndDate(today = new Date()) {
-  return startOfDay(addDays(today, -1))
+  return startOfDay(addDays(getAlmatyCalendarDate(today), -1))
 }
 
 export function resolveRange(range, videos, today = new Date()) {
@@ -55,8 +76,10 @@ export function resolveRange(range, videos, today = new Date()) {
     return { from, to, days, kind: range.kind, label: range.label || `${year}-${monthMatch[2]}` }
   }
   if (range?.kind === 'custom' && range.from && range.to) {
-    const from = startOfDay(new Date(range.from))
-    const to = startOfDay(new Date(range.to))
+    const requestedFrom = startOfDay(range.from)
+    const requestedTo = startOfDay(range.to)
+    const to = requestedTo > todayD ? todayD : requestedTo
+    const from = requestedFrom > to ? to : requestedFrom
     const days = Math.max(1, daysBetween(from, to) + 1)
     return { from, to, days, kind: 'custom', label: 'Свой диапазон' }
   }
@@ -64,7 +87,7 @@ export function resolveRange(range, videos, today = new Date()) {
     let earliest = todayD
     for (const v of videos) {
       if (v.date) {
-        const d = startOfDay(new Date(v.date))
+        const d = startOfDay(v.date)
         if (d < earliest) earliest = d
       }
     }
@@ -115,7 +138,7 @@ export function effectiveComments(video) {
 function attachVideoContribution({ video, channel, range, dayMap }) {
   if (!video || !video.date) return
   const today = range.to
-  const publish = startOfDay(new Date(video.date))
+  const publish = startOfDay(video.date)
   if (publish > today) return
   const ageDays = Math.max(1, daysBetween(publish, today) + 1)
   const profile = video.profile || inferProfile(video, today)
@@ -222,7 +245,7 @@ function pctDelta(curr, prev) {
 }
 
 function bucketKey(dateIso, granularity) {
-  const d = new Date(dateIso)
+  const d = toCalendarDate(dateIso)
   if (granularity === 'week') {
     const day = d.getDay()
     const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Понедельник
@@ -523,7 +546,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   }
 
   const topByViews = [...videos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10)
-  const recentVideos = [...videos].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10)
+  const recentVideos = [...videos].sort((a, b) => toCalendarDate(b.date) - toCalendarDate(a.date)).slice(0, 10)
   const newest = recentVideos[0] || null
   const formatShares = buildFormatShares(videos)
 
