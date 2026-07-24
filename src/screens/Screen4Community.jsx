@@ -5,7 +5,6 @@ import Sidebar from './Sidebar.jsx'
 import { NavContext } from './NavContext.js'
 import { FilterIcon, ChevronDown, ThumbUpIcon, ThumbDownIcon, HeartIcon, KebabIcon } from './icons.jsx'
 import { useChannel } from '../storage/useChannel.js'
-import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
 import { useVideos } from '../storage/useVideos.js'
 import { formatNumber } from '../storage/videoStore.js'
 
@@ -21,9 +20,10 @@ export default function Screen4Community() {
   const { channel } = useChannel()
   const { videos } = useVideos()
   const [activeTab, setActiveTab] = useState(0)
-  const dashboardComments = Array.isArray(channel.dashboardComments) && channel.dashboardComments.length > 0
-    ? channel.dashboardComments
-    : CHANNEL_DEFAULTS.dashboardComments
+  const dashboardComments = useMemo(
+    () => (Array.isArray(channel.dashboardComments) ? channel.dashboardComments : []),
+    [channel.dashboardComments],
+  )
   const comments = useMemo(() => (
     dashboardComments.map((comment, index) => {
       const video = videos[index % Math.max(1, videos.length)] || null
@@ -64,6 +64,8 @@ export default function Screen4Community() {
 
         {activeTab === 1 ? (
           <div className={s.emptyState}>Нет комментариев, ожидающих проверки.</div>
+        ) : comments.length === 0 ? (
+          <div className={s.emptyState}>Опубликованных комментариев пока нет.</div>
         ) : (
           <div className={s.commentList}>
             {comments.map((c) => (
