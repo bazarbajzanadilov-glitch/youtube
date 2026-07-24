@@ -121,9 +121,23 @@ export function subscribeAdminAuth(listener) {
   return () => data.subscription.unsubscribe()
 }
 
-export async function signInAdmin(email, password) {
+export async function signInAdmin(password) {
+  const response = await fetch('/api/admin-login', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  })
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(result.error || 'Неверный пароль')
+  }
+
   const supabase = getSupabaseClient()
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.setSession({
+    access_token: result.accessToken,
+    refresh_token: result.refreshToken,
+  })
   if (error) throw error
   return data.session
 }
@@ -138,6 +152,28 @@ export async function updateAdminPassword(password) {
   const supabase = getSupabaseClient()
   const { error } = await supabase.auth.updateUser({ password })
   if (error) throw error
+}
+
+export async function updateSitePassword(password) {
+  const supabase = getSupabaseClient()
+  const { data, error } = await supabase.auth.getSession()
+  if (error || !data.session) {
+    throw new Error('Требуется вход в админку')
+  }
+
+  const response = await fetch('/api/admin-site-password', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${data.session.access_token}`,
+    },
+    body: JSON.stringify({ password }),
+  })
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(result.error || 'Не удалось изменить пароль сайта')
+  }
 }
 
 export async function isCurrentUserAdmin() {

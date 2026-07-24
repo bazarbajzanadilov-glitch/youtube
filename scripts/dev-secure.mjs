@@ -1,5 +1,7 @@
 import { createServer as createHttpServer } from 'node:http'
 import { createServer as createViteServer } from 'vite'
+import adminLoginHandler from '../api/admin-login.js'
+import adminSitePasswordHandler from '../api/admin-site-password.js'
 import siteDataHandler from '../api/site-data.js'
 import siteLoginHandler from '../api/site-login.js'
 import siteLogoutHandler from '../api/site-logout.js'
@@ -60,6 +62,8 @@ const server = createHttpServer(async (request, response) => {
   if (url.pathname === '/api/site-login') return siteLoginHandler(request, response)
   if (url.pathname === '/api/site-logout') return siteLogoutHandler(request, response)
   if (url.pathname === '/api/site-data') return siteDataHandler(request, response)
+  if (url.pathname === '/api/admin-login') return adminLoginHandler(request, response)
+  if (url.pathname === '/api/admin-site-password') return adminSitePasswordHandler(request, response)
 
   if (!isSiteRequestAuthorized(request)) {
     response.statusCode = 307

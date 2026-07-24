@@ -10,8 +10,6 @@ import {
 import { isSupabaseConfigured } from '../../lib/supabaseClient.js'
 import s from './AdminGate.module.css'
 
-const ADMIN_EMAIL = 'bazarbajzanadilov@gmail.com'
-
 export default function AdminGate({ children }) {
   const configured = isSupabaseConfigured()
   const setupRequested = typeof window !== 'undefined'
@@ -67,7 +65,7 @@ export default function AdminGate({ children }) {
     setStatus('signing-in')
     setError('')
     try {
-      const session = await signInAdmin(ADMIN_EMAIL, password)
+      const session = await signInAdmin(password)
       if (!(await isCurrentUserAdmin())) {
         await signOutAdmin()
         throw new Error('У этой учётной записи нет доступа к админке')
@@ -108,7 +106,6 @@ export default function AdminGate({ children }) {
       <form className={s.card} onSubmit={isSetupForm ? onPasswordSetup : onSubmit}>
         <div className={s.mark}>YT</div>
         <h1>{isSetupForm ? 'Создайте пароль админки' : 'Вход в админку'}</h1>
-        <p>{ADMIN_EMAIL}</p>
         <label>
           <span>{isSetupForm ? 'Новый пароль' : 'Пароль'}</span>
           <input

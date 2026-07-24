@@ -12,7 +12,10 @@ import { useVideos } from '../storage/useVideos.js'
 import { useChannel } from '../storage/useChannel.js'
 import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
 import AdminGate from '../components/auth/AdminGate.jsx'
-import { signOutAdmin } from '../data/adminRepository.js'
+import {
+  signOutAdmin,
+  updateSitePassword,
+} from '../data/adminRepository.js'
 
 const COUNTRIES = [
   { code: 'RU', label: 'Россия' },
@@ -84,6 +87,9 @@ function Screen11AdminContent() {
   const [form, setForm] = useState(blankForm())
   const [channelDraft, setChannelDraft] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [sitePassword, setSitePassword] = useState('')
+  const [sitePasswordConfirm, setSitePasswordConfirm] = useState('')
+  const [savingSitePassword, setSavingSitePassword] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [bulkCount, setBulkCount] = useState('5')
   const [confirmState, setConfirmState] = useState(null)
@@ -454,6 +460,30 @@ function Screen11AdminContent() {
     }
   }
 
+  async function onSitePasswordChange(event) {
+    event.preventDefault()
+    if (sitePassword.length < 4) {
+      showToast('Пароль сайта должен содержать не менее 4 символов')
+      return
+    }
+    if (sitePassword !== sitePasswordConfirm) {
+      showToast('Пароли сайта не совпадают')
+      return
+    }
+
+    setSavingSitePassword(true)
+    try {
+      await updateSitePassword(sitePassword)
+      setSitePassword('')
+      setSitePasswordConfirm('')
+      showToast('Общий пароль сайта изменён')
+    } catch (error) {
+      showToast(error.message || 'Не удалось изменить пароль сайта')
+    } finally {
+      setSavingSitePassword(false)
+    }
+  }
+
   return (
     <div className={s.page}>
       <TopBar />
@@ -478,6 +508,44 @@ function Screen11AdminContent() {
           <div className={s.statCard}><span>Лайки</span><strong>{formatNumber(totals.likes)}</strong></div>
           <div className={s.statCard}><span>Доход</span><strong>{formatMoney(totals.revenue)}</strong></div>
         </div>
+
+        <section className={s.securityPanel}>
+          <div className={s.panelHead}>
+            <div>
+              <h2>Доступ к сайту</h2>
+              <span>Общий пароль для всех посетителей. Пароль админки от него не зависит.</span>
+            </div>
+          </div>
+          <form className={s.securityForm} onSubmit={onSitePasswordChange}>
+            <label className={s.field}>
+              <span>Новый пароль сайта</span>
+              <input
+                className={s.input}
+                type="password"
+                autoComplete="new-password"
+                value={sitePassword}
+                onChange={(event) => setSitePassword(event.target.value)}
+              />
+            </label>
+            <label className={s.field}>
+              <span>Повторите пароль сайта</span>
+              <input
+                className={s.input}
+                type="password"
+                autoComplete="new-password"
+                value={sitePasswordConfirm}
+                onChange={(event) => setSitePasswordConfirm(event.target.value)}
+              />
+            </label>
+            <button
+              type="submit"
+              className={s.submitBtn}
+              disabled={!sitePassword || savingSitePassword}
+            >
+              {savingSitePassword ? 'Сохранение…' : 'Сменить пароль сайта'}
+            </button>
+          </form>
+        </section>
 
         <div className={s.editorGrid}>
           <form className={s.videoPanel} onSubmit={onSubmit}>

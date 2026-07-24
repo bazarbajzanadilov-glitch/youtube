@@ -8,6 +8,10 @@ import {
   siteCookie,
   verifySiteSession,
 } from '../server/siteSession.js'
+import {
+  hashPassword,
+  verifyPasswordHash,
+} from '../server/passwordHash.js'
 
 const secret = 'test-secret-that-is-long-enough-for-verification'
 const now = Date.UTC(2026, 6, 24, 12, 0, 0)
@@ -15,6 +19,12 @@ const token = createSiteSession(secret, now)
 
 assert.equal(passwordsMatch('correct-password', 'correct-password'), true)
 assert.equal(passwordsMatch('wrong-password', 'correct-password'), false)
+
+const passwordHash = hashPassword('site-password')
+assert.equal(passwordHash.includes('site-password'), false)
+assert.equal(verifyPasswordHash('site-password', passwordHash), true)
+assert.equal(verifyPasswordHash('wrong-password', passwordHash), false)
+assert.equal(verifyPasswordHash('site-password', 'invalid'), false)
 assert.equal(verifySiteSession(token, secret, now), true)
 assert.equal(verifySiteSession(token, `${secret}-wrong`, now), false)
 assert.equal(

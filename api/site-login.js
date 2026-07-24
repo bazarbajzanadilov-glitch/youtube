@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js'
+import { verifyPasswordHash } from '../server/passwordHash.js'
 import {
   createSiteSession,
   passwordsMatch,
@@ -53,7 +55,31 @@ function requestBody(request) {
   return {}
 }
 
-export default function handler(request, response) {
+async function sitePasswordMatches(password) {
+  const url = process.env.VITE_SUPABASE_URL
+  const secret = process.env.SUPABASE_SECRET_KEY
+
+  if (!url || !secret) {
+    return passwordsMatch(password, process.env.SITE_PASSWORD)
+  }
+
+  const supabase = createClient(url, secret, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('site_password_hash')
+    .eq('id', 'primary')
+    .maybeSingle()
+
+  if (error) throw error
+  if (data?.site_password_hash) {
+    return verifyPasswordHash(password, data.site_password_hash)
+  }
+  return passwordsMatch(password, process.env.SITE_PASSWORD)
+}
+
+export default async function handler(request, response) {
   const returnTo = safeReturnTo(request.query?.returnTo || requestBody(request).returnTo)
 
   if (request.method === 'GET') {
@@ -67,7 +93,17 @@ export default function handler(request, response) {
   }
 
   const password = requestBody(request).password
-  if (!passwordsMatch(password, process.env.SITE_PASSWORD)) {
+  let matches
+  try {
+    matches = await sitePasswordMatches(password)
+  } catch {
+    return response.status(503).send(loginHtml({
+      error: 'Вход временно недоступен',
+      returnTo,
+    }))
+  }
+
+  if (!matches) {
     response.setHeader('Content-Type', 'text/html; charset=utf-8')
     return response.status(401).send(loginHtml({
       error: 'Неверный пароль',

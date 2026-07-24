@@ -55,11 +55,32 @@
 .statCard,
 .videoPanel,
 .sidePanel,
+.securityPanel,
 .librarySection,
 .extraSection {
   border: 1px solid var(--studio-border);
   border-radius: 12px;
   background: var(--studio-card-widget);
+}
+
+.securityPanel {
+  padding: 18px 20px 20px;
+  margin-bottom: 18px;
+}
+
+.securityPanel .panelHead {
+  margin-bottom: 14px;
+}
+
+.securityForm {
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) minmax(180px, 280px) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.securityForm .submitBtn {
+  margin-bottom: 1px;
 }
 
 .statCard {
@@ -772,6 +793,10 @@ textarea.input,
 
   .statsRow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .securityForm {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .videoFormGrid,
