@@ -515,6 +515,10 @@ textarea.input,
   overflow-y: auto;
 }
 
+.subscriberStatsTable {
+  min-width: 560px;
+}
+
 .subscriberStatsTable th {
   position: sticky;
   top: 0;
@@ -524,9 +528,7 @@ textarea.input,
 
 .subscriberStatsTable th:nth-child(1),
 .subscriberStatsTable th:nth-child(2),
-.subscriberStatsTable th:nth-child(3),
-.subscriberStatsTable th:nth-child(4),
-.subscriberStatsTable th:nth-child(5) {
+.subscriberStatsTable th:nth-child(3) {
   width: auto;
 }
 
@@ -536,20 +538,6 @@ textarea.input,
 
 .subscriberStatsTable td:last-child {
   min-width: 110px;
-}
-
-.positiveNet,
-.negativeNet {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.positiveNet {
-  color: #72d9a0;
-}
-
-.negativeNet {
-  color: #ff8a8a;
 }
 
 .table {

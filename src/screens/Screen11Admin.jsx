@@ -103,11 +103,6 @@ function previousISO(value) {
   return date.toISOString().slice(0, 10)
 }
 
-function formatSignedCount(value) {
-  const count = Number(value) || 0
-  return `${count >= 0 ? '+' : ''}${formatNumber(count)}`
-}
-
 function revokeBlobUrl(value) {
   if (String(value || '').startsWith('blob:')) URL.revokeObjectURL(value)
 }
@@ -941,7 +936,7 @@ function Screen11AdminContent() {
             <div>
               <h2>История подписчиков ({subscriberDailyStats.length})</h2>
               <span className={s.sectionHint}>
-                Аналитика считает чистое изменение как «подписались − отписались». Общий размер канала редактируется отдельно выше.
+                Укажите дневной прирост. При изменении общего числа подписчиков история автоматически масштабируется и сохраняется в Supabase.
               </span>
             </div>
             <div className={s.toolbar}>
@@ -965,17 +960,12 @@ function Screen11AdminContent() {
                 <thead>
                   <tr>
                     <th>Дата</th>
-                    <th>Подписались</th>
-                    <th>Отписались</th>
-                    <th>Итог</th>
+                    <th>Прирост</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {subscriberStatsRows.map((row) => {
-                    const gained = Math.max(0, Number(row.gained) || 0)
-                    const lost = Math.max(0, Number(row.lost) || 0)
-                    const net = gained - lost
                     return (
                       <tr key={`${row.date}-${row.sourceIndex}`}>
                         <td>
@@ -996,16 +986,6 @@ function Screen11AdminContent() {
                             onChange={(event) => updateSubscriberStat(row.sourceIndex, { gained: parseCount(event.target.value) ?? 0 })}
                           />
                         </td>
-                        <td>
-                          <input
-                            className={s.tableInput}
-                            type="number"
-                            min="0"
-                            value={row.lost}
-                            onChange={(event) => updateSubscriberStat(row.sourceIndex, { lost: parseCount(event.target.value) ?? 0 })}
-                          />
-                        </td>
-                        <td className={net < 0 ? s.negativeNet : s.positiveNet}>{formatSignedCount(net)}</td>
                         <td className={s.actionCell}>
                           <button type="button" className={s.deleteBtn} onClick={() => removeSubscriberStat(row.sourceIndex)}>Удалить</button>
                         </td>
