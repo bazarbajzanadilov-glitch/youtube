@@ -5,8 +5,6 @@ import Sidebar from './Sidebar.jsx'
 import { NavContext } from './NavContext.js'
 import { FilterIcon, ChevronDown, ThumbUpIcon, ThumbDownIcon, HeartIcon, KebabIcon } from './icons.jsx'
 import { useChannel } from '../storage/useChannel.js'
-import { useVideos } from '../storage/useVideos.js'
-import { formatNumber } from '../storage/videoStore.js'
 
 const TABS = ['Комментарии', 'На проверке']
 
@@ -18,7 +16,6 @@ function avatarLetter(author = '') {
 export default function Screen4Community() {
   const { showToast } = useContext(NavContext)
   const { channel } = useChannel()
-  const { videos } = useVideos()
   const [activeTab, setActiveTab] = useState(0)
   const dashboardComments = useMemo(
     () => (Array.isArray(channel.dashboardComments) ? channel.dashboardComments : []),
@@ -26,19 +23,15 @@ export default function Screen4Community() {
   )
   const comments = useMemo(() => (
     dashboardComments.map((comment, index) => {
-      const video = videos[index % Math.max(1, videos.length)] || null
-      const likes = Math.max(0, Math.round(((video?.likes || 0) / 12) + index))
       return {
         id: comment.id || `comment-${index}`,
         handle: comment.author || '@author',
         time: comment.age || 'Недавно',
         text: comment.text || '',
-        likes,
         avatarColor: comment.avatarColor || '#525252',
-        video,
       }
     })
-  ), [dashboardComments, videos])
+  ), [dashboardComments])
 
   return (
     <div className={s.page}>
@@ -83,19 +76,15 @@ export default function Screen4Community() {
                   <div className={s.actions}>
                     <button type="button" className={s.actionBtn} onClick={() => showToast('Ответить')}>Ответить</button>
                     <span className={s.replyDrop}>Все ответы <ChevronDown size={12}/></span>
-                    <span className={s.actionIcon}><ThumbUpIcon size={18}/> {c.likes > 0 ? formatNumber(c.likes) : ''}</span>
+                    <span className={s.actionIcon}><ThumbUpIcon size={18}/></span>
                     <span className={s.actionIcon}><ThumbDownIcon size={18}/></span>
                     <span className={s.actionIcon}><HeartIcon size={18}/></span>
                     <span className={s.actionIcon}><KebabIcon size={16}/></span>
                   </div>
                 </div>
                 <div className={s.right}>
-                  <div className={s.rightThumb}>
-                    {c.video?.cover ? <img src={c.video.cover} alt="" /> : <div className={s.rightThumbBlank} />}
-                  </div>
                   <div className={s.rightInfo}>
-                    <div className={s.rightOn}>Комментарий к видео:</div>
-                    <div className={s.rightTitle}>{c.video?.title || 'Видео из текущей библиотеки канала'}</div>
+                    <div className={s.rightOn}>Комментарий к каналу</div>
                   </div>
                 </div>
               </div>

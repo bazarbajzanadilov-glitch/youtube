@@ -3,6 +3,7 @@ import Card from '../../components/ui/Card.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
 import { analyticsHeroChartProps } from '../../components/charts/analyticsChartDefaults.js'
 import { formatDateLong, formatNumberRu } from '../../lib/analyticsFormat.js'
+import { getAnalyticsEndDate } from '../../lib/analyticsAggregator.js'
 import clockIcon from '../../assets/clock.svg'
 import { formatChartDateLabel } from '../../lib/chartDateFormat.js'
 import s from './AnalyticsTabs.module.css'
@@ -19,12 +20,12 @@ import {
 const REVENUE_LINE_COLOR = ANALYTICS_TEAL
 
 const REVENUE_FILTERS = [
-  'Все',
-  'Реклама на странице просмотра',
-  'Реклама в ленте Shorts',
-  'Спонсорство',
-  'Суперфункции и подарки',
-  'Партнерская программа',
+  { key: 'all', label: 'Все' },
+  { key: 'watch-ads', label: 'Реклама на странице просмотра' },
+  { key: 'shorts-ads', label: 'Реклама в ленте Shorts' },
+  { key: 'memberships', label: 'Спонсорство' },
+  { key: 'supers', label: 'Суперфункции и подарки' },
+  { key: 'shopping', label: 'Партнерская программа' },
 ]
 
 const SOURCE_TABS = [
@@ -81,6 +82,7 @@ function buildRevenueProcessingWindow({ videos = [], range, series = [] }) {
   const rangeEnd = range?.to instanceof Date ? range.to : null
   const end = rangeEnd || lastSeriesDate
   if (!end || Number.isNaN(end.getTime())) return null
+  if (isoDateLocal(end) !== isoDateLocal(getAnalyticsEndDate())) return null
 
   const start = addDaysLocal(end, -1)
   const markerStart = addDaysLocal(end, -2)
@@ -153,6 +155,54 @@ function sumSeriesViews(series = []) {
   return series.reduce((sum, row) => sum + (Number(row.views) || 0), 0)
 }
 
+function mergeRevenueSeries(template = [], seriesList = [], scale = 1) {
+  const valuesByDate = new Map()
+  seriesList.flat().forEach((row) => {
+    const date = String(row?.date || '')
+    if (!date) return
+    valuesByDate.set(date, (valuesByDate.get(date) || 0) + (Number(row.revenue) || 0))
+  })
+  return template.map((row) => ({
+    ...row,
+    revenue: +((valuesByDate.get(String(row.date)) || 0) * scale).toFixed(2),
+  }))
+}
+
+function sourceRevenueSeries(template = [], stackedSeries = [], sourceKey) {
+  const valuesByDate = new Map(
+    stackedSeries.map((row) => [String(row.date), Number(row[sourceKey]) || 0]),
+  )
+  return template.map((row) => ({
+    ...row,
+    revenue: +(valuesByDate.get(String(row.date)) || 0).toFixed(2),
+  }))
+}
+
+function selectRevenueSeries(filterKey, {
+  allSeries = [],
+  seriesByType = {},
+  stackedSeries = [],
+  sourceShares = {},
+} = {}) {
+  if (filterKey === 'watch-ads') {
+    return mergeRevenueSeries(allSeries, [
+      seriesByType.video || [],
+      seriesByType.live || [],
+    ], sourceShares.ads || 0)
+  }
+  if (filterKey === 'shorts-ads') {
+    return mergeRevenueSeries(
+      allSeries,
+      [seriesByType.short || []],
+      sourceShares.ads || 0,
+    )
+  }
+  if (['memberships', 'supers', 'shopping'].includes(filterKey)) {
+    return sourceRevenueSeries(allSeries, stackedSeries, filterKey)
+  }
+  return allSeries
+}
+
 function buildPerformanceMetrics(seriesByType = {}, activeTab) {
   const series = seriesByType[activeTab] || []
   const views = Math.round(sumSeriesViews(series))
@@ -170,24 +220,39 @@ function sortSourceRows(rows) {
   return rows.sort((a, b) => b.amount - a.amount)
 }
 
-function buildRevenueSourceRows(seriesByType = {}, activeTab) {
+function buildRevenueSourceRows(seriesByType = {}, activeTab, sourceShares = {}) {
   const videoRevenue = sumSeriesRevenue(seriesByType.video)
   const shortRevenue = sumSeriesRevenue(seriesByType.short)
   const liveRevenue = sumSeriesRevenue(seriesByType.live)
+  const selectedRevenue = activeTab === 'video'
+    ? videoRevenue
+    : activeTab === 'short'
+      ? shortRevenue
+      : activeTab === 'live'
+        ? liveRevenue
+        : videoRevenue + shortRevenue + liveRevenue
   const rows = []
+  const adsShare = sourceShares.ads || 0
 
   if (activeTab === 'all' || activeTab === 'short') {
-    if (shortRevenue > 0) {
+    const shortsAds = shortRevenue * adsShare
+    if (shortsAds > 0) {
       rows.push({
         key: 'short-feed-ads',
         label: 'Реклама в ленте Shorts',
-        amount: +shortRevenue.toFixed(2),
+        amount: +shortsAds.toFixed(2),
       })
     }
   }
 
-  if (activeTab === 'all') {
-    const watchPageRevenue = videoRevenue + liveRevenue
+  if (activeTab === 'all' || activeTab === 'video' || activeTab === 'live') {
+    const watchPageRevenue = (
+      activeTab === 'video'
+        ? videoRevenue
+        : activeTab === 'live'
+          ? liveRevenue
+          : videoRevenue + liveRevenue
+    ) * adsShare
     if (watchPageRevenue > 0) {
       rows.push({
         key: 'watch-page-ads',
@@ -195,63 +260,107 @@ function buildRevenueSourceRows(seriesByType = {}, activeTab) {
         amount: +watchPageRevenue.toFixed(2),
       })
     }
-    return sortSourceRows(rows)
   }
 
-  if (activeTab === 'video' && videoRevenue > 0) {
+  ;[
+    ['premium', 'YouTube Premium'],
+    ['memberships', 'Спонсорство'],
+    ['supers', 'Суперфункции и подарки'],
+    ['shopping', 'Партнерская программа'],
+  ].forEach(([key, label]) => {
+    const amount = selectedRevenue * (sourceShares[key] || 0)
+    if (amount <= 0) return
     rows.push({
-      key: 'video-watch-page-ads',
-      label: 'Реклама на странице просмотра',
-      amount: +videoRevenue.toFixed(2),
+      key,
+      label,
+      amount: +amount.toFixed(2),
     })
-  }
-
-  if (activeTab === 'live' && liveRevenue > 0) {
-    rows.push({
-      key: 'live-watch-page-ads',
-      label: 'Реклама на странице просмотра',
-      amount: +liveRevenue.toFixed(2),
-    })
-  }
+  })
 
   return sortSourceRows(rows)
 }
 
 export default function RevenueTab({ data }) {
   const { content, monetization, range } = data
-  const [activeFilter, setActiveFilter] = useState(0)
+  const [activeFilter, setActiveFilter] = useState('all')
   const [activePerformanceTab, setActivePerformanceTab] = useState('video')
   const [activeSourceTab, setActiveSourceTab] = useState('all')
-  const revenue = monetization?.kpis?.revenue?.value || 0
-  const monthlyRows = useMemo(() => buildMonthlyRows(monetization?.series || []), [monetization?.series])
+  const sourceShares = useMemo(() => Object.fromEntries(
+    (monetization?.sources || []).map((source) => [source.key, Number(source.share) || 0]),
+  ), [monetization?.sources])
+  const filteredSeries = useMemo(() => (
+    selectRevenueSeries(activeFilter, {
+      allSeries: monetization?.series || [],
+      seriesByType: content?.seriesByType || {},
+      stackedSeries: monetization?.stackedSeries || [],
+      sourceShares,
+    })
+  ), [
+    activeFilter,
+    content?.seriesByType,
+    monetization?.series,
+    monetization?.stackedSeries,
+    sourceShares,
+  ])
+  const filteredSixMonthSeries = useMemo(() => (
+    selectRevenueSeries(activeFilter, {
+      allSeries: monetization?.sixMonthSeries || [],
+      seriesByType: monetization?.sixMonthSeriesByType || {},
+      stackedSeries: monetization?.sixMonthStackedSeries || [],
+      sourceShares,
+    })
+  ), [
+    activeFilter,
+    monetization?.sixMonthSeries,
+    monetization?.sixMonthSeriesByType,
+    monetization?.sixMonthStackedSeries,
+    sourceShares,
+  ])
+  const revenue = activeFilter === 'all'
+    ? (monetization?.kpis?.revenue?.value || 0)
+    : sumSeriesRevenue(filteredSeries)
+  const monthlyRows = useMemo(
+    () => buildMonthlyRows(filteredSixMonthSeries),
+    [filteredSixMonthSeries],
+  )
   const monthlyMax = Math.max(0, ...monthlyRows.map((row) => row.value))
   const performanceMetrics = useMemo(() => (
     buildPerformanceMetrics(content?.seriesByType, activePerformanceTab)
   ), [activePerformanceTab, content?.seriesByType])
   const sourceRows = useMemo(() => (
-    buildRevenueSourceRows(content?.seriesByType, activeSourceTab)
-  ), [activeSourceTab, content?.seriesByType])
+    buildRevenueSourceRows(content?.seriesByType, activeSourceTab, sourceShares)
+  ), [activeSourceTab, content?.seriesByType, sourceShares])
   const processingWindow = useMemo(() => (
     buildRevenueProcessingWindow({
       videos: content?.allVideos || [],
       range,
-      series: monetization?.series || [],
+      series: filteredSeries,
     })
-  ), [content?.allVideos, range, monetization?.series])
-  const publishedMarkers = buildPublishedVideoMarkers(monetization?.series || [], content?.allVideos || [], 'date')
+  ), [content?.allVideos, filteredSeries, range])
+  const markerVideos = activeFilter === 'shorts-ads'
+    ? (content?.allVideos || []).filter((video) => video.type === 'short')
+    : activeFilter === 'watch-ads'
+      ? (content?.allVideos || []).filter((video) => video.type !== 'short')
+      : (content?.allVideos || [])
+  const publishedMarkers = buildPublishedVideoMarkers(
+    filteredSeries,
+    markerVideos,
+    'date',
+    range,
+  )
   const sourcesMax = Math.max(0, ...sourceRows.map((item) => item.amount || 0))
 
   return (
     <div className={`${s.tabStack} ${s.revenueRail}`}>
       <div className={s.filterChips}>
-        {REVENUE_FILTERS.map((item, index) => (
+        {REVENUE_FILTERS.map((item) => (
           <button
-            key={item}
+            key={item.key}
             type="button"
-            className={`${s.filterChip} ${activeFilter === index ? s.filterChipActive : ''}`}
-            onClick={() => setActiveFilter(index)}
+            className={`${s.filterChip} ${activeFilter === item.key ? s.filterChipActive : ''}`}
+            onClick={() => setActiveFilter(item.key)}
           >
-            {item}
+            {item.label}
           </button>
         ))}
       </div>
@@ -264,7 +373,7 @@ export default function RevenueTab({ data }) {
               yValueScale: 512,
               yAxisWidth: 112,
             })}
-            data={monetization?.series || []}
+            data={filteredSeries}
             dataKey="revenue"
             xKey="date"
             color={REVENUE_LINE_COLOR}

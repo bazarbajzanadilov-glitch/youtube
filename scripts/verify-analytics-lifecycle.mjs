@@ -15,11 +15,13 @@ import {
 import { getAlmatyDateISO } from '../src/lib/almatyDate.js'
 import {
   generateVideoStats,
+  makeId,
   normalizeVideo,
 } from '../src/storage/videoStore.js'
 import {
   avgWatchPercent,
   avgWatchPretty,
+  buildPublishedVideoMarkers,
   daysSinceLong,
 } from '../src/screens/analytics/studioAnalyticsHelpers.js'
 
@@ -30,6 +32,11 @@ const channel = {
   subscriberCount: 12000,
   monetizationEnabled: true,
 }
+
+const generatedIds = new Set(
+  Array.from({ length: 500 }, () => makeId('Repeated video title')),
+)
+assert.equal(generatedIds.size, 500, 'bulk-generated video IDs must be unique')
 
 const todayStats = generateVideoStats({
   id: 'today-video',
@@ -73,6 +80,121 @@ const oldVideo = {
   profile: 'decayAfterPeak',
 }
 const analytics = build([oldVideo], channel, { kind: '28d' }, { today })
+const analytics7Days = build([oldVideo], channel, { kind: '7d' }, { today })
+const analytics365Days = build([oldVideo], channel, { kind: '365d' }, { today })
+const analyticsLifetime = build([oldVideo], channel, { kind: 'lifetime' }, { today })
+assert.deepEqual(
+  analytics7Days.realtime.last48,
+  analytics.realtime.last48,
+  '48-hour realtime views must not change with the selected analytics range',
+)
+assert.deepEqual(
+  analytics365Days.realtime.last48,
+  analytics.realtime.last48,
+  '365-day selection must not rescale the current 48-hour window',
+)
+assert.deepEqual(
+  analyticsLifetime.realtime.last48,
+  analytics.realtime.last48,
+  'lifetime selection must not rescale the current 48-hour window',
+)
+assert.deepEqual(
+  analytics7Days.monetization.sixMonthSeries,
+  analytics365Days.monetization.sixMonthSeries,
+  'the fixed six-month revenue panel must not depend on the selected range',
+)
+assert.equal(
+  analytics7Days.audience.monthlyViewers,
+  analytics365Days.audience.monthlyViewers,
+  'current rolling monthly viewers must not depend on the selected range',
+)
+assert.equal(
+  analyticsLifetime.overview.kpis.views.delta,
+  null,
+  'lifetime KPIs must not show a fabricated previous-period comparison',
+)
+assert.equal(
+  analyticsLifetime.overview.series.reduce((sum, row) => sum + row.views, 0),
+  analyticsLifetime.overview.kpis.views.value,
+  'lifetime chart views must exactly reconcile to the lifetime KPI',
+)
+assert.equal(
+  +analyticsLifetime.overview.series
+    .reduce((sum, row) => sum + row.revenue, 0)
+    .toFixed(2),
+  analyticsLifetime.monetization.kpis.revenue.value,
+  'lifetime chart revenue must exactly reconcile to the lifetime KPI',
+)
+const realtimeAllocated = analytics.realtime.topVideos.reduce(
+  (sum, video) => sum + video.realtimeViews,
+  0,
+)
+assert.equal(
+  realtimeAllocated,
+  analytics.realtime.last48.reduce((sum, value) => sum + value, 0),
+  'per-video realtime views must reconcile to the 48-hour channel total',
+)
+assert.equal(
+  analytics.overview.topVideos.reduce((sum, video) => sum + video.periodViews, 0),
+  analytics.overview.kpis.views.value,
+  'period video metrics must reconcile to the period views KPI',
+)
+const equivalentCustomAnalytics = build(
+  [oldVideo],
+  channel,
+  {
+    kind: 'custom',
+    from: analytics.range.from,
+    to: analytics.range.to,
+  },
+  { today },
+)
+assert.deepEqual(
+  equivalentCustomAnalytics.overview.series,
+  analytics.overview.series,
+  'identical calendar dates must produce identical points regardless of range label',
+)
+assert.deepEqual(
+  equivalentCustomAnalytics.content.traffic,
+  analytics.content.traffic,
+  'period share cards must use the same dated inputs for equivalent calendar ranges',
+)
+assert.deepEqual(
+  analytics7Days.audience.newReturning,
+  analytics.audience.newReturning.slice(-analytics7Days.audience.newReturning.length),
+  'new and returning audience values must stay stable on overlapping calendar dates',
+)
+assert.equal(
+  analytics365Days.audience.newReturning.reduce(
+    (sum, row) => sum + row.new + row.returning,
+    0,
+  ),
+  analytics365Days.overview.kpis.views.value,
+  'weekly/monthly new and returning viewers must reconcile to period views',
+)
+const emptyRealtime = build([], channel, { kind: '28d' }, { today }).realtime
+assert.deepEqual(
+  emptyRealtime.last48,
+  new Array(48).fill(0),
+  'channels without recent views must not receive fabricated realtime activity',
+)
+const lowVolumeAnalytics = build(
+  [{
+    ...oldVideo,
+    id: 'low-volume-video',
+    date: '2026-05-01',
+    views: 100,
+    revenue: 0,
+    likes: 2,
+  }],
+  channel,
+  { kind: '28d' },
+  { today },
+)
+assert.ok(
+  lowVolumeAnalytics.realtime.last48.reduce((sum, value) => sum + value, 0) > 0,
+  'small channels must retain low but non-zero realtime activity',
+)
 const revenueSeries = analytics.overview.series.map((d) => d.revenue)
 const totalRevenue = revenueSeries.reduce((sum, value) => sum + value, 0)
 const nonZeroRevenueDays = revenueSeries.filter((value) => value > 0).length
@@ -138,6 +260,39 @@ const futureVideo = {
 const futureAnalytics = build([futureVideo], channel, { kind: '7d' }, { today })
 assert.equal(futureAnalytics.overview.kpis.views.value, 0, 'future videos should not contribute views')
 assert.equal(futureAnalytics.monetization.kpis.revenue.value, 0, 'future videos should not contribute revenue')
+const futureLifetimeAnalytics = build([futureVideo], channel, { kind: 'lifetime' }, { today })
+assert.equal(
+  futureLifetimeAnalytics.overview.kpis.views.value,
+  0,
+  'future videos must not leak into lifetime KPIs',
+)
+assert.deepEqual(
+  futureLifetimeAnalytics.realtime.topVideos,
+  [],
+  'future videos must not appear in realtime top content',
+)
+assert.deepEqual(
+  futureLifetimeAnalytics.overview.topVideos,
+  [],
+  'future videos must not appear in period rankings',
+)
+
+const boundedMarkers = buildPublishedVideoMarkers(
+  [{ date: '2025-12-29' }, { date: '2026-01-05' }],
+  [
+    { id: 'before', date: '2026-01-02', title: 'Before' },
+    { id: 'inside-first-bucket', date: '2026-01-04', title: 'Inside first bucket' },
+    { id: 'inside-last-bucket', date: '2026-01-10', title: 'Inside last bucket' },
+    { id: 'after', date: '2026-01-11', title: 'After' },
+  ],
+  'date',
+  { from: new Date('2026-01-03'), to: new Date('2026-01-10') },
+)
+assert.deepEqual(
+  boundedMarkers.flatMap((marker) => marker.videos.map((video) => video.id)).sort(),
+  ['inside-first-bucket', 'inside-last-bucket'],
+  'weekly publication markers must respect the exact selected range boundaries',
+)
 
 function localIso(date) {
   return [

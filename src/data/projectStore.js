@@ -17,6 +17,8 @@ let snapshot = {
 }
 
 let activeLoad = null
+let loadRevision = 0
+let mutationQueue = Promise.resolve()
 
 function totalsFor(videos) {
   return {
@@ -63,8 +65,10 @@ export function getProjectSnapshot() {
 export async function loadRemoteProject({ force = false } = {}) {
   if (activeLoad && !force) return activeLoad
 
+  const revision = loadRevision + 1
+  loadRevision = revision
   updateSnapshot({ loading: true, error: null })
-  activeLoad = fetch('/api/site-data', {
+  const request = fetch('/api/site-data', {
     credentials: 'include',
     cache: 'no-store',
     headers: { accept: 'application/json' },
@@ -77,40 +81,52 @@ export async function loadRemoteProject({ force = false } = {}) {
       return response.json()
     })
     .then((project) => {
-      updateSnapshot({
-        videos: Array.isArray(project.videos) ? project.videos : [],
-        channel: project.channel || CHANNEL_DEFAULTS,
-        loading: false,
-        error: null,
-      })
+      if (revision === loadRevision) {
+        updateSnapshot({
+          videos: Array.isArray(project.videos) ? project.videos : [],
+          channel: project.channel || CHANNEL_DEFAULTS,
+          loading: false,
+          error: null,
+        })
+      }
       return project
     })
     .catch((error) => {
-      updateSnapshot({ loading: false, error: error.message || 'Не удалось загрузить данные' })
+      if (revision === loadRevision) {
+        updateSnapshot({ loading: false, error: error.message || 'Не удалось загрузить данные' })
+      }
       throw error
     })
     .finally(() => {
-      activeLoad = null
+      if (revision === loadRevision) activeLoad = null
     })
 
-  return activeLoad
+  activeLoad = request
+  return request
 }
 
 async function mutate(action) {
-  let actionError = null
-  try {
-    await action()
-  } catch (error) {
-    actionError = error
-  }
-
-  try {
-    await loadRemoteProject({ force: true })
-  } catch (loadError) {
-    if (!actionError) throw loadError
-  }
-
-  if (actionError) throw actionError
+  const run = mutationQueue.then(async () => {
+    if (snapshot.error) {
+      await loadRemoteProject({ force: true })
+    }
+    try {
+      await action()
+    } catch (error) {
+      await loadRemoteProject({ force: true }).catch(() => {})
+      throw error
+    }
+    try {
+      await loadRemoteProject({ force: true })
+    } catch (error) {
+      throw new Error(
+        'Изменения сохранены, но экран не удалось обновить. Обновите страницу перед следующей правкой.',
+        { cause: error },
+      )
+    }
+  })
+  mutationQueue = run.catch(() => {})
+  return run
 }
 
 export async function addRemoteVideo(input) {
@@ -124,16 +140,19 @@ export async function addRemoteVideo(input) {
 }
 
 export async function updateRemoteVideo(id, patch) {
-  const previous = snapshot.videos.find((video) => video.id === id)
-  if (!previous) return null
-  const normalized = normalizeVideo(patch, { base: previous })
-  await mutate(() => adminRepository.updateVideo({
-    ...normalized,
-    id,
-    coverPath: patch.coverPath ?? previous.coverPath ?? null,
-    coverFile: patch.coverFile || null,
-    removeCover: patch.removeCover === true,
-  }, previous))
+  let normalized = null
+  await mutate(async () => {
+    const previous = snapshot.videos.find((video) => video.id === id)
+    if (!previous) return
+    normalized = normalizeVideo(patch, { base: previous })
+    await adminRepository.updateVideo({
+      ...normalized,
+      id,
+      coverPath: patch.coverPath ?? previous.coverPath ?? null,
+      coverFile: patch.coverFile || null,
+      removeCover: patch.removeCover === true,
+    }, previous)
+  })
   return normalized
 }
 
@@ -189,8 +208,12 @@ export function exportRemoteVideos() {
 }
 
 export async function saveRemoteChannel(next) {
-  const merged = { ...snapshot.channel, ...next }
-  await mutate(() => adminRepository.saveChannel(merged, snapshot.channel))
+  let merged = null
+  await mutate(async () => {
+    const previous = snapshot.channel
+    merged = { ...previous, ...next }
+    await adminRepository.saveChannel(merged, previous)
+  })
   return merged
 }
 
@@ -204,11 +227,11 @@ export async function replaceRemoteProject(channel, videos) {
       .filter((video) => video && typeof video === 'object')
       .map((video) => ({ ...normalizeVideo(video), coverPath: video.coverPath || null }))
     : []
-  const subscriberDailyStats = Array.isArray(channel?.subscriberDailyStats)
-    ? channel.subscriberDailyStats
-    : snapshot.channel.subscriberDailyStats
-  const nextChannel = { ...CHANNEL_DEFAULTS, ...channel, subscriberDailyStats }
   await mutate(async () => {
+    const subscriberDailyStats = Array.isArray(channel?.subscriberDailyStats)
+      ? channel.subscriberDailyStats
+      : snapshot.channel.subscriberDailyStats
+    const nextChannel = { ...CHANNEL_DEFAULTS, ...channel, subscriberDailyStats }
     await adminRepository.replaceProject(nextChannel, normalizedVideos)
     await adminRepository.replaceSubscriberDailyStats(nextChannel.subscriberDailyStats)
   })

@@ -7,7 +7,7 @@ import { build } from '../lib/analyticsAggregator.js'
  * Главный оркестратор аналитики. Принимает текущий range, возвращает
  * мемоизированный агрегат + флаг loading (300мс на первом mount).
  */
-export function useAnalytics(range) {
+export function useAnalytics(range, { enabled = true } = {}) {
   const { videos } = useVideos()
   const { channel } = useChannel()
   const [loading, setLoading] = useState(true)
@@ -18,9 +18,9 @@ export function useAnalytics(range) {
   }, [])
 
   const data = useMemo(
-    () => build(videos, channel, range),
-    [videos, channel, range],
+    () => (enabled ? build(videos, channel, range) : null),
+    [enabled, videos, channel, range],
   )
 
-  return { ...data, loading }
+  return data ? { ...data, loading } : null
 }

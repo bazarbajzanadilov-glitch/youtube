@@ -60,7 +60,7 @@ function PaneGeneral({ showToast }) {
           <HelpIcon size={14}/>
         </button>
       </div>
-      <Select label="Валюта" value="доллар США (USD)"/>
+      <Select label="Валюта" value="казахстанский тенге (KZT)"/>
     </>
   )
 }

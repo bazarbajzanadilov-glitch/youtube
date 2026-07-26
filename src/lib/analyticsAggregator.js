@@ -13,10 +13,9 @@ import {
   hashSeed, isoDay, addDays, daysBetween, startOfDay,
   toCalendarDate,
   generateDailyShape, generateLifecycleShape, normalizeToTotal, inferProfile,
-  movingAverage,
   generateRetention, generateHourlyHeatmap,
   generateTrafficShares, generateDeviceShares, generateGeoShares,
-  generateAgeGender, generateLanguageShares, generateReturningSeries,
+  generateAgeGender, generateLanguageShares,
 } from './analyticsEngine.js'
 import { averageViewFraction } from './videoMetrics.js'
 
@@ -60,9 +59,10 @@ export function resolveRange(range, videos, today = new Date(), channel = {}) {
   const yearMatch = /^year-(\d{4})$/.exec(range?.kind || '')
   if (yearMatch) {
     const year = Number(yearMatch[1])
-    const from = startOfDay(new Date(year, 0, 1))
+    const requestedFrom = startOfDay(new Date(year, 0, 1))
     const end = startOfDay(new Date(year, 11, 31))
-    const to = end > todayD && from <= todayD ? todayD : end
+    const to = end > todayD ? todayD : end
+    const from = requestedFrom > to ? to : requestedFrom
     const days = Math.max(1, daysBetween(from, to) + 1)
     return { from, to, days, kind: range.kind, label: String(year) }
   }
@@ -70,9 +70,10 @@ export function resolveRange(range, videos, today = new Date(), channel = {}) {
   if (monthMatch) {
     const year = Number(monthMatch[1])
     const month = Number(monthMatch[2]) - 1
-    const from = startOfDay(new Date(year, month, 1))
+    const requestedFrom = startOfDay(new Date(year, month, 1))
     const end = startOfDay(new Date(year, month + 1, 0))
-    const to = end > todayD && from <= todayD ? todayD : end
+    const to = end > todayD ? todayD : end
+    const from = requestedFrom > to ? to : requestedFrom
     const days = Math.max(1, daysBetween(from, to) + 1)
     return { from, to, days, kind: range.kind, label: range.label || `${year}-${monthMatch[2]}` }
   }
@@ -142,11 +143,50 @@ export function effectiveComments(video) {
   return Math.round(views * rate)
 }
 
-function attachVideoContribution({ video, channel, range, dayMap }) {
-  if (!video || !video.date) return
-  const today = range.to
+function distributeDiscreteTotal(values, total, precision = 0) {
+  const factor = 10 ** precision
+  const targetUnits = Math.max(0, Math.round((Number(total) || 0) * factor))
+  if (!Array.isArray(values) || values.length === 0 || targetUnits === 0) {
+    return new Array(Array.isArray(values) ? values.length : 0).fill(0)
+  }
+
+  const rawUnits = values.map((value) => Math.max(0, Number(value) || 0) * factor)
+  const units = rawUnits.map(Math.floor)
+  let remaining = targetUnits - units.reduce((sum, value) => sum + value, 0)
+  const order = rawUnits
+    .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+    .sort((a, b) => b.remainder - a.remainder || a.index - b.index)
+
+  for (let index = 0; remaining > 0; index += 1) {
+    units[order[index % order.length].index] += 1
+    remaining -= 1
+  }
+  return units.map((value) => value / factor)
+}
+
+function videoContributionKey(video) {
+  return [
+    video?.id,
+    video?.date,
+    video?.views,
+    video?.likes,
+    video?.dislikes,
+    video?.revenue,
+    video?.duration,
+    video?.averageViewPercentage,
+    video?.profile,
+  ].join('|')
+}
+
+function prepareVideoContribution(video, channel, asOf, cache) {
+  if (!video || !video.date) return null
+  const today = startOfDay(asOf)
   const publish = startOfDay(video.date)
-  if (publish > today) return
+  if (publish > today) return null
+  const cacheKey = videoContributionKey(video)
+  const cached = cache?.get(cacheKey)
+  if (cached) return cached
+
   const ageDays = Math.max(1, daysBetween(publish, today) + 1)
   const profile = video.profile || inferProfile(video, today)
   const seed = hashSeed(channel.channelName, video.id, profile, video.views || 0)
@@ -157,7 +197,7 @@ function attachVideoContribution({ video, channel, range, dayMap }) {
     startWeekday: publish.getDay(),
   })
   const totalViews = Math.max(0, Number(video.views) || 0)
-  const scaled = normalizeToTotal(shape, totalViews)
+  const scaled = distributeDiscreteTotal(normalizeToTotal(shape, totalViews), totalViews)
   const totalRevenue = effectiveRevenue(video, channel)
   const revenueSeed = hashSeed(channel.channelName, video.id, 'revenue', totalRevenue)
   const revenueRand = seededRevenue(revenueSeed)
@@ -166,21 +206,62 @@ function attachVideoContribution({ video, channel, range, dayMap }) {
     return x * ageBoost * (0.85 + revenueRand() * 0.35)
   })
   const revenueScaled = totalViews > 0 && totalRevenue > 0
-    ? normalizeToTotal(revenueShape, totalRevenue)
+    ? distributeDiscreteTotal(normalizeToTotal(revenueShape, totalRevenue), totalRevenue, 2)
     : new Array(scaled.length).fill(0)
   const totalLikes = Math.max(0, Number(video.likes) || 0)
   const likesScaled = totalViews > 0 && totalLikes > 0
-    ? scaled.map((x) => (x / totalViews) * totalLikes)
+    ? distributeDiscreteTotal(
+      scaled.map((x) => (x / totalViews) * totalLikes),
+      totalLikes,
+    )
     : new Array(scaled.length).fill(0)
   const totalComments = effectiveComments(video)
   const commentsScaled = totalViews > 0 && totalComments > 0
-    ? scaled.map((x) => (x / totalViews) * totalComments)
+    ? distributeDiscreteTotal(
+      scaled.map((x) => (x / totalViews) * totalComments),
+      totalComments,
+    )
     : new Array(scaled.length).fill(0)
   const durationSec = parseDuration(video.duration)
   const watchEachSec = scaled.map(
     (views) => views * durationSec * (averageViewFraction(video) ?? 0),
   )
-  for (let i = 0; i < ageDays; i += 1) {
+  const contribution = {
+    publish,
+    ageDays,
+    scaled,
+    revenueScaled,
+    likesScaled,
+    commentsScaled,
+    watchEachSec,
+  }
+  cache?.set(cacheKey, contribution)
+  return contribution
+}
+
+function attachVideoContribution({
+  video,
+  channel,
+  range,
+  dayMap,
+  asOf = range.to,
+  cache,
+}) {
+  const contribution = prepareVideoContribution(video, channel, asOf, cache)
+  if (!contribution) return
+  const {
+    publish,
+    ageDays,
+    scaled,
+    revenueScaled,
+    likesScaled,
+    commentsScaled,
+    watchEachSec,
+  } = contribution
+  const firstIndex = Math.max(0, daysBetween(publish, range.from))
+  const lastIndex = Math.min(ageDays - 1, daysBetween(publish, range.to))
+  if (lastIndex < firstIndex) return
+  for (let i = firstIndex; i <= lastIndex; i += 1) {
     const day = addDays(publish, i)
     const key = isoDay(day)
     const slot = dayMap.get(key)
@@ -222,7 +303,7 @@ function resolveVideoType(video) {
 
 /* === KPI delta vs previous period === */
 
-function buildPrevSeries(videos, channel, range) {
+function buildPrevSeries(videos, channel, range, asOf = range.to, cache) {
   const prevTo = addDays(range.from, -1)
   const prevFrom = addDays(prevTo, -(range.days - 1))
   const { map } = buildDailyMap(prevFrom, range.days)
@@ -231,6 +312,8 @@ function buildPrevSeries(videos, channel, range) {
     channel,
     range: { from: prevFrom, to: prevTo, days: range.days },
     dayMap: map,
+    asOf,
+    cache,
   }))
   let views = 0
   let watch = 0
@@ -248,7 +331,7 @@ function buildPrevSeries(videos, channel, range) {
 }
 
 function pctDelta(curr, prev) {
-  if (!prev) return curr > 0 ? 100 : 0
+  if (!prev) return curr > 0 ? null : 0
   const raw = ((curr - prev) / prev) * 100
   return raw
 }
@@ -325,62 +408,38 @@ function bucketSeries(series, granularity) {
   }))
 }
 
-function smoothPreserveTotal(values, window = 3, seed = 1, startWeekday = 0) {
-  if (!Array.isArray(values) || values.length < 3) return values
-  const total = values.reduce((sum, value) => sum + (Number(value) || 0), 0)
-  if (total <= 0) return values
-  const smoothed = movingAverage(values, window)
-  const wave = generateDailyShape({
-    seed,
-    days: values.length,
-    profile: 'seasonal',
-    startWeekday,
-  })
-  const waveAvg = wave.reduce((sum, value) => sum + value, 0) / Math.max(1, wave.length)
-  const shaped = smoothed.map((value, index) => {
-    const ratio = waveAvg > 0 ? wave[index] / waveAvg : 1
-    return value * (0.72 + ratio * 0.38)
-  })
-  return normalizeToTotal(shaped, total)
-}
-
-function addMetricPeaksPreserveTotal(values, seed = 1, intensity = 0.24) {
-  if (!Array.isArray(values) || values.length < 6) return values
-  const total = values.reduce((sum, value) => sum + (Number(value) || 0), 0)
-  if (total <= 0) return values
-
-  const rand = seededRevenue(seed)
-  const shaped = values.map((value, index) => {
-    const safe = Math.max(0, Number(value) || 0)
-    const micro = 1 + (rand() - 0.5) * intensity * 0.42
-    const dayPulse = 1 + Math.sin((index + rand() * 0.35) * Math.PI * 0.86) * intensity * 0.1
-    return safe * micro * dayPulse
-  })
-
-  const peakCount = Math.min(4, Math.max(2, Math.round(values.length / 10)))
-  const used = []
-  for (let i = 0; i < peakCount; i += 1) {
-    const candidate = 1 + Math.floor(rand() * Math.max(1, values.length - 2))
-    if (used.some((index) => Math.abs(index - candidate) < 3)) continue
-    used.push(candidate)
-
-    const boost = 1 + intensity * (0.72 + rand() * 0.72)
-    shaped[candidate] *= boost
-    if (candidate - 1 >= 0) shaped[candidate - 1] *= 1 + (boost - 1) * 0.22
-    if (candidate + 1 < shaped.length) shaped[candidate + 1] *= 1 + (boost - 1) * 0.16
-
-    const valley = candidate + (rand() > 0.5 ? 2 : -2)
-    if (valley >= 0 && valley < shaped.length) {
-      shaped[valley] *= 1 - intensity * (0.18 + rand() * 0.16)
+function bucketNewReturningSeries(series, granularity) {
+  if (granularity === 'day' || series.length === 0) return series
+  const buckets = new Map()
+  series.forEach((row) => {
+    const key = bucketKey(row.date, granularity)
+    if (!buckets.has(key)) {
+      buckets.set(key, { date: key, new: 0, returning: 0 })
     }
-  }
-
-  return normalizeToTotal(shaped, total)
+    const bucket = buckets.get(key)
+    bucket.new += Math.max(0, Number(row.new) || 0)
+    bucket.returning += Math.max(0, Number(row.returning) || 0)
+  })
+  return Array.from(buckets.values()).sort((a, b) => a.date.localeCompare(b.date))
 }
 
-function buildSeriesForVideos(videos, channel, range, granularity) {
+function buildSeriesForVideos(
+  videos,
+  channel,
+  range,
+  granularity,
+  asOf = range.to,
+  cache,
+) {
   const { dates, map } = buildDailyMap(range.from, range.days)
-  videos.forEach((video) => attachVideoContribution({ video, channel, range, dayMap: map }))
+  videos.forEach((video) => attachVideoContribution({
+    video,
+    channel,
+    range,
+    dayMap: map,
+    asOf,
+    cache,
+  }))
   const dailySeries = dates.map(({ date, weekday }) => {
     const slot = map.get(date)
     return {
@@ -396,18 +455,255 @@ function buildSeriesForVideos(videos, channel, range, granularity) {
   return bucketSeries(dailySeries, granularity)
 }
 
+function buildVideoPeriodMetrics(videos, channel, range, asOf, cache) {
+  return videos.map((video) => {
+    const series = buildSeriesForVideos([video], channel, range, 'day', asOf, cache)
+    return {
+      ...video,
+      periodViews: Math.round(series.reduce((sum, row) => sum + row.views, 0)),
+      periodWatchTime: Math.round(series.reduce((sum, row) => sum + row.watchTime, 0)),
+      periodRevenue: +series.reduce((sum, row) => sum + row.revenue, 0).toFixed(2),
+      periodLikes: Math.round(series.reduce((sum, row) => sum + row.likes, 0)),
+      periodComments: Math.round(series.reduce((sum, row) => sum + row.comments, 0)),
+    }
+  })
+}
+
+function reconcileIntegerMetric(items, key, target) {
+  const reconciled = items.map((item) => ({ ...item }))
+  const order = reconciled
+    .map((item, index) => ({ index, value: Math.max(0, Number(item[key]) || 0) }))
+    .sort((a, b) => b.value - a.value || a.index - b.index)
+  if (order.length === 0) return reconciled
+
+  const delta = Math.round(Number(target) || 0) - reconciled.reduce(
+    (sum, item) => sum + Math.max(0, Math.round(Number(item[key]) || 0)),
+    0,
+  )
+
+  if (delta > 0) {
+    for (let offset = 0; offset < delta; offset += 1) {
+      const targetIndex = order[offset % order.length].index
+      const current = Math.max(0, Math.round(Number(reconciled[targetIndex][key]) || 0))
+      reconciled[targetIndex][key] = current + 1
+    }
+  } else if (delta < 0) {
+    let remaining = -delta
+    for (const item of order) {
+      if (remaining <= 0) break
+      const current = Math.max(0, Math.round(Number(reconciled[item.index][key]) || 0))
+      const reduction = Math.min(current, remaining)
+      reconciled[item.index][key] = current - reduction
+      remaining -= reduction
+    }
+  }
+  return reconciled
+}
+
+function buildDailyNewReturningSeries(dailySeries, channelSeed) {
+  return dailySeries.map((row) => {
+    const rand = seededRevenue(hashSeed(channelSeed, row.date, 'audience-split'))
+    const ratio = Math.max(0.2, Math.min(0.92, 0.61 + (rand() - 0.5) * 0.18))
+    const newViews = Math.round(row.views * ratio)
+    return {
+      date: row.date,
+      new: newViews,
+      returning: Math.max(0, row.views - newViews),
+    }
+  })
+}
+
+function aggregateDatedShares(dailySeries, seed, generator) {
+  const totals = new Map()
+  let totalWeight = 0
+  dailySeries.forEach((row) => {
+    const weight = Math.max(0, Number(row.views) || 0)
+    if (weight <= 0) return
+    totalWeight += weight
+    generator(hashSeed(seed, row.date, 'period-share')).forEach((item) => {
+      const key = item.key || item.label
+      const current = totals.get(key) || {
+        key: item.key,
+        label: item.label,
+        weightedShare: 0,
+      }
+      current.weightedShare += (Number(item.share) || 0) * weight
+      totals.set(key, current)
+    })
+  })
+  if (totalWeight <= 0) return []
+  const rows = Array.from(totals.values()).map((item) => ({
+    key: item.key,
+    label: item.label,
+    share: item.weightedShare / totalWeight,
+  }))
+  const shareSum = rows.reduce((sum, row) => sum + row.share, 0) || 1
+  return rows
+    .map((row) => ({ ...row, share: row.share / shareSum }))
+    .sort((a, b) => b.share - a.share)
+}
+
+function aggregateDatedAgeGender(dailySeries, seed) {
+  return {
+    ages: aggregateDatedShares(
+      dailySeries,
+      seed,
+      (dailySeed) => generateAgeGender(dailySeed).ages,
+    ),
+    genders: aggregateDatedShares(
+      dailySeries,
+      seed + 1,
+      (dailySeed) => generateAgeGender(dailySeed).genders,
+    ),
+  }
+}
+
+function aggregateDatedHeatmap(dailySeries, seed) {
+  const matrix = Array.from({ length: 7 }, () => new Array(24).fill(0))
+  let totalWeight = 0
+  dailySeries.forEach((row) => {
+    const weight = Math.max(0, Number(row.views) || 0)
+    if (weight <= 0) return
+    totalWeight += weight
+    const dailyMatrix = generateHourlyHeatmap(hashSeed(seed, row.date, 'heatmap'))
+    for (let day = 0; day < 7; day += 1) {
+      for (let hour = 0; hour < 24; hour += 1) {
+        matrix[day][hour] += dailyMatrix[day][hour] * weight
+      }
+    }
+  })
+  if (totalWeight <= 0) return matrix
+  return matrix.map((row) => row.map((value) => value / totalWeight))
+}
+
+function buildPeriodCtr(dailySeries, seed) {
+  let views = 0
+  let impressions = 0
+  dailySeries.forEach((row) => {
+    const dailyViews = Math.max(0, Number(row.views) || 0)
+    if (dailyViews <= 0) return
+    const dailySeed = hashSeed(seed, row.date, 'ctr')
+    const dailyCtr = 0.082 + ((dailySeed % 1000) / 1000) * 0.06
+    views += dailyViews
+    impressions += dailyViews / Math.max(0.04, dailyCtr)
+  })
+  if (views <= 0 || impressions <= 0) {
+    return 0.082 + ((seed % 1000) / 1000) * 0.06
+  }
+  return views / impressions
+}
+
+function buildRollingMonthlyViewersSeries(
+  videos,
+  channel,
+  range,
+  granularity,
+  asOf,
+  cache,
+) {
+  const rollingDays = 28
+  const extendedRange = {
+    from: addDays(range.from, -(rollingDays - 1)),
+    to: range.to,
+    days: range.days + rollingDays - 1,
+  }
+  const daily = buildSeriesForVideos(videos, channel, extendedRange, 'day', asOf, cache)
+  const rolling = []
+  let rollingViews = 0
+
+  daily.forEach((row, index) => {
+    rollingViews += Math.max(0, Number(row.views) || 0)
+    if (index >= rollingDays) {
+      rollingViews -= Math.max(0, Number(daily[index - rollingDays].views) || 0)
+    }
+    if (index >= rollingDays - 1) {
+      rolling.push({
+        date: row.date,
+        viewers: Math.max(0, Math.round(rollingViews * 0.7 * 0.85)),
+      })
+    }
+  })
+
+  if (granularity === 'day') return rolling
+  const buckets = new Map()
+  rolling.forEach((row) => {
+    buckets.set(bucketKey(row.date, granularity), row)
+  })
+  return Array.from(buckets.entries()).map(([date, row]) => ({
+    date,
+    viewers: row.viewers,
+  }))
+}
+
+function buildRealtimeBaseline(videos, channel, today, asOf, cache) {
+  const range = resolveRange({ kind: '28d' }, videos, today, channel)
+  const periodVideos = buildVideoPeriodMetrics(videos, channel, range, asOf, cache)
+  const totalViews = periodVideos.reduce(
+    (sum, video) => sum + Math.max(0, Number(video.periodViews) || 0),
+    0,
+  )
+  return { totalViews, days: range.days, periodVideos }
+}
+
+function resolveSixMonthRange(today) {
+  const to = getAnalyticsEndDate(today)
+  const from = startOfDay(new Date(to.getFullYear(), to.getMonth() - 5, 1))
+  return {
+    from,
+    to,
+    days: Math.max(1, daysBetween(from, to) + 1),
+    kind: 'fixed-6-months',
+    label: 'Последние 6 месяцев',
+  }
+}
+
+function allocateRealtimeVideoViews(videos, totalViews) {
+  const safeTotal = Math.max(0, Math.round(Number(totalViews) || 0))
+  const totalWeight = videos.reduce(
+    (sum, video) => sum + Math.max(0, Number(video.periodViews) || 0),
+    0,
+  )
+  if (safeTotal === 0 || totalWeight === 0) {
+    return videos.map((video) => ({ ...video, realtimeViews: 0 }))
+  }
+
+  const allocated = videos.map((video, index) => {
+    const raw = (safeTotal * Math.max(0, Number(video.periodViews) || 0)) / totalWeight
+    return {
+      index,
+      value: Math.floor(raw),
+      remainder: raw - Math.floor(raw),
+    }
+  })
+  let residual = safeTotal - allocated.reduce((sum, item) => sum + item.value, 0)
+  const byRemainder = [...allocated].sort((a, b) => (
+    b.remainder - a.remainder || a.index - b.index
+  ))
+  for (let index = 0; index < byRemainder.length && residual > 0; index += 1) {
+    allocated[byRemainder[index].index].value += 1
+    residual -= 1
+  }
+  return videos.map((video, index) => ({
+    ...video,
+    realtimeViews: allocated[index].value,
+  }))
+}
+
 /**
  * Lifetime итоги — это «правда» канала. Они должны совпадать с Dashboard
  * (Screen1Dashboard) — иначе видна десинхронизация. При range='lifetime'
  * период-серия равна lifetime; для других range — выводятся как hint.
  */
-function computeLifetime(videos, channel) {
+function computeLifetime(videos, channel, asOf) {
   let views = 0
   let likes = 0
   let revenue = 0
   let comments = 0
   let watchSec = 0
+  let videoCount = 0
   for (const v of videos) {
+    if (!v?.date || startOfDay(v.date) > asOf) continue
+    videoCount += 1
     const vv = Math.max(0, Number(v.views) || 0)
     views += vv
     likes += Math.max(0, Number(v.likes) || 0)
@@ -421,7 +717,7 @@ function computeLifetime(videos, channel) {
     revenue: +revenue.toFixed(2),
     comments,
     watchHours: watchSec / 3600,
-    videos: videos.length,
+    videos: videoCount,
   }
 }
 
@@ -431,51 +727,64 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const videos = Array.isArray(videosInput) ? videosInput : []
   const channel = channelInput || {}
   const today = options.today || new Date()
+  const asOf = getAnalyticsEndDate(today)
   const range = resolveRange(rangeInput, videos, today, channel)
-  const channelSeed = hashSeed(channel.channelName || 'channel', channel.country || 'RU', range.kind)
+  const channelSeed = hashSeed(channel.channelName || 'channel', channel.country || 'RU', 'analytics')
+  const contributionCache = new Map()
 
-  const lifetime = computeLifetime(videos, channel)
+  const lifetime = computeLifetime(videos, channel, asOf)
   const { dates, map } = buildDailyMap(range.from, range.days)
-  videos.forEach((v) => attachVideoContribution({ video: v, channel, range, dayMap: map }))
+  videos.forEach((v) => attachVideoContribution({
+    video: v,
+    channel,
+    range,
+    dayMap: map,
+    asOf,
+    cache: contributionCache,
+  }))
 
-  /* Сырые слоты + 3-дневное скользящее среднее для канальной серии. Для просмотров
-     и watch time возвращаем часть ломаной YouTube Studio фактуры; доход оставляем
-     более ровным, как в оригинальной вкладке revenue. */
+  /* Канонические дневные слоты строятся один раз относительно общей даты среза.
+     Поэтому одна и та же календарная дата не меняет значение при выборе другого
+     диапазона, а длинные периоды отличаются только агрегацией. */
   const rawViews = dates.map(({ date }) => map.get(date).views)
   const rawWatch = dates.map(({ date }) => map.get(date).watchTime)
   const rawRev = dates.map(({ date }) => map.get(date).revenue)
   const rawLikes = dates.map(({ date }) => map.get(date).likes)
   const rawComm = dates.map(({ date }) => map.get(date).comments)
 
-  const smoothedViews = addMetricPeaksPreserveTotal(
-    smoothPreserveTotal(rawViews, 3, channelSeed + 21, range.from.getDay()),
-    channelSeed + 121,
-    0.26,
-  )
-  const smoothedWatch = addMetricPeaksPreserveTotal(
-    smoothPreserveTotal(rawWatch, 3, channelSeed + 22, range.from.getDay()),
-    channelSeed + 122,
-    0.22,
-  )
-  const smoothedRev = smoothPreserveTotal(rawRev, 3, channelSeed + 23, range.from.getDay())
-  const smoothedLikes = smoothPreserveTotal(rawLikes, 3, channelSeed + 24, range.from.getDay())
-  const smoothedComm = smoothPreserveTotal(rawComm, 3, channelSeed + 25, range.from.getDay())
-
   const dailySeries = dates.map(({ date, weekday }, i) => ({
     date,
     weekday,
-    views: Math.round(smoothedViews[i]),
-    watchTime: Math.round(smoothedWatch[i]),
-    revenue: +smoothedRev[i].toFixed(2),
-    likes: Math.round(smoothedLikes[i]),
-    comments: Math.round(smoothedComm[i]),
+    views: Math.round(rawViews[i]),
+    watchTime: +rawWatch[i].toFixed(3),
+    revenue: +rawRev[i].toFixed(2),
+    likes: Math.round(rawLikes[i]),
+    comments: Math.round(rawComm[i]),
   }))
   /* Бакетинг: для длинных диапазонов аггрегируем по неделям/месяцам, чтобы чарт был
      читаемым (а не плоской линией с одним всплеском в конце). */
   const granularity = range.days <= 56 ? 'day' : range.days <= 240 ? 'week' : 'month'
   const series = bucketSeries(dailySeries, granularity)
+  const dailyNewReturning = buildDailyNewReturningSeries(dailySeries, channelSeed)
+  const newReturning = bucketNewReturningSeries(dailyNewReturning, granularity)
+  const returningViews = dailyNewReturning.reduce((sum, row) => sum + row.returning, 0)
+  const audienceViews = dailyNewReturning.reduce(
+    (sum, row) => sum + row.new + row.returning,
+    0,
+  )
+  const returningPercent = audienceViews > 0
+    ? Math.round((returningViews / audienceViews) * 100)
+    : 0
+  const monthlyViewersSeries = buildRollingMonthlyViewersSeries(
+    videos,
+    channel,
+    range,
+    granularity,
+    asOf,
+    contributionCache,
+  )
+  const monthlyViewers = monthlyViewersSeries[monthlyViewersSeries.length - 1]?.viewers || 0
 
-  // Если range = lifetime — period totals привязываем к lifetime totals (точное совпадение с Dashboard)
   const isLifetime = range.kind === 'lifetime'
   const totalViewsRaw = series.reduce((s, x) => s + x.views, 0)
   const totalLikesRaw = series.reduce((s, x) => s + x.likes, 0)
@@ -483,23 +792,28 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const totalWatchSec = series.reduce((s, x) => s + x.watchTime, 0)
   const totalRevenueRaw = series.reduce((s, x) => s + x.revenue, 0)
 
-  const totalViews = isLifetime ? lifetime.views : totalViewsRaw
-  const totalLikes = isLifetime ? lifetime.likes : totalLikesRaw
-  const totalComments = isLifetime ? lifetime.comments : totalCommentsRaw
-  const totalRevenue = isLifetime ? lifetime.revenue : totalRevenueRaw
-  const totalWatchHours = isLifetime ? lifetime.watchHours : totalWatchSec / 3600
+  const totalViews = totalViewsRaw
+  const totalLikes = totalLikesRaw
+  const totalComments = totalCommentsRaw
+  const totalRevenue = +totalRevenueRaw.toFixed(2)
+  const totalWatchHours = totalWatchSec / 3600
 
-  const videosWithKnownRetention = videos.filter(
+  const periodVideos = reconcileIntegerMetric(
+    buildVideoPeriodMetrics(videos, channel, range, asOf, contributionCache),
+    'periodViews',
+    totalViews,
+  )
+  const videosWithKnownRetention = periodVideos.filter(
     (video) => averageViewFraction(video) != null,
   )
   const allViewsForDuration = videosWithKnownRetention.reduce(
-    (sum, video) => sum + (Number(video.views) || 0),
+    (sum, video) => sum + (Number(video.periodViews) || 0),
     0,
   )
   const allWatchSec = videosWithKnownRetention.reduce(
     (sum, video) => (
       sum
-      + (Number(video.views) || 0)
+      + (Number(video.periodViews) || 0)
       * parseDuration(video.duration)
       * averageViewFraction(video)
     ),
@@ -508,17 +822,44 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const avgDurationSec = allViewsForDuration > 0 ? allWatchSec / allViewsForDuration : 0
 
   const videosByType = {
-    video: videos.filter((video) => resolveVideoType(video) === 'video'),
-    short: videos.filter((video) => resolveVideoType(video) === 'short'),
-    live: videos.filter((video) => resolveVideoType(video) === 'live'),
+    video: periodVideos.filter((video) => resolveVideoType(video) === 'video'),
+    short: periodVideos.filter((video) => resolveVideoType(video) === 'short'),
+    live: periodVideos.filter((video) => resolveVideoType(video) === 'live'),
   }
-  const seriesByType = {
-    video: buildSeriesForVideos(videosByType.video, channel, range, granularity),
-    short: buildSeriesForVideos(videosByType.short, channel, range, granularity),
-    live: buildSeriesForVideos(videosByType.live, channel, range, granularity),
+  const dailySeriesByType = {
+    video: buildSeriesForVideos(
+      videosByType.video,
+      channel,
+      range,
+      'day',
+      asOf,
+      contributionCache,
+    ),
+    short: buildSeriesForVideos(
+      videosByType.short,
+      channel,
+      range,
+      'day',
+      asOf,
+      contributionCache,
+    ),
+    live: buildSeriesForVideos(
+      videosByType.live,
+      channel,
+      range,
+      'day',
+      asOf,
+      contributionCache,
+    ),
   }
+  const seriesByType = Object.fromEntries(
+    Object.entries(dailySeriesByType).map(([key, rows]) => [
+      key,
+      bucketSeries(rows, granularity),
+    ]),
+  )
 
-  const prev = buildPrevSeries(videos, channel, range)
+  const prev = buildPrevSeries(videos, channel, range, asOf, contributionCache)
   const prevWatchHours = prev.watch / 3600
   const subscribersDaily = buildSubscriberSeries(channel, dates)
   const subscribers = aggregateSubscriberSeries(subscribersDaily, granularity)
@@ -528,46 +869,152 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const previousSubscriberDates = buildDailyMap(addDays(range.from, -range.days), range.days).dates
   const previousSubscribersValue = buildSubscriberSeries(channel, previousSubscriberDates)
     .reduce((sum, row) => sum + row.subscribers, 0)
-  const subscribersDelta = isLifetime ? 0 : pctDelta(subscribersValue, previousSubscribersValue)
+  const subscribersDelta = isLifetime ? null : pctDelta(subscribersValue, previousSubscribersValue)
 
-  const traffic = generateTrafficShares(channelSeed)
-  const devices = generateDeviceShares(channelSeed + 1)
-  const geography = generateGeoShares(channelSeed + 2, channel.country || 'RU')
-  const ageGender = generateAgeGender(channelSeed + 3)
-  const languages = generateLanguageShares(channelSeed + 4)
-  const heatmap = generateHourlyHeatmap(channelSeed + 5)
-  const returningRaw = generateReturningSeries(channelSeed + 6, range.days, range.from.getDay())
-  const newReturning = series.map((d, i) => {
-    const ratio = returningRaw[i]?.newRatio ?? 0.6
-    const newV = Math.round(d.views * ratio)
-    return { date: d.date, new: newV, returning: Math.max(0, d.views - newV) }
-  })
+  const traffic = aggregateDatedShares(
+    dailySeries,
+    channelSeed,
+    generateTrafficShares,
+  )
+  const trafficByType = Object.fromEntries(
+    Object.entries(dailySeriesByType).map(([key, rows]) => [
+      key,
+      aggregateDatedShares(
+        rows,
+        hashSeed(channelSeed, key, 'traffic'),
+        generateTrafficShares,
+      ),
+    ]),
+  )
+  const devices = aggregateDatedShares(
+    dailySeries,
+    channelSeed + 1,
+    generateDeviceShares,
+  )
+  const geography = aggregateDatedShares(
+    dailySeries,
+    channelSeed + 2,
+    (seed) => generateGeoShares(seed, channel.country || 'RU'),
+  )
+  const ageGender = aggregateDatedAgeGender(dailySeries, channelSeed + 3)
+  const languages = aggregateDatedShares(
+    dailySeries,
+    channelSeed + 4,
+    generateLanguageShares,
+  )
+  const heatmap = aggregateDatedHeatmap(dailySeries, channelSeed + 5)
 
-  const ctr = 0.082 + ((channelSeed % 1000) / 1000) * 0.06
+  const ctr = buildPeriodCtr(dailySeries, channelSeed)
+  const ctrByType = Object.fromEntries(
+    Object.entries(dailySeriesByType).map(([key, rows]) => [
+      key,
+      rows.some((row) => (Number(row.views) || 0) > 0)
+        ? buildPeriodCtr(rows, hashSeed(channelSeed, key, 'ctr')) * 100
+        : 0,
+    ]),
+  )
   const impressions = Math.round(totalViews / Math.max(0.04, ctr))
 
-  const retentionVideos = videos.slice(0, 6).map((v) => ({
-    videoId: v.id,
-    title: v.title,
-    curve: generateRetention(hashSeed(v.id, 'retention')),
-  }))
+  const retentionVideos = videos
+    .filter((video) => video?.date && startOfDay(video.date) <= asOf)
+    .slice(0, 6)
+    .map((v) => ({
+      videoId: v.id,
+      title: v.title,
+      curve: generateRetention(hashSeed(v.id, 'retention')),
+    }))
   const channelRetention = generateRetention(channelSeed + 7)
 
   /* realtime: 48h, частица в час, последний бар = текущий */
-  const realtime = buildRealtime(channelSeed + 8, totalViews, range.days)
+  const realtimeBaseline = buildRealtimeBaseline(
+    videos,
+    channel,
+    today,
+    asOf,
+    contributionCache,
+  )
+  const realtimeSeed = hashSeed(
+    channel.channelName || 'channel',
+    channel.country || 'RU',
+    'realtime-48h',
+  )
+  const realtimeCore = buildRealtime(
+    realtimeSeed,
+    realtimeBaseline.totalViews,
+    realtimeBaseline.days,
+  )
+  const realtimeTotalViews = realtimeCore.last48.reduce((sum, value) => sum + value, 0)
+  const realtimeVideos = allocateRealtimeVideoViews(
+    realtimeBaseline.periodVideos,
+    realtimeTotalViews,
+  )
+  const realtime = {
+    ...realtimeCore,
+    topVideos: [...realtimeVideos]
+      .filter((video) => video.realtimeViews > 0)
+      .sort((a, b) => b.realtimeViews - a.realtimeViews)
+      .slice(0, 10),
+  }
 
   /* monetization split */
+  const sixMonthRange = resolveSixMonthRange(today)
+  const sixMonthSeries = buildSeriesForVideos(
+    videos,
+    channel,
+    sixMonthRange,
+    'month',
+    asOf,
+    contributionCache,
+  )
+  const sixMonthSeriesByType = {
+    video: buildSeriesForVideos(
+      videosByType.video,
+      channel,
+      sixMonthRange,
+      'month',
+      asOf,
+      contributionCache,
+    ),
+    short: buildSeriesForVideos(
+      videosByType.short,
+      channel,
+      sixMonthRange,
+      'month',
+      asOf,
+      contributionCache,
+    ),
+    live: buildSeriesForVideos(
+      videosByType.live,
+      channel,
+      sixMonthRange,
+      'month',
+      asOf,
+      contributionCache,
+    ),
+  }
   const monetization = buildMonetization({
-    channel, channelSeed, series, totalRevenue, totalViews, prev,
+    channel,
+    channelSeed,
+    series,
+    sixMonthSeries,
+    sixMonthSeriesByType,
+    totalRevenue,
+    totalViews,
+    prev,
+    isLifetime,
   })
 
   const kpis = {
     overview: {
       views: {
-        value: totalViews, delta: pctDelta(totalViews, prev.views), lifetime: lifetime.views,
+        value: totalViews,
+        delta: isLifetime ? null : pctDelta(totalViews, prev.views),
+        lifetime: lifetime.views,
       },
       watchTime: {
-        value: totalWatchHours, delta: pctDelta(totalWatchHours, prevWatchHours), lifetime: lifetime.watchHours,
+        value: totalWatchHours,
+        delta: isLifetime ? null : pctDelta(totalWatchHours, prevWatchHours),
+        lifetime: lifetime.watchHours,
       },
       subscribers: {
         value: subscribersValue,
@@ -577,16 +1024,27 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
         absolute: channel.subscriberCount || 0,
       },
       likes: {
-        value: totalLikes, delta: pctDelta(totalLikes, prev.likes), lifetime: lifetime.likes,
+        value: totalLikes,
+        delta: isLifetime ? null : pctDelta(totalLikes, prev.likes),
+        lifetime: lifetime.likes,
       },
       comments: {
-        value: totalComments, delta: pctDelta(totalComments, prev.comments), lifetime: lifetime.comments,
+        value: totalComments,
+        delta: isLifetime ? null : pctDelta(totalComments, prev.comments),
+        lifetime: lifetime.comments,
       },
       avgDuration: { value: avgDurationSec, delta: 0 },
     },
     content: {
-      views: { value: totalViews, delta: pctDelta(totalViews, prev.views), lifetime: lifetime.views },
-      impressions: { value: impressions, delta: pctDelta(totalViews, prev.views) },
+      views: {
+        value: totalViews,
+        delta: isLifetime ? null : pctDelta(totalViews, prev.views),
+        lifetime: lifetime.views,
+      },
+      impressions: {
+        value: impressions,
+        delta: isLifetime ? null : pctDelta(totalViews, prev.views),
+      },
       ctr: { value: ctr * 100, delta: 0 },
       avgDuration: { value: avgDurationSec, delta: 0 },
     },
@@ -599,17 +1057,33 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
         absolute: channel.subscriberCount || 0,
       },
       uniqueViewers: { value: Math.round(totalViews * 0.7), delta: 0 },
-      returning: { value: 100 - Math.round((returningRaw[returningRaw.length - 1]?.newRatio ?? 0.6) * 100), delta: 0 },
+      returning: { value: returningPercent, delta: 0 },
       avgViews: { value: videos.length > 0 ? Math.round(totalViews / Math.max(1, videos.length)) : 0, delta: 0 },
-      likes: { value: totalLikes, delta: pctDelta(totalLikes, prev.likes), lifetime: lifetime.likes },
-      comments: { value: totalComments, delta: pctDelta(totalComments, prev.comments), lifetime: lifetime.comments },
+      likes: {
+        value: totalLikes,
+        delta: isLifetime ? null : pctDelta(totalLikes, prev.likes),
+        lifetime: lifetime.likes,
+      },
+      comments: {
+        value: totalComments,
+        delta: isLifetime ? null : pctDelta(totalComments, prev.comments),
+        lifetime: lifetime.comments,
+      },
     },
   }
 
-  const topByViews = [...videos].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 10)
-  const recentVideos = [...videos].sort((a, b) => toCalendarDate(b.date) - toCalendarDate(a.date)).slice(0, 10)
+  const publishedPeriodVideos = periodVideos.filter(
+    (video) => video?.date && startOfDay(video.date) <= asOf,
+  )
+  const topByViews = [...publishedPeriodVideos]
+    .filter((video) => (video.periodViews || 0) > 0)
+    .sort((a, b) => (b.periodViews || 0) - (a.periodViews || 0))
+    .slice(0, 10)
+  const recentVideos = [...publishedPeriodVideos]
+    .sort((a, b) => toCalendarDate(b.date) - toCalendarDate(a.date))
+    .slice(0, 10)
   const newest = recentVideos[0] || null
-  const formatShares = buildFormatShares(videos)
+  const formatShares = buildFormatShares(publishedPeriodVideos)
 
   return {
     range,
@@ -623,16 +1097,20 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       newest,
     },
     content: {
-      allVideos: videos,
+      allVideos: publishedPeriodVideos,
       kpis: kpis.content,
       series,
       seriesByType,
       traffic,
+      trafficByType,
+      ctrByType,
       topVideos: topByViews.slice(0, 5),
       impressionsTotal: impressions,
     },
     audience: {
       kpis: kpis.audience,
+      monthlyViewers,
+      monthlyViewersSeries,
       subscribers,
       newReturning,
       heatmap,
@@ -659,7 +1137,7 @@ function buildFormatShares(videos) {
   }
   for (const video of videos) {
     const type = resolveVideoType(video)
-    totals[type] += Math.max(0, Number(video.views) || 0)
+    totals[type] += Math.max(0, Number(video.periodViews ?? video.views) || 0)
   }
   const max = Math.max(1, totals.video, totals.short, totals.live)
   return [
@@ -672,22 +1150,46 @@ function buildFormatShares(videos) {
 /* === realtime: 48 баров (1 бар = 1 час), последний — «сейчас» === */
 function buildRealtime(seed, totalViews, days) {
   const bars = 48
+  const safeTotalViews = Math.max(0, Number(totalViews) || 0)
+  if (safeTotalViews === 0) {
+    return {
+      last48: new Array(bars).fill(0),
+      currentViewers: 0,
+      totalLastHour: 0,
+      hourlyBase: 0,
+      generatorSeed: seed,
+    }
+  }
   const rawShape = generateDailyShape({ seed, days: bars, profile: 'seasonal', startWeekday: 0 })
-  const baseDailyViews = totalViews / Math.max(1, days)
-  const visibleDailyBase = Math.max(baseDailyViews, 240)
-  const hourlyBase = visibleDailyBase / 24
-  const last48 = normalizeToTotal(rawShape, hourlyBase * bars).map((x, i) => {
+  const baseDailyViews = safeTotalViews / Math.max(1, days)
+  const hourlyBase = baseDailyViews / 24
+  const weightedShape = rawShape.map((x, i) => {
     const wave = 1 + Math.sin((i / 48) * Math.PI * 4) * 0.24
     const seeded = 0.72 + (((seed + i * 37) % 100) / 100) * 0.62
-    return Math.max(4, Math.round(x * wave * seeded))
+    return Math.max(0, x * wave * seeded)
   })
-  const currentViewers = Math.max(3, Math.round(last48[last48.length - 1] / 60 + 8))
+  const targetTotal = Math.max(1, Math.round(hourlyBase * bars))
+  const last48 = distributeDiscreteTotal(
+    normalizeToTotal(weightedShape, targetTotal),
+    targetTotal,
+  )
+  const currentViewers = Math.max(0, Math.round(last48[last48.length - 1] / 60))
   const totalLastHour = last48[last48.length - 1]
   return { last48, currentViewers, totalLastHour, hourlyBase, generatorSeed: seed }
 }
 
 /* === monetization === */
-function buildMonetization({ channel, channelSeed, series, totalRevenue, totalViews, prev }) {
+function buildMonetization({
+  channel,
+  channelSeed,
+  series,
+  sixMonthSeries,
+  sixMonthSeriesByType,
+  totalRevenue,
+  totalViews,
+  prev,
+  isLifetime,
+}) {
   const enabled = channel.monetizationEnabled !== false
   if (!enabled) {
     return {
@@ -698,8 +1200,16 @@ function buildMonetization({ channel, channelSeed, series, totalRevenue, totalVi
         adImpressions: { value: 0, delta: 0 },
       },
       series: series.map((d) => ({ ...d, revenue: 0 })),
+      sixMonthSeries: sixMonthSeries.map((d) => ({ ...d, revenue: 0 })),
+      sixMonthSeriesByType: Object.fromEntries(
+        Object.entries(sixMonthSeriesByType).map(([key, rows]) => [
+          key,
+          rows.map((row) => ({ ...row, revenue: 0 })),
+        ]),
+      ),
       sources: [],
       stackedSeries: [],
+      sixMonthStackedSeries: [],
     }
   }
   const monetizedPct = 0.78 + ((channelSeed % 100) / 100) * 0.12
@@ -724,17 +1234,30 @@ function buildMonetization({ channel, channelSeed, series, totalRevenue, totalVi
     }
     return row
   })
+  const sixMonthStackedSeries = sixMonthSeries.map((d) => {
+    const row = { date: d.date, weekday: d.weekday }
+    for (const src of sourcesWithAmount) {
+      row[src.key] = +(d.revenue * src.share).toFixed(2)
+    }
+    return row
+  })
 
   return {
     enabled: true,
     kpis: {
-      revenue: { value: totalRevenue, delta: pctDelta(totalRevenue, prev.revenue) },
+      revenue: {
+        value: totalRevenue,
+        delta: isLifetime ? null : pctDelta(totalRevenue, prev.revenue),
+      },
       monetizedPlaybacks: { value: monetizedPlaybacks, delta: 0 },
       adImpressions: { value: adImpressions, delta: 0 },
     },
     series,
+    sixMonthSeries,
+    sixMonthSeriesByType,
     sources: sourcesWithAmount,
     stackedSeries,
+    sixMonthStackedSeries,
   }
 }
 

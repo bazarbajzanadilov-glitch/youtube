@@ -5,6 +5,7 @@ import {
 } from '../server/siteSession.js'
 
 const MEDIA_BUCKET = 'studio-media'
+const STUDIO_CHANNEL_ID = '00000000-0000-0000-0000-000000000001'
 
 function serverClient() {
   const url = process.env.VITE_SUPABASE_URL
@@ -57,11 +58,27 @@ export default async function handler(request, response) {
       subscribersResult,
       subscriberDailyStatsResult,
     ] = await Promise.all([
-      supabase.from('channels').select('*').limit(1).single(),
-      supabase.from('videos').select('*').order('published_at', { ascending: false }),
-      supabase.from('dashboard_comments').select('*').order('position', { ascending: true }),
-      supabase.from('recent_subscribers').select('*').order('position', { ascending: true }),
-      supabase.from('subscriber_daily_stats').select('date, gained, lost').order('date', { ascending: true }),
+      supabase.from('channels').select('*').eq('id', STUDIO_CHANNEL_ID).single(),
+      supabase
+        .from('videos')
+        .select('*')
+        .eq('channel_id', STUDIO_CHANNEL_ID)
+        .order('published_at', { ascending: false }),
+      supabase
+        .from('dashboard_comments')
+        .select('*')
+        .eq('channel_id', STUDIO_CHANNEL_ID)
+        .order('position', { ascending: true }),
+      supabase
+        .from('recent_subscribers')
+        .select('*')
+        .eq('channel_id', STUDIO_CHANNEL_ID)
+        .order('position', { ascending: true }),
+      supabase
+        .from('subscriber_daily_stats')
+        .select('date, gained, lost')
+        .eq('channel_id', STUDIO_CHANNEL_ID)
+        .order('date', { ascending: true }),
     ])
 
     const channelRow = requireData(channelResult, 'Канал')

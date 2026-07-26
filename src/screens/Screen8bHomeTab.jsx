@@ -12,7 +12,10 @@ export default function Screen8bHomeTab() {
   const { go } = useContext(NavContext)
   const { videos } = useVideos()
   const [activeTab, setActiveTab] = useState(1)
-  const previewVideos = videos.slice(0, 4)
+  const standardVideos = videos.filter((video) => video.type !== 'short' && video.type !== 'live')
+  const shorts = videos.filter((video) => video.type === 'short')
+  const liveVideos = videos.filter((video) => video.type === 'live')
+  const previewVideos = standardVideos.slice(0, 4)
   return (
     <div className={s.page}>
       <TopBar/>
@@ -68,7 +71,7 @@ export default function Screen8bHomeTab() {
           </div>
           <div className={s.section}>
             <span className={s.dragHandle}><DragHandle/></span>
-            <div className={s.sectionBody}><div className={s.sectionTitle2}>Видео ({videos.length})</div></div>
+            <div className={s.sectionBody}><div className={s.sectionTitle2}>Видео ({standardVideos.length})</div></div>
             <div className={s.thumbsRow}>
               {previewVideos.length === 0 ? (
                 <span className={s.thumbsEmpty}>Нет видео</span>
@@ -82,11 +85,11 @@ export default function Screen8bHomeTab() {
           </div>
           <div className={s.section}>
             <span className={s.dragHandle}><DragHandle/></span>
-            <div className={s.sectionBody}><div className={s.sectionTitle2}>Shorts (0)</div><div className={s.sectionDesc}>Здесь будут показаны ваши видео Shorts, если они появятся на канале.</div></div>
+            <div className={s.sectionBody}><div className={s.sectionTitle2}>Shorts ({shorts.length})</div><div className={s.sectionDesc}>Здесь будут показаны ваши видео Shorts, если они появятся на канале.</div></div>
           </div>
           <div className={s.section}>
             <span className={s.dragHandle}><DragHandle/></span>
-            <div className={s.sectionBody}><div className={s.sectionTitle2}>Трансляции (0)</div><div className={s.sectionDesc}>В этом разделе можно показывать прямые эфиры, премьеры и записи трансляций.</div></div>
+            <div className={s.sectionBody}><div className={s.sectionTitle2}>Трансляции ({liveVideos.length})</div><div className={s.sectionDesc}>В этом разделе можно показывать прямые эфиры, премьеры и записи трансляций.</div></div>
           </div>
         </div>
       </div>

@@ -284,10 +284,10 @@ export async function updateVideo(video, previous) {
   }
 
   if (uploadedPath && previous?.coverPath && previous.coverPath !== uploadedPath) {
-    await removeUnreferencedMediaPaths([previous.coverPath])
+    await removeUnreferencedMediaPaths([previous.coverPath]).catch(() => {})
   }
   if (video.removeCover && previous?.coverPath) {
-    await removeUnreferencedMediaPaths([previous.coverPath])
+    await removeUnreferencedMediaPaths([previous.coverPath]).catch(() => {})
   }
 }
 
@@ -302,7 +302,7 @@ export async function deleteVideos(ids) {
     await supabase.from('videos').delete().in('id', ids),
     'Не удалось удалить видео',
   )
-  await removeUnreferencedMediaPaths(existing.map((item) => item.cover_path))
+  await removeUnreferencedMediaPaths(existing.map((item) => item.cover_path)).catch(() => {})
 }
 
 export async function insertVideos(videos) {
@@ -324,7 +324,7 @@ export async function replaceVideos(videos) {
     }),
     'Не удалось импортировать видео',
   )
-  await removeUnreferencedMediaPaths(existing.map((item) => item.cover_path))
+  await removeUnreferencedMediaPaths(existing.map((item) => item.cover_path)).catch(() => {})
 }
 
 export async function replaceSubscriberDailyStats(stats) {
@@ -362,10 +362,10 @@ export async function saveChannel(channel, previous) {
   }
 
   if (uploadedPath && previous?.avatarPath && previous.avatarPath !== uploadedPath) {
-    await removeUnreferencedMediaPaths([previous.avatarPath])
+    await removeUnreferencedMediaPaths([previous.avatarPath]).catch(() => {})
   }
   if (channel.removeAvatar && previous?.avatarPath) {
-    await removeUnreferencedMediaPaths([previous.avatarPath])
+    await removeUnreferencedMediaPaths([previous.avatarPath]).catch(() => {})
   }
 }
 
@@ -391,5 +391,5 @@ export async function replaceProject(channel, videos) {
   await removeUnreferencedMediaPaths([
     currentChannel.data?.avatar_path,
     ...currentVideos.data.map((item) => item.cover_path),
-  ])
+  ]).catch(() => {})
 }

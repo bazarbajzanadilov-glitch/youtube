@@ -5,7 +5,7 @@ import {
   formatPercent,
   formatSecondsAsClock,
 } from '../../lib/analyticsFormat.js'
-import { daysBetween } from '../../lib/analyticsEngine.js'
+import { addDays, daysBetween, isoDay, toCalendarDate } from '../../lib/analyticsEngine.js'
 import { getAlmatyDateISO } from '../../lib/almatyDate.js'
 import { averageViewFraction } from '../../lib/videoMetrics.js'
 
@@ -124,6 +124,7 @@ function diffFromDelta(value, delta) {
 }
 
 export function usualComparison(kpi, format = formatCompactNumber) {
+  if (kpi?.delta == null) return '—'
   const delta = Number(kpi?.delta) || 0
   if (Math.abs(delta) <= 0.1) return 'Обычное значение'
   const diff = diffFromDelta(kpi?.value, delta) || Math.abs(Number(kpi?.value) || 0)
@@ -136,18 +137,48 @@ export function absoluteUsualComparison(value, format = formatCompactNumber) {
   return `На ${format(amount)} ${Number(value) >= 0 ? 'больше' : 'меньше'}, чем обычно`
 }
 
-export function buildPublishedVideoMarkers(series = [], videos = [], xKey = 'date') {
-  const seriesDates = new Set((series || [])
+export function buildPublishedVideoMarkers(
+  series = [],
+  videos = [],
+  xKey = 'date',
+  rangeBounds = null,
+) {
+  const seriesDates = (series || [])
     .map((row) => String(row?.[xKey] || '').slice(0, 10))
-    .filter(Boolean))
-  if (seriesDates.size === 0) return []
+    .filter(Boolean)
+    .sort()
+  if (seriesDates.length === 0) return []
+  const lastSeriesDate = seriesDates[seriesDates.length - 1]
+  const previousSeriesDate = seriesDates[seriesDates.length - 2]
+  const bucketGap = previousSeriesDate
+    ? daysBetween(previousSeriesDate, lastSeriesDate)
+    : 1
+  const lastBucketStart = toCalendarDate(lastSeriesDate)
+  const lastBucketEnd = bucketGap >= 27 && lastBucketStart.getDate() === 1
+    ? new Date(lastBucketStart.getFullYear(), lastBucketStart.getMonth() + 1, 0)
+    : bucketGap >= 6
+      ? addDays(lastBucketStart, 6)
+      : lastBucketStart
+  const requestedStart = rangeBounds?.from ? isoDay(toCalendarDate(rangeBounds.from)) : ''
+  const requestedEnd = rangeBounds?.to ? isoDay(toCalendarDate(rangeBounds.to)) : ''
+  const inferredEnd = isoDay(lastBucketEnd)
+  const lastAcceptedDate = requestedEnd && requestedEnd < inferredEnd ? requestedEnd : inferredEnd
+  const firstAcceptedDate = requestedStart && requestedStart > seriesDates[0]
+    ? requestedStart
+    : seriesDates[0]
 
   const grouped = new Map()
   ;(videos || []).forEach((video) => {
     const date = String(video?.date || video?.publishedAt || '').slice(0, 10)
-    if (!seriesDates.has(date)) return
-    if (!grouped.has(date)) grouped.set(date, [])
-    grouped.get(date).push(video)
+    if (!date || date < firstAcceptedDate || date > lastAcceptedDate) return
+    let bucketDate = ''
+    for (const seriesDate of seriesDates) {
+      if (seriesDate > date) break
+      bucketDate = seriesDate
+    }
+    if (!bucketDate) return
+    if (!grouped.has(bucketDate)) grouped.set(bucketDate, [])
+    grouped.get(bucketDate).push(video)
   })
 
   return Array.from(grouped.entries())

@@ -10,10 +10,11 @@ import {
 import { useVideos } from '../storage/useVideos.js'
 import { useChannel } from '../storage/useChannel.js'
 import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
-import { formatNumber, formatMoney, formatViews } from '../storage/videoStore.js'
+import { formatNumber, formatViews } from '../storage/videoStore.js'
 import { effectiveComments, build as buildAnalytics } from '../lib/analyticsAggregator.js'
 import { averageViewFraction } from '../lib/videoMetrics.js'
 import VideoRow from '../components/ui/VideoRow.jsx'
+import { formatTenge } from './analytics/studioAnalyticsHelpers.js'
 
 const PERFORMANCE_THUMB = '/studio-assets/dashboard-performance-reference.jpg'
 const SHOPPING_ART = '/studio-assets/dashboard-shopping-idea.png'
@@ -82,7 +83,7 @@ export default function Screen1Dashboard() {
   const channelRevenue = analytics.monetization.kpis.revenue.value
   const watchHours = analytics.overview.kpis.watchTime.value
   const subscriberDelta = analytics.overview.kpis.subscribers.value
-  const topVideos = [...videos].sort((a, b) => b.views - a.views).slice(0, 2)
+  const topVideos = (analytics.realtime.topVideos || []).slice(0, 2)
   const publishedVideos = videos.slice(0, 4)
   const lastVideoComments = lastVideo ? effectiveComments(lastVideo) : 0
   const lastVideoAverageFraction = averageViewFraction(lastVideo)
@@ -113,7 +114,7 @@ export default function Screen1Dashboard() {
               <div className={s.card}>
                 <h2 className={s.cardTitle}>{performanceTitle}</h2>
                 <div className={s.perfThumb}>
-                  <img src={PERFORMANCE_THUMB} alt="" />
+                  <img src={lastVideo.cover || PERFORMANCE_THUMB} alt="" />
                 </div>
                 <h3 className={s.videoHeading}>{lastVideo.title}</h3>
                 <div className={s.statsRow}>
@@ -138,10 +139,12 @@ export default function Screen1Dashboard() {
                   <span>Средняя продолжительность просмотра</span>
                   <strong>{avgViewDuration}</strong>
                 </button>
-                <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
-                  <span>Макс. число одновременных зрителей</span>
-                  <strong>{formatViews(maxConcurrent)}</strong>
-                </button>
+                {lastVideo.type === 'live' ? (
+                  <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
+                    <span>Макс. число одновременных зрителей</span>
+                    <strong>{formatViews(maxConcurrent)}</strong>
+                  </button>
+                ) : null}
                 <button type="button" className={s.catchBtn} onClick={() => showToast('Catch me up on this video')}>
                   <SparkleIcon size={18} />
                   Catch me up on this video
@@ -224,7 +227,7 @@ export default function Screen1Dashboard() {
               </div>
               <div className={s.summaryRow}>
                 Расчетный доход
-                <span className={s.num}>{formatMoney(channelRevenue)} <span className={s.dash}>—</span></span>
+                <span className={s.num}>{formatTenge(channelRevenue)} <span className={s.dash}>—</span></span>
               </div>
               <div className={s.divider} />
               <div className={s.popularHead}>Самый популярный контент</div>
@@ -232,7 +235,7 @@ export default function Screen1Dashboard() {
               {topVideos.map((v) => (
                 <button type="button" className={s.popularRow} key={v.id} onClick={() => go('analytics')}>
                   <span className={s.popularTitleEllipsis}>{v.title}</span>
-                  <span className={s.views}>{formatNumber(Math.max(1, Math.round((v.views || 0) / 900)))}</span>
+                  <span className={s.views}>{formatNumber(v.realtimeViews || 0)}</span>
                 </button>
               ))}
               <div className={s.sectionSpacer}>

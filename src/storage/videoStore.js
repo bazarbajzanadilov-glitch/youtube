@@ -85,7 +85,9 @@ export function transliterate(value) {
 
 export function makeId(title) {
   const base = transliterate(title) || 'video'
-  return `${base}-${Date.now().toString(36)}`
+  const unique = globalThis.crypto?.randomUUID?.()
+    || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+  return `${base}-${unique}`
 }
 
 export function rand(min, max) {

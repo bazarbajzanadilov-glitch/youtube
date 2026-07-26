@@ -14,6 +14,7 @@ import RevenueTab from './analytics/RevenueTab.jsx'
 import TrendsTab from './analytics/TrendsTab.jsx'
 
 const TABS = ['Обзор', 'Контент', 'Аудитория', 'Доход', 'Тренды']
+const TRENDS_RANGE = { kind: '28d' }
 
 function formatAdvancedNumber(value) {
   return Math.round(Number(value) || 0).toLocaleString('ru-RU')
@@ -31,14 +32,16 @@ export default function Screen3Analytics() {
   const [activeTab, setActiveTab] = useState(0)
   const [range, setRange] = useState({ kind: '28d' })
   const [advancedOpen, setAdvancedOpen] = useState(false)
-  const data = useAnalytics(range)
   const isTrends = activeTab === 4
+  const data = useAnalytics(range, { enabled: !isTrends })
+  const trendsData = useAnalytics(TRENDS_RANGE, { enabled: isTrends })
+  const screenData = data || trendsData
   const isOverviewTab = activeTab === 0
   const advancedRows = [
-    ['Просмотры', formatAdvancedNumber(data.overview?.kpis?.views?.value)],
-    ['Время просмотра (часы)', formatAdvancedNumber(data.overview?.kpis?.watchTime?.value)],
-    ['Подписчики', formatAdvancedNumber(data.overview?.kpis?.subscribers?.value)],
-    ['Расчетный доход', formatAdvancedMoney(data.monetization?.kpis?.revenue?.value)],
+    ['Просмотры', formatAdvancedNumber(screenData?.overview?.kpis?.views?.value)],
+    ['Время просмотра (часы)', formatAdvancedNumber(screenData?.overview?.kpis?.watchTime?.value)],
+    ['Подписчики', formatAdvancedNumber(screenData?.overview?.kpis?.subscribers?.value)],
+    ['Расчетный доход', formatAdvancedMoney(screenData?.monetization?.kpis?.revenue?.value)],
   ]
 
   useEffect(() => {
@@ -63,7 +66,7 @@ export default function Screen3Analytics() {
     if (activeTab === 1) return <ContentTab data={data} onOpenAdmin={() => go('admin')} />
     if (activeTab === 2) return <AudienceTab data={data} onOpenAdmin={() => go('admin')} />
     if (activeTab === 3) return <RevenueTab data={data} />
-    return <TrendsTab data={data} />
+    return <TrendsTab data={trendsData} />
   }
 
   return (
@@ -130,7 +133,7 @@ export default function Screen3Analytics() {
               <div className={s.advancedHead}>
                 <div>
                   <h2 id="advanced-title">Расширенный режим</h2>
-                  <span>{data.range?.label || 'Последние 28 дней'}</span>
+                  <span>{screenData?.range?.label || 'Последние 28 дней'}</span>
                 </div>
                 <button type="button" className={s.advancedClose} onClick={() => setAdvancedOpen(false)}>
                   Закрыть
@@ -145,11 +148,11 @@ export default function Screen3Analytics() {
                 ))}
               </div>
               <div className={s.advancedTable}>
-                {data.overview?.topVideos?.slice(0, 5).map((video, index) => (
+                {screenData?.overview?.topVideos?.slice(0, 5).map((video, index) => (
                   <div className={s.advancedTableRow} key={video.id || video.title}>
                     <span>{index + 1}</span>
                     <strong>{video.title}</strong>
-                    <em>{formatAdvancedNumber(video.views)} просмотров</em>
+                    <em>{formatAdvancedNumber(video.periodViews)} просмотров</em>
                   </div>
                 ))}
               </div>

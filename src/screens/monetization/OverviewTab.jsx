@@ -35,7 +35,35 @@ const resourceGroups = [
   },
 ]
 
-export default function MonetizationOverviewTab({ activeSection = 'Обзор', onOpenAdmin }) {
+export default function MonetizationOverviewTab({
+  activeSection = 'Обзор',
+  enabled = true,
+  onOpenAdmin,
+}) {
+  if (!enabled) {
+    return (
+      <div className={sx.partnerPage} data-active-section={activeSection}>
+        <main className={sx.partnerMain}>
+          <section className={sx.partnerIntro}>
+            <h2>Монетизация канала отключена</h2>
+          </section>
+          <section className={sx.partnerSection}>
+            <Card padding="lg" depth="md" className={sx.infoCard}>
+              <div className={sx.infoPanel}>
+                <div className={sx.panelCopy}>
+                  <h3>Доход и инструменты монетизации недоступны</h3>
+                  <p>Включите монетизацию в админке, чтобы показывать источники дохода и партнерские функции.</p>
+                  <button type="button" className={sx.darkButton} onClick={onOpenAdmin}>
+                    Открыть админку
+                  </button>
+                </div>
+              </div>
+            </Card>
+          </section>
+        </main>
+      </div>
+    )
+  }
   return (
     <div className={sx.partnerPage} data-active-section={activeSection}>
       <main className={sx.partnerMain}>

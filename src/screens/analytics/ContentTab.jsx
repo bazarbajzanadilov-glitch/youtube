@@ -25,6 +25,13 @@ import MetricKpiCell from './MetricKpiCell.jsx'
 const TYPE_FILTERS = ['Все', 'Shorts', 'Прямой эфир']
 const TRAFFIC_TABS = ['Общие', 'Внешние источники', 'Поиск на YouTube', 'Рекомендуемые видео', 'Плейлисты']
 const TYPE_KEYS = ['all', 'short', 'live']
+const TRAFFIC_KEYS_BY_TAB = [
+  null,
+  ['external'],
+  ['search'],
+  ['suggested'],
+  ['playlists'],
+]
 const CONTENT_CHART_COLOR = '#8e8cff'
 
 function normalizeVideoType(video) {
@@ -44,7 +51,7 @@ function averageDurationByViews(videos) {
     (video) => averageViewFraction(video) != null,
   )
   const totalViews = videosWithKnownRetention.reduce(
-    (sum, video) => sum + (Number(video.views) || 0),
+    (sum, video) => sum + (Number(video.periodViews) || 0),
     0,
   )
   if (totalViews <= 0) return 0
@@ -53,7 +60,7 @@ function averageDurationByViews(videos) {
     const seconds = parts.length === 3
       ? parts[0] * 3600 + parts[1] * 60 + parts[2]
       : (parts[0] || 0) * 60 + (parts[1] || 0)
-    return sum + (Number(video.views) || 0) * seconds * averageViewFraction(video)
+    return sum + (Number(video.periodViews) || 0) * seconds * averageViewFraction(video)
   }, 0)
   return totalSeconds / totalViews
 }
@@ -71,16 +78,29 @@ export default function ContentTab({ data, onOpenAdmin }) {
     ))
   ), [content.allVideos, typeKey])
   const filteredTopVideos = useMemo(() => (
-    [...filteredVideos].sort((a, b) => (b.views || 0) - (a.views || 0))
+    [...filteredVideos]
+      .filter((video) => (video.periodViews || 0) > 0)
+      .sort((a, b) => (b.periodViews || 0) - (a.periodViews || 0))
   ), [filteredVideos])
   const filteredSeries = typeKey === 'all'
     ? content.series
     : (content.seriesByType?.[typeKey] || [])
-  const publishedMarkers = buildPublishedVideoMarkers(filteredSeries, filteredVideos, 'date')
-  const filteredViews = filteredVideos.reduce((sum, video) => sum + (Number(video.views) || 0), 0)
-  const fallbackCtr = content.kpis.ctr.value / 100
-  const filteredImpressions = filteredViews > 0 ? Math.round(filteredViews / Math.max(0.04, fallbackCtr)) : 0
-  const filteredCtr = filteredImpressions > 0 ? (filteredViews / filteredImpressions) * 100 : content.kpis.ctr.value
+  const publishedMarkers = buildPublishedVideoMarkers(
+    filteredSeries,
+    filteredVideos,
+    'date',
+    range,
+  )
+  const filteredViews = filteredSeries.reduce(
+    (sum, row) => sum + (Number(row.views) || 0),
+    0,
+  )
+  const filteredCtr = typeKey === 'all'
+    ? content.kpis.ctr.value
+    : (content.ctrByType?.[typeKey] || 0)
+  const filteredImpressions = filteredViews > 0
+    ? Math.round(filteredViews / Math.max(0.04, filteredCtr / 100))
+    : 0
   const filteredAvgDuration = averageDurationByViews(filteredVideos)
   const trafficTitle = typeKey === 'live'
     ? 'Как зрители находят ваши прямые трансляции'
@@ -92,14 +112,29 @@ export default function ContentTab({ data, onOpenAdmin }) {
     : typeKey === 'short'
       ? 'Лучшие Shorts'
       : 'Самый популярный контент'
-  const trafficTotal = content.traffic.reduce((sum, item) => sum + item.share, 0) || 1
+  const selectedTraffic = typeKey === 'all'
+    ? content.traffic
+    : (content.trafficByType?.[typeKey] || [])
+  const trafficTotal = selectedTraffic.reduce((sum, item) => sum + item.share, 0) || 1
+  const activeTrafficKeys = TRAFFIC_KEYS_BY_TAB[trafficTab]
+  const visibleTraffic = activeTrafficKeys
+    ? selectedTraffic.filter((item) => activeTrafficKeys.includes(item.key))
+    : selectedTraffic
 
-  if ((content.topVideos?.length || 0) === 0) {
+  if ((content.allVideos?.length || 0) === 0) {
     return (
       <EmptyState
         title="Пока нет данных по контенту"
         description="Добавьте видео в админке — здесь появятся источники трафика, CTR и лучшие ролики."
         action={<button type="button" className={s.linkBtn} onClick={onOpenAdmin}>Открыть админку</button>}
+      />
+    )
+  }
+  if ((content.kpis?.views?.value || 0) === 0) {
+    return (
+      <EmptyState
+        title="За выбранный период нет данных"
+        description="Выберите другой период, чтобы увидеть просмотры, источники трафика и лучшие ролики."
       />
     )
   }
@@ -179,7 +214,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
             ))}
           </div>
           <div className={s.trafficRows}>
-            {content.traffic.slice(0, 7).map((row) => {
+            {visibleTraffic.slice(0, 7).map((row) => {
               const percent = (row.share / trafficTotal) * 100
               return (
                 <div className={s.trafficRow} key={row.key}>
@@ -208,7 +243,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
                       <div className={s.videoTitle}>{video.title}</div>
                       <div className={s.videoSub}>{videoDate(video)}</div>
                     </div>
-                    <strong>{formatCompactNumber(video.views)}</strong>
+                    <strong>{formatCompactNumber(video.periodViews)}</strong>
                   </div>
                 ))}
               </div>
@@ -259,7 +294,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
                 </td>
                 <td>{ctrPretty(video)}</td>
                 <td>{avgWatchPretty(video)}</td>
-                <td className={s.right}>{formatNumberRu(video.views)}</td>
+                <td className={s.right}>{formatNumberRu(video.periodViews)}</td>
               </tr>
             ))}
           </tbody>

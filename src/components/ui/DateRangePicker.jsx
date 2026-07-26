@@ -17,6 +17,9 @@ function formatRangeLabel(range) {
   if (monthMatch) return RU_MONTH_LABELS[Number(monthMatch[2]) - 1] || range.label || 'Месяц'
   if (range.kind === 'custom' && range.from && range.to) {
     const f = toCalendarDate(range.from); const t = toCalendarDate(range.to)
+    if (f.getFullYear() !== t.getFullYear()) {
+      return `${f.getDate()} ${RU_MONTHS[f.getMonth()]} ${f.getFullYear()} – ${t.getDate()} ${RU_MONTHS[t.getMonth()]} ${t.getFullYear()}`
+    }
     return `${f.getDate()} ${RU_MONTHS[f.getMonth()]} – ${t.getDate()} ${RU_MONTHS[t.getMonth()]} ${t.getFullYear()}`
   }
   const opt = RANGE_OPTIONS.find((r) => r.kind === range.kind)
@@ -55,6 +58,9 @@ function isoReportingEnd() {
 }
 
 function formatDateRange(from, to) {
+  if (from.getFullYear() !== to.getFullYear()) {
+    return `${formatDateShort(from)} ${from.getFullYear()} г. – ${formatDateShort(to)} ${to.getFullYear()} г.`
+  }
   return `${formatDateShort(from)} – ${formatDateShort(to)} ${to.getFullYear()} г.`
 }
 
@@ -65,8 +71,8 @@ function getFixedRange(range, today = new Date()) {
     const year = Number(yearMatch[1])
     const from = new Date(year, 0, 1)
     const end = new Date(year, 11, 31)
-    const to = end > todayD && from <= todayD ? todayD : end
-    return { from, to }
+    const to = end > todayD ? todayD : end
+    return { from: from > to ? to : from, to }
   }
   const monthMatch = /^month-(\d{4})-(\d{2})$/.exec(range?.kind || '')
   if (monthMatch) {
@@ -74,8 +80,8 @@ function getFixedRange(range, today = new Date()) {
     const month = Number(monthMatch[2]) - 1
     const from = new Date(year, month, 1)
     const end = new Date(year, month + 1, 0)
-    const to = end > todayD && from <= todayD ? todayD : end
-    return { from, to }
+    const to = end > todayD ? todayD : end
+    return { from: from > to ? to : from, to }
   }
   return null
 }
@@ -149,7 +155,10 @@ export default function DateRangePicker({ value, onChange }) {
 
   function applyCustom() {
     if (customFrom && customTo) {
-      onChange?.({ kind: 'custom', from: customFrom, to: customTo })
+      const reportingEnd = isoReportingEnd()
+      const to = customTo > reportingEnd ? reportingEnd : customTo
+      const from = customFrom > to ? to : customFrom
+      onChange?.({ kind: 'custom', from, to })
       setOpen(false)
       setShowCustom(false)
     }
@@ -199,7 +208,7 @@ export default function DateRangePicker({ value, onChange }) {
                 <div className={s.customTitle}>Другой диапазон дат</div>
                 <label className={s.customField}>
                   <span>С</span>
-                  <input type="date" value={customFrom} max={customTo} onChange={(e) => setCustomFrom(e.target.value)} />
+                  <input type="date" value={customFrom} max={customTo || isoReportingEnd()} onChange={(e) => setCustomFrom(e.target.value)} />
                 </label>
                 <label className={s.customField}>
                   <span>По</span>

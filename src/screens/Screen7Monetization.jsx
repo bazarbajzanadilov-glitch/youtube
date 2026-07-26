@@ -6,6 +6,7 @@ import Sidebar from './Sidebar.jsx'
 import { NavContext } from './NavContext.js'
 import TabRow from '../components/ui/TabRow.jsx'
 import OverviewTab from './monetization/OverviewTab.jsx'
+import { useChannel } from '../storage/useChannel.js'
 
 const TABS = [
   'Обзор',
@@ -19,6 +20,7 @@ const TABS = [
 
 export default function Screen7Monetization() {
   const { go } = useContext(NavContext)
+  const { channel } = useChannel()
   const [activeTab, setActiveTab] = useState(0)
 
   return (
@@ -48,7 +50,11 @@ export default function Screen7Monetization() {
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
           >
-            <OverviewTab activeSection={TABS[activeTab]} onOpenAdmin={() => go('admin')} />
+            <OverviewTab
+              activeSection={TABS[activeTab]}
+              enabled={channel.monetizationEnabled !== false}
+              onOpenAdmin={() => go('admin')}
+            />
           </motion.div>
         </AnimatePresence>
       </div>

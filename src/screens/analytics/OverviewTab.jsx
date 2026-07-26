@@ -59,16 +59,14 @@ function StudioAiSparkle({ size = 22 }) {
 }
 
 export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics }) {
-  const { overview, audience, channel, content, monetization, realtime } = data
+  const { overview, audience, channel, content, monetization, realtime, range } = data
   const [metric, setMetric] = useState('views')
   const realtimeFeed = useRealtimeFeed({
     initial: realtime.last48,
-    seed: realtime.generatorSeed,
-    intervalMs: 5000,
     baseSubscribers: channel?.subscriberCount || 0,
   })
 
-  if ((overview.topVideos?.length || 0) === 0) {
+  if ((content?.allVideos?.length || 0) === 0) {
     return (
       <EmptyState
         title="Пока нет данных для аналитики"
@@ -119,14 +117,19 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
     },
   }
   const chart = chartByMetric[metric]
-  const publishedMarkers = buildPublishedVideoMarkers(chart.data, content?.allVideos || [], 'date')
+  const publishedMarkers = buildPublishedVideoMarkers(
+    chart.data,
+    content?.allVideos || [],
+    'date',
+    range,
+  )
   const heroYAxisWidth = metric === 'revenue' ? 108 : 62
   const topVideo = overview.topVideos[0]
   const aiInsights = [
     (
       <>
         <strong>Показатели канала остаются стабильными, а удержание аудитории — ровным.</strong>{' '}
-        За последние 28 дней канал {channel?.channelName || 'TRADING INSIDER'} получил {formatNumberRu(overview.kpis.views.value)} просмотров и {formatHours(overview.kpis.watchTime.value)} часов просмотра. Уникальных зрителей было около {formatCompactNumber(uniqueViewers)}, а доля вернувшихся зрителей составила примерно {returningShare}%.
+        За период «{range?.label || 'Последние 28 дней'}» канал {channel?.channelName || 'TRADING INSIDER'} получил {formatNumberRu(overview.kpis.views.value)} просмотров и {formatHours(overview.kpis.watchTime.value)} часов просмотра. Уникальных зрителей было около {formatCompactNumber(uniqueViewers)}, а доля вернувшихся зрителей составила примерно {returningShare}%.
       </>
     ),
     (
@@ -262,7 +265,7 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
                     </div>
                   </td>
                   <td>{avgWatchPretty(video)} <span className={s.muted}>({avgWatchPercent(video)})</span></td>
-                  <td className={s.right}>{formatNumberRu(video.views)}</td>
+                  <td className={s.right}>{formatNumberRu(video.periodViews)}</td>
                 </tr>
               ))}
             </tbody>
@@ -297,13 +300,13 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
             <span>Самый популярный контент</span>
             <span>Просмотры</span>
           </div>
-          {overview.topVideos.slice(0, 3).map((video) => (
+          {(realtime.topVideos || []).slice(0, 3).map((video) => (
             <div className={s.sideVideoRow} key={video.id}>
               <div className={s.sideThumb}>
                 {video.cover ? <img src={video.cover} alt="" /> : <div className={s.thumbBlank} />}
               </div>
               <div className={s.sideVideoTitle}>{video.title}</div>
-              <div className={s.sideVideoValue}>{formatCompactNumber(video.views)}</div>
+              <div className={s.sideVideoValue}>{formatCompactNumber(video.realtimeViews)}</div>
             </div>
           ))}
           <button type="button" className={s.ytPillBtn}>Подробнее</button>

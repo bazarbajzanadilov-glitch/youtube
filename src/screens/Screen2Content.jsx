@@ -16,6 +16,7 @@ const GlobeIcon = () => (
 )
 
 const TABS = ['Видео', 'Shorts', 'Трансляции', 'Записи', 'Плейлисты', 'Подкасты', 'Курсы', 'Рекламные кампании', 'Коллаборации']
+const PAGE_SIZE = 30
 
 function formatRevenue(value) {
   const amount = (Number(value) || 0) * 512
@@ -34,11 +35,18 @@ export default function Screen2Content() {
   const { showToast, go } = useContext(NavContext)
   const { videos } = useVideos()
   const [activeTab, setActiveTab] = useState(0)
+  const [page, setPage] = useState(0)
   const filteredVideos = useMemo(
     () => videos.filter((video) => matchesTab(video, activeTab)),
     [videos, activeTab],
   )
   const activeLabel = TABS[activeTab]
+  const totalPages = Math.max(1, Math.ceil(filteredVideos.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages - 1)
+  const pageStart = safePage * PAGE_SIZE
+  const pageVideos = filteredVideos.slice(pageStart, pageStart + PAGE_SIZE)
+  const firstVisible = filteredVideos.length > 0 ? pageStart + 1 : 0
+  const lastVisible = pageStart + pageVideos.length
 
   return (
     <div className={s.page}>
@@ -52,7 +60,10 @@ export default function Screen2Content() {
               key={t}
               type="button"
               className={`${s.tab} ${i === activeTab ? s.tabActive : ''}`}
-              onClick={() => setActiveTab(i)}
+              onClick={() => {
+                setActiveTab(i)
+                setPage(0)
+              }}
             >
               {t}
             </button>
@@ -93,7 +104,7 @@ export default function Screen2Content() {
               </tr>
             </thead>
             <tbody>
-              {filteredVideos.map((v) => (
+              {pageVideos.map((v) => (
                 <tr key={v.id} className={s.row}>
                   <td className={s.checkCol}><div className={s.checkbox}/></td>
                   <td>
@@ -140,12 +151,12 @@ export default function Screen2Content() {
             <span>Строк на странице:</span>
             <span className={s.perPageVal}>30 <ChevronDown size={14}/></span>
           </div>
-          <span>{filteredVideos.length > 0 ? `1–${filteredVideos.length}` : '0'} из {filteredVideos.length}</span>
+          <span>{filteredVideos.length > 0 ? `${firstVisible}–${lastVisible}` : '0'} из {filteredVideos.length}</span>
           <div className={s.pageNav}>
-            <button type="button" className={s.pageBtn} onClick={() => showToast('Первая страница')} aria-label="Первая страница"><PageFirst/></button>
-            <button type="button" className={s.pageBtn} onClick={() => showToast('Назад')} aria-label="Назад"><ChevronLeft/></button>
-            <button type="button" className={s.pageBtn} onClick={() => showToast('Вперёд')} aria-label="Вперёд"><ChevronRight/></button>
-            <button type="button" className={s.pageBtn} onClick={() => showToast('Последняя страница')} aria-label="Последняя страница"><PageLast/></button>
+            <button type="button" className={s.pageBtn} onClick={() => setPage(0)} disabled={safePage === 0} aria-label="Первая страница"><PageFirst/></button>
+            <button type="button" className={s.pageBtn} onClick={() => setPage(Math.max(0, safePage - 1))} disabled={safePage === 0} aria-label="Назад"><ChevronLeft/></button>
+            <button type="button" className={s.pageBtn} onClick={() => setPage(Math.min(totalPages - 1, safePage + 1))} disabled={safePage >= totalPages - 1} aria-label="Вперёд"><ChevronRight/></button>
+            <button type="button" className={s.pageBtn} onClick={() => setPage(totalPages - 1)} disabled={safePage >= totalPages - 1} aria-label="Последняя страница"><PageLast/></button>
           </div>
         </div>
       </div>

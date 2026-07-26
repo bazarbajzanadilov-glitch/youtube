@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import Card from '../../components/ui/Card.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 import AreaLineChart from '../../components/charts/AreaLineChart.jsx'
@@ -26,33 +26,10 @@ const AUDIENCE_CHART_COLOR = ANALYTICS_PURPLE
 export default function AudienceTab({ data, onOpenAdmin }) {
   const { audience, overview, content, range } = data
   const [metric, setMetric] = useState('viewers')
-  const monthlyViewers = Math.max(0, Math.round((audience.kpis.uniqueViewers.value || 0) * 0.85))
+  const [audienceSegment, setAudienceSegment] = useState(0)
+  const monthlyViewers = Math.max(0, Math.round(audience.monthlyViewers || 0))
   const topVideos = overview.topVideos || []
-  const viewerSeries = useMemo(() => {
-    const source = audience.newReturning?.length ? audience.newReturning : audience.subscribers
-    if (!source.length) return []
-
-    const values = source.map((row) => {
-      const value = Number(row.new) + Number(row.returning)
-      return Number.isFinite(value) && value > 0 ? value : 0
-    })
-    const total = values.reduce((sum, value) => sum + value, 0)
-
-    let cumulative = 0
-    return source.map((row, index) => {
-      cumulative += values[index]
-      const progress = total > 0
-        ? cumulative / total
-        : source.length > 1
-          ? index / (source.length - 1)
-          : 1
-
-      return {
-        date: row.date,
-        viewers: Math.max(0, Math.round(monthlyViewers * progress)),
-      }
-    })
-  }, [audience.newReturning, audience.subscribers, monthlyViewers])
+  const viewerSeries = audience.monthlyViewersSeries || []
   const chartByMetric = {
     viewers: {
       data: viewerSeries,
@@ -66,12 +43,31 @@ export default function AudienceTab({ data, onOpenAdmin }) {
     },
   }
   const chart = chartByMetric[metric]
-  const publishedMarkers = buildPublishedVideoMarkers(chart.data, content?.allVideos || [], 'date')
+  const publishedMarkers = buildPublishedVideoMarkers(
+    chart.data,
+    content?.allVideos || [],
+    'date',
+    range,
+  )
+  const newViews = audience.newReturning.reduce((sum, row) => sum + (Number(row.new) || 0), 0)
+  const returningViews = audience.newReturning.reduce(
+    (sum, row) => sum + (Number(row.returning) || 0),
+    0,
+  )
+  const audienceViews = newViews + returningViews
+  const newShare = audienceViews > 0 ? newViews / audienceViews : 0
+  const returningShare = audienceViews > 0 ? returningViews / audienceViews : 0
   const segments = [
-    { label: 'Новые зрители', share: 0.918, color: 'rgba(188, 105, 243, 0.95)' },
-    { label: 'Случайные зрители', share: 0.082, color: 'rgba(188, 105, 243, 0.62)' },
-    { label: 'Постоянные зрители', share: 0.001, color: 'rgba(188, 105, 243, 0.34)' },
+    { label: 'Новые зрители', share: newShare, color: 'rgba(188, 105, 243, 0.95)' },
+    { label: 'Случайные зрители', share: returningShare * 0.82, color: 'rgba(188, 105, 243, 0.62)' },
+    { label: 'Постоянные зрители', share: returningShare * 0.18, color: 'rgba(188, 105, 243, 0.34)' },
   ]
+  const audienceTabs = [
+    { label: 'Новые', share: segments[0].share },
+    { label: 'Случайные', share: segments[1].share },
+    { label: 'Постоянные', share: segments[2].share },
+  ]
+  const selectedAudienceShare = audienceTabs[audienceSegment]?.share || 0
   const subscriptionStats = [
     { label: 'Без подписки', share: 0.999, color: AUDIENCE_CHART_COLOR },
     { label: 'С подпиской', share: 0.001, color: AUDIENCE_CHART_COLOR },
@@ -82,7 +78,15 @@ export default function AudienceTab({ data, onOpenAdmin }) {
   const geoRows = audience.geography.slice(0, 5).map((row) => ({ label: row.label, share: row.share, color: AUDIENCE_CHART_COLOR }))
   const langRows = audience.languages.slice(0, 5).map((row) => ({ label: row.label, share: row.share, color: AUDIENCE_CHART_COLOR }))
 
-  if (audience.kpis.subscribers.absolute === 0 && audience.subscribers.length === 0) {
+  const hasSubscriberHistory = audience.subscribers.some(
+    (row) => Math.max(0, Number(row.subscribers) || 0) > 0,
+  )
+  if (
+    audience.kpis.subscribers.absolute === 0
+    && (content?.allVideos?.length || 0) === 0
+    && !hasSubscriberHistory
+    && monthlyViewers === 0
+  ) {
     return (
       <EmptyState
         title="Аудитория ещё не сформирована"
@@ -135,7 +139,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
         <div className={s.sideStack}>
           <Card padding="lg" depth="md" className={s.blockCard}>
             <div className={s.cardTitle}>Сегменты аудитории по просмотрам вашего контента</div>
-            <div className={s.cardSub}>Зрителей в месяц · 14 июн. 2026 г.</div>
+            <div className={s.cardSub}>Просмотры · {range.label}</div>
             <div className={s.segmentBar}>
               {segments.map((segment) => (
                 <span key={segment.label} style={{ width: `${segment.share * 100}%`, background: segment.color }} />
@@ -164,7 +168,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
                     <div className={s.videoTitle}>{video.title}</div>
                     <div className={s.videoSub}>{videoDate(video)}</div>
                   </div>
-                  <strong>{formatCompactNumber(Math.round(video.views * 0.62))}</strong>
+                  <strong>{formatCompactNumber(Math.round(video.periodViews * 0.62))}</strong>
                 </div>
               ))}
             </div>
@@ -189,8 +193,15 @@ export default function AudienceTab({ data, onOpenAdmin }) {
             <div className={s.cardTitle}>Популярно у разных аудиторий</div>
             <div className={s.cardSub}>Просмотры · {range.label}</div>
             <div className={s.innerTabs}>
-              {['Новые', 'Случайные', 'Постоянные'].map((tab, index) => (
-                <button key={tab} type="button" className={`${s.innerTab} ${index === 0 ? s.innerTabActive : ''}`}>{tab}</button>
+              {audienceTabs.map((tab, index) => (
+                <button
+                  key={tab.label}
+                  type="button"
+                  className={`${s.innerTab} ${index === audienceSegment ? s.innerTabActive : ''}`}
+                  onClick={() => setAudienceSegment(index)}
+                >
+                  {tab.label}
+                </button>
               ))}
             </div>
             <div className={s.compactVideoList}>
@@ -201,7 +212,9 @@ export default function AudienceTab({ data, onOpenAdmin }) {
                   </div>
                   <div className={s.videoMeta}>
                     <div className={s.videoTitle}>{video.title}</div>
-                    <div className={s.videoSub}>{formatCompactNumber(video.views)} просмотров</div>
+                    <div className={s.videoSub}>
+                      {formatCompactNumber(Math.round(video.periodViews * selectedAudienceShare))} просмотров
+                    </div>
                   </div>
                 </div>
               ))}
