@@ -80,7 +80,7 @@
 
 .item:hover,
 .active {
-  background: #272727;
+  background: var(--studio-hover);
 }
 .active .itemLabel { font-weight: 500; }
 

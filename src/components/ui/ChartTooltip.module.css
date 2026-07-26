@@ -1,7 +1,7 @@
 .tip {
-  background: rgba(15, 15, 15, 0.96);
+  background: var(--studio-chart-tooltip-bg);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--studio-chart-marker-tooltip-border);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 12px;
@@ -12,7 +12,7 @@
   font-variant-numeric: tabular-nums;
 }
 .label {
-  color: #a0a0a0;
+  color: var(--studio-text-muted);
   font-size: 10px;
   line-height: 14px;
   margin-bottom: 8px;
@@ -35,7 +35,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 18px;
-  color: #b8b8b8;
+  color: var(--studio-text-muted);
   font-size: 12px;
 }
 
@@ -48,7 +48,7 @@
 .detailEmphasis {
   margin-top: 2px;
   padding-top: 7px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--studio-chart-marker-tooltip-border);
   color: var(--studio-text);
 }
 

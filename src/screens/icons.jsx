@@ -1,7 +1,7 @@
-export const YTLogo = ({ className }) => (
+export const YTLogo = ({ className, theme = 'dark' }) => (
   <img
     className={className}
-    src="https://www.gstatic.com/youtube/img/creator/yt_studio_logo_v2_darkmode.svg"
+    src={`https://www.gstatic.com/youtube/img/creator/${theme === 'light' ? 'yt_studio_logo_v2.svg' : 'yt_studio_logo_v2_darkmode.svg'}`}
     alt="YouTube Studio"
     height="24"
     style={{ display: 'block', height: 24, width: 'auto' }}

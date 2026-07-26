@@ -144,7 +144,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: #7b7b7b transparent;
+  scrollbar-color: var(--studio-text-subtle) transparent;
 }
 
 .markerTooltipItem {
@@ -157,7 +157,7 @@
 }
 
 .markerTooltipItem:hover {
-  background: #3a3a3a;
+  background: var(--studio-hover);
 }
 
 .markerTooltipThumb {
@@ -166,7 +166,7 @@
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: 8px;
-  background: #343434;
+  background: var(--studio-surface-3);
 }
 
 .markerTooltipThumb img {
@@ -202,7 +202,7 @@
 .markerTooltipViewsIcon {
   width: 22px;
   height: 22px;
-  color: #e6e6e6;
+  color: var(--studio-text);
   opacity: 0.95;
   align-self: center;
 }
@@ -253,7 +253,7 @@
   width: 22px;
   height: 18px;
   border-radius: 4px;
-  background: #a9a9a9;
+  background: var(--studio-chart-marker-bg);
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -266,7 +266,7 @@
   height: 0;
   border-top: 5px solid transparent;
   border-bottom: 5px solid transparent;
-  border-left: 7px solid #111;
+  border-left: 7px solid var(--studio-chart-marker-text);
   margin-left: 2px;
 }
 

@@ -1,5 +1,6 @@
 /**
- * Палитра графиков в темной теме YouTube Studio.
+ * Фирменные акценты остаются постоянными, а нейтральные цвета берутся
+ * из CSS variables и автоматически следуют за темой документа.
  */
 
 const BLUE = '#39cfc2'
@@ -32,12 +33,12 @@ export const CHART_COLORS = {
   amberSoft: 'rgba(249, 171, 0, 0.28)',
   pink: PURPLE_LIGHT,
   cyan: BLUE_LIGHT,
-  grid: '#2a2a2a',
-  gridSoft: 'rgba(255, 255, 255, 0.08)',
-  axis: '#5a5a5a',
-  text: '#f1f1f1',
-  textMuted: '#aaaaaa',
-  textSubtle: '#8d8d8d',
+  grid: 'var(--studio-chart-grid-line)',
+  gridSoft: 'var(--studio-border-strong)',
+  axis: 'var(--studio-text-subtle)',
+  text: 'var(--studio-text)',
+  textMuted: 'var(--studio-text-muted)',
+  textSubtle: 'var(--studio-text-subtle)',
 }
 
 export const PALETTE_5 = [

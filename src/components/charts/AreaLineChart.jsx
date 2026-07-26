@@ -499,7 +499,7 @@ export default function AreaLineChart({
     r: 4,
     stroke: color,
     strokeWidth: 2,
-    fill: '#282828',
+    fill: 'var(--studio-card-widget)',
   }
   const chartCursor = tooltipCursor || {
     stroke: color,

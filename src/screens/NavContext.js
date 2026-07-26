@@ -7,4 +7,7 @@ export const NavContext = createContext({
   current: null,
   sidebarExpanded: false,
   toggleSidebar: () => {},
+  themePreference: 'dark',
+  resolvedTheme: 'dark',
+  setThemePreference: () => {},
 })

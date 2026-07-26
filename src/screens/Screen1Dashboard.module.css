@@ -130,7 +130,7 @@
   cursor: pointer;
 }
 .violationRow:first-child { border-top: 0; }
-.violationRow:hover span:first-child { color: var(--studio-white); }
+.violationRow:hover span:first-child { color: var(--studio-text); }
 .violationRow span:first-child {
   font-size: 13px;
   font-weight: 500;
@@ -228,7 +228,7 @@
   cursor: pointer;
 }
 .metricBtn:first-of-type { margin-top: 12px; }
-.metricBtn:hover span { color: var(--studio-white); }
+.metricBtn:hover span { color: var(--studio-text); }
 .metricBtn span {
   color: var(--studio-text);
   font-size: 14px;
@@ -276,7 +276,7 @@
   cursor: pointer;
   text-align: left;
 }
-.linkBtn:hover { color: #65b8ff; }
+.linkBtn:hover { color: var(--studio-link); }
 
 .publishedList {
   display: flex;
@@ -359,8 +359,8 @@
   padding: var(--studio-control-padding-md);
   border: 0;
   border-radius: calc(var(--studio-control-height-sm) / 2);
-  background: var(--studio-white);
-  color: var(--studio-text-on-light);
+  background: var(--studio-action-active-bg);
+  color: var(--studio-action-active-text);
   font: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -434,7 +434,7 @@
 }
 .popularRow:hover .popularTitleEllipsis,
 .popularRow:hover .views {
-  color: var(--studio-white);
+  color: var(--studio-text);
 }
 .num,
 .views {
@@ -605,7 +605,7 @@
   font: inherit;
   cursor: pointer;
 }
-.emptyLink:hover { color: #65b8ff; }
+.emptyLink:hover { color: var(--studio-link); }
 
 .footer {
   max-width: 1224px;

@@ -84,7 +84,7 @@
   white-space: nowrap;
 }
 .suggestion:hover { background: var(--studio-action-pill-bg-hover); transform: none; }
-.suggestion svg { color: #fff; }
+.suggestion svg { color: var(--studio-text); }
 .kebab {
   width: 36px; height: 36px;
   border: none; border-radius: 50%;
@@ -94,7 +94,7 @@
   cursor: pointer;
   transition: background 0.18s ease;
 }
-.kebab:hover { background: rgba(255,255,255,0.06); color: var(--studio-text); }
+.kebab:hover { background: var(--studio-hover-soft); color: var(--studio-text); }
 
 /* === tabs + date row === */
 .controlRow {
@@ -157,7 +157,7 @@
   overflow: auto;
   border: 1px solid var(--studio-card-border);
   border-radius: var(--studio-radius-lg);
-  background: #0f0f0f;
+  background: var(--studio-card-widget);
   color: var(--studio-text);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
 }

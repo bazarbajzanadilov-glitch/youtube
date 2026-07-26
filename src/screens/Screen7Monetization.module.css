@@ -98,7 +98,7 @@
   cursor: pointer;
   transition: background 0.18s ease;
 }
-.kebab:hover { background: rgba(255,255,255,0.06); color: var(--studio-text); }
+.kebab:hover { background: var(--studio-hover-soft); color: var(--studio-text); }
 
 .controlRow {
   display: flex;

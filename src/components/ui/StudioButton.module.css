@@ -73,7 +73,7 @@
 }
 
 .variant-link:hover {
-  color: #65b8ff;
+  color: var(--studio-link);
 }
 
 .variant-icon {

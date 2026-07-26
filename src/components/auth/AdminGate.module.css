@@ -4,8 +4,8 @@
   place-items: center;
   padding: 24px;
   box-sizing: border-box;
-  background: var(--studio-canvas, #0f0f0f);
-  color: var(--studio-text, #f1f1f1);
+  background: var(--studio-canvas);
+  color: var(--studio-text);
   font-family: var(--studio-font, Roboto, Arial, sans-serif);
 }
 
@@ -13,9 +13,9 @@
   width: min(420px, 100%);
   padding: 32px;
   box-sizing: border-box;
-  border: 1px solid var(--studio-border, #3f3f3f);
+  border: 1px solid var(--studio-border);
   border-radius: 16px;
-  background: var(--studio-card-widget, #212121);
+  background: var(--studio-card-widget);
   box-shadow: 0 24px 72px rgba(0, 0, 0, 0.36);
 }
 
@@ -27,7 +27,7 @@
 
 .card p {
   margin: 0 0 24px;
-  color: var(--studio-text-muted, #aaa);
+  color: var(--studio-text-muted);
   font-size: 14px;
 }
 
@@ -42,7 +42,7 @@
 
 .card label span {
   margin-bottom: 7px;
-  color: var(--studio-text-muted, #aaa);
+  color: var(--studio-text-muted);
   font-size: 12px;
 }
 
@@ -51,16 +51,16 @@
   height: 44px;
   padding: 0 12px;
   box-sizing: border-box;
-  border: 1px solid var(--studio-border, #3f3f3f);
+  border: 1px solid var(--studio-border);
   border-radius: 7px;
-  background: var(--studio-search-bg, #121212);
+  background: var(--studio-search-bg);
   color: inherit;
   font: inherit;
 }
 
 .card input:focus {
   outline: none;
-  border-color: var(--studio-link, #3ea6ff);
+  border-color: var(--studio-link);
 }
 
 .card button {
@@ -69,8 +69,8 @@
   margin-top: 18px;
   border: 0;
   border-radius: 21px;
-  background: var(--studio-link, #3ea6ff);
-  color: #fff;
+  background: var(--studio-link);
+  color: var(--studio-white);
   font: inherit;
   font-weight: 500;
   cursor: pointer;
@@ -88,7 +88,7 @@
   place-items: center;
   border-radius: 13px;
   background: #f00;
-  color: #fff;
+  color: var(--studio-white);
   font-weight: 700;
   letter-spacing: -1px;
 }

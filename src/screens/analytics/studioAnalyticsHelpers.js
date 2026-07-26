@@ -9,7 +9,7 @@ import {
 export const ANALYTICS_BLUE = '#41b4d9'
 export const ANALYTICS_PURPLE = '#bc69f3'
 export const ANALYTICS_TEAL = '#39cfc2'
-export const ANALYTICS_MUTED = '#aaa'
+export const ANALYTICS_MUTED = 'var(--studio-text-muted)'
 
 const NBSP = '\u00a0'
 

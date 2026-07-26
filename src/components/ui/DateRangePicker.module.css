@@ -30,7 +30,7 @@
 .main svg {
   width: 24px;
   height: 24px;
-  color: #f1f1f1;
+  color: var(--studio-text);
 }
 
 .menu {
@@ -39,8 +39,8 @@
   top: 100%;
   margin-top: 6px;
   width: 288px;
-  background: #282828;
-  border: 1px solid #3f3f3f;
+  background: var(--studio-surface-3);
+  border: 1px solid var(--studio-border);
   border-radius: 12px;
   box-shadow: 0 18px 40px -16px rgba(0,0,0,0.9);
   z-index: 90;
@@ -63,7 +63,7 @@
   display: block;
   height: 1px;
   margin: 8px 0;
-  background: #5a5a5a;
+  background: var(--studio-row-separator);
 }
 
 .item {
@@ -99,7 +99,6 @@
   border-radius: 6px;
   font-family: inherit;
   font-size: 13px;
-  color-scheme: dark;
 }
 .customActions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
 .cancelBtn, .applyBtn {

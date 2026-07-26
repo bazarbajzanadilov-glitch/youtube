@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --studio-font: Roboto, Arial, sans-serif;
   --studio-bg: #0f0f0f;
   --studio-canvas: #0f0f0f;
@@ -49,6 +50,9 @@
   --studio-action-chip-bg-muted: #3f3f3f;
   --studio-action-active-bg: #f1f1f1;
   --studio-action-active-text: #0f0f0f;
+  --studio-primary-action-text: #0f0f0f;
+  --studio-kpi-bg: #0f0f0f;
+  --studio-kpi-active-bg: #282828;
   --studio-topbar-height: 64px;
   --studio-sidebar-compact-width: 72px;
   --studio-sidebar-expanded-width: 256px;
@@ -86,6 +90,7 @@
   --studio-chip-bg: #333333;
   --studio-chip-border: #3f3f3f;
   --studio-modal-menu-active: #3f3f3f;
+  --studio-menu-shadow: 0 4px 32px rgba(0, 0, 0, 0.32);
   --studio-compact-canvas-width: 1920px;
   --studio-expanded-canvas-width: 1920px;
   --ytcp-font-yt-headline1-font-weight: 700;
@@ -95,6 +100,50 @@
   --studio-page-title-mobile-font-size: var(--ytcp-font-yt-headline1-font-size);
   --studio-page-title-font-weight: var(--ytcp-font-yt-headline1-font-weight);
   --studio-page-title-line-height: var(--ytcp-font-yt-headline1-line-height);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --studio-bg: #ffffff;
+  --studio-canvas: #ffffff;
+  --studio-surface: #ffffff;
+  --studio-surface-2: #f2f2f2;
+  --studio-surface-3: #ffffff;
+  --studio-card-widget: #ffffff;
+  --studio-search-bg: #f2f2f2;
+  --studio-hover: #e5e5e5;
+  --studio-hover-soft: rgba(0, 0, 0, 0.05);
+  --studio-border: #e5e5e5;
+  --studio-card-border: rgba(0, 0, 0, 0.1);
+  --studio-border-strong: rgba(0, 0, 0, 0.14);
+  --studio-row-separator: #e5e5e5;
+  --studio-text: #0f0f0f;
+  --studio-text-muted: #606060;
+  --studio-text-subtle: #909090;
+  --studio-text-disabled: #909090;
+  --studio-link: #065fd4;
+  --studio-progress-track: #e5e5e5;
+  --studio-action-pill-bg: rgba(0, 0, 0, 0.05);
+  --studio-action-pill-bg-hover: rgba(0, 0, 0, 0.1);
+  --studio-action-chip-bg: #f2f2f2;
+  --studio-action-chip-bg-muted: #e5e5e5;
+  --studio-action-active-bg: #0f0f0f;
+  --studio-action-active-text: #ffffff;
+  --studio-primary-action-text: #ffffff;
+  --studio-kpi-bg: #f2f2f2;
+  --studio-kpi-active-bg: #ffffff;
+  --studio-chart-timeline-line: #e5e5e5;
+  --studio-chart-processing-window: #f2f2f2;
+  --studio-chart-tooltip-bg: #ffffff;
+  --studio-chart-marker-bg: #606060;
+  --studio-chart-marker-text: #ffffff;
+  --studio-chart-marker-tooltip-bg: #ffffff;
+  --studio-chart-marker-tooltip-border: rgba(0, 0, 0, 0.1);
+  --studio-chart-content-fill-bottom: #f5f5ff;
+  --studio-chip-bg: #f2f2f2;
+  --studio-chip-border: #e5e5e5;
+  --studio-modal-menu-active: #f2f2f2;
+  --studio-menu-shadow: 0 4px 32px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 720px) {

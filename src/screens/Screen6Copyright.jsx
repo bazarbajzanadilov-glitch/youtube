@@ -63,7 +63,7 @@ export default function Screen6Copyright() {
 
         <div className={s.emptyState}>
           <div className={s.emptyIcon} aria-hidden="true">
-            <CheckCircle size={72} color="#8d8d8d" />
+            <CheckCircle size={72} color="var(--studio-text-subtle)" />
           </div>
           <div className={s.emptyTitle}>Отличная работа, все под контролем!</div>
           <div className={s.emptyText}>

@@ -7,7 +7,7 @@ const DAY_LABELS = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
 const HOUR_LABELS = ['00:00','06:00','12:00','18:00']
 
 function pickColor(intensity) {
-  if (intensity <= 0.001) return 'rgba(255,255,255,0.025)'
+  if (intensity <= 0.001) return 'var(--studio-hover-soft)'
   const idx = Math.min(HEATMAP_RAMP.length - 1, Math.floor(intensity * HEATMAP_RAMP.length))
   return HEATMAP_RAMP[idx]
 }

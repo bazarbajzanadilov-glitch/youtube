@@ -15,6 +15,14 @@ import Screen10Settings from './screens/Screen10Settings.jsx'
 import Screen11Admin from './screens/Screen11Admin.jsx'
 import { continueDoubleHardResetIfNeeded } from './lib/hardResetSite.js'
 import { useVideos } from './storage/useVideos.js'
+import {
+  applyResolvedTheme,
+  getStoredThemePreference,
+  getSystemTheme,
+  isThemePreference,
+  persistThemePreference,
+  resolveTheme,
+} from './theme/theme.js'
 
 const SCREENS = [
   { key: 'home', route: 'dashboard', name: 'Панель управления каналом', Component: Screen1Dashboard },
@@ -67,9 +75,12 @@ export default function App() {
   const [route, setRoute] = useState(() => normalizeHashRoute())
   const [toast, setToast] = useState(null)
   const [sidebarExpanded, setSidebarExpanded] = useState(() => shouldStartExpanded())
+  const [themePreference, setThemePreferenceState] = useState(() => getStoredThemePreference())
+  const [systemTheme, setSystemTheme] = useState(() => getSystemTheme())
   const toastTimer = useRef(null)
   const current = getScreenByRoute(route)
   const Current = current.Component
+  const resolvedTheme = resolveTheme(themePreference, systemTheme)
 
   const showToast = useCallback((message) => {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -78,6 +89,12 @@ export default function App() {
   }, [])
 
   const toggleSidebar = useCallback(() => setSidebarExpanded((v) => !v), [])
+
+  const setThemePreference = useCallback((preference) => {
+    if (!isThemePreference(preference)) return
+    persistThemePreference(preference)
+    setThemePreferenceState(preference)
+  }, [])
 
   const go = useCallback((keyOrRoute) => {
     const target = SCREENS.find((screen) => screen.key === keyOrRoute || screen.route === keyOrRoute)
@@ -120,7 +137,42 @@ export default function App() {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [route])
 
-  const contextValue = useMemo(() => ({ go, showToast, route, current, sidebarExpanded, toggleSidebar }), [go, showToast, route, current, sidebarExpanded, toggleSidebar])
+  useEffect(() => {
+    applyResolvedTheme(resolvedTheme)
+  }, [resolvedTheme])
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (event) => setSystemTheme(event.matches ? 'dark' : 'light')
+    media.addEventListener?.('change', handleChange)
+    return () => media.removeEventListener?.('change', handleChange)
+  }, [])
+
+  const contextValue = useMemo(
+    () => ({
+      go,
+      showToast,
+      route,
+      current,
+      sidebarExpanded,
+      toggleSidebar,
+      themePreference,
+      resolvedTheme,
+      setThemePreference,
+    }),
+    [
+      go,
+      showToast,
+      route,
+      current,
+      sidebarExpanded,
+      toggleSidebar,
+      themePreference,
+      resolvedTheme,
+      setThemePreference,
+    ],
+  )
 
   const sidebarWidth = sidebarExpanded ? 'var(--studio-sidebar-expanded-width)' : 'var(--studio-sidebar-compact-width)'
 

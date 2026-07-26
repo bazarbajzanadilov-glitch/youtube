@@ -68,8 +68,8 @@
   min-height: 116px;
   padding: 18px 22px 14px;
   border: 0;
-  border-right: 1px solid #3f3f3f;
-  background: #0f0f0f;
+  border-right: 1px solid var(--studio-border);
+  background: var(--studio-kpi-bg);
   color: var(--studio-text);
   font-family: inherit;
   text-align: center;
@@ -92,7 +92,7 @@ button.ytKpiCell {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 12px;
   font-weight: 500;
   line-height: 16px;
@@ -106,7 +106,7 @@ button.ytKpiCell {
   max-width: 100%;
   min-width: 0;
   margin-top: 3px;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: var(--studio-analytics-kpi-value-font-size);
   font-weight: var(--studio-analytics-kpi-value-font-weight);
   line-height: var(--studio-analytics-kpi-value-line-height);
@@ -118,7 +118,7 @@ button.ytKpiCell {
 .ytKpiNote {
   align-self: stretch;
   margin-top: 0;
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 12px;
   font-style: italic;
   line-height: 16px;
@@ -134,7 +134,7 @@ button.ytKpiCell {
   justify-content: center;
   width: 18px;
   height: 18px;
-  color: #909090;
+  color: var(--studio-text-subtle);
   flex: 0 0 auto;
 }
 
@@ -150,11 +150,11 @@ button.ytKpiCell {
 }
 
 .trendDown {
-  color: #909090;
+  color: var(--studio-text-subtle);
 }
 
 .clockMark {
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 16px;
 }
 
@@ -179,15 +179,15 @@ button.ytKpiCell {
 .analyticsHeroTooltip {
   min-width: 146px;
   padding: 18px 10px;
-  border-color: #4a4a4a;
+  border-color: var(--studio-border-strong);
   border-radius: 16px;
-  background: #0f0f0f;
+  background: var(--studio-chart-tooltip-bg);
   box-shadow: none;
 }
 
 .analyticsHeroTooltipLabel {
   margin-bottom: 5px;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
@@ -244,8 +244,8 @@ button.ytKpiCell {
   padding: 0 16px;
   border: 0;
   border-radius: 18px;
-  background: #3ea6ff;
-  color: #0f0f0f;
+  background: var(--studio-link);
+  color: var(--studio-primary-action-text);
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -262,7 +262,7 @@ button.ytKpiCell {
   border: 0;
   border-radius: 17px;
   background: transparent;
-  color: #3ea6ff;
+  color: var(--studio-link);
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -277,7 +277,7 @@ button.ytKpiCell {
 
 .ytTextBtn:hover {
   filter: none;
-  color: #7abfff;
+  color: var(--studio-link);
 }
 
 .linkBtn:hover {
@@ -289,13 +289,13 @@ button.ytKpiCell {
   grid-template-columns: 38px 1fr;
   gap: 12px;
   border-color: var(--studio-border);
-  background: #0f0f0f;
+  background: var(--studio-card-widget);
 }
 
 .aiIcon {
   width: 24px;
   height: 24px;
-  color: #fff;
+  color: var(--studio-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -304,18 +304,18 @@ button.ytKpiCell {
 .aiIcon svg {
   width: 24px;
   height: 24px;
-  color: #fff;
+  color: var(--studio-text);
 }
 
 .aiBody {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 14px;
   line-height: 20px;
 }
 
 .aiBody p {
   margin: 0;
-  color: #ddd;
+  color: var(--studio-text);
 }
 
 .aiParagraphs {
@@ -324,7 +324,7 @@ button.ytKpiCell {
 
 .aiParagraphs p {
   margin: 10px 0;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 14px;
   line-height: 20px;
 }
@@ -332,14 +332,14 @@ button.ytKpiCell {
 .aiBullet {
   display: inline-block;
   width: 18px;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-weight: 400;
 }
 
 .aiList {
   margin: 14px 0 0;
   padding-left: 18px;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 14px;
   line-height: 20px;
 }
@@ -349,14 +349,14 @@ button.ytKpiCell {
 }
 
 .aiBody strong {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-weight: 600;
 }
 
 .aiTitle,
 .cardTitle,
 .sideTitle {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 16px;
   font-weight: 500;
   line-height: 22px;
@@ -381,7 +381,7 @@ button.ytKpiCell {
 .videoSub,
 .ideaMeta,
 .cardNote {
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 12px;
   line-height: 17px;
 }
@@ -411,7 +411,7 @@ button.ytKpiCell {
   border: 0;
   border-radius: 18px;
   background: transparent;
-  color: #f1f1f1;
+  color: var(--studio-text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -419,7 +419,7 @@ button.ytKpiCell {
 }
 
 .aiFeedbackButton:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--studio-hover-soft);
 }
 
 .sectionTitle {
@@ -428,7 +428,7 @@ button.ytKpiCell {
   justify-content: center;
   min-height: 44px;
   margin: 0 0 6px;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-family: var(--studio-font);
   font-size: 18px;
   font-weight: 500;
@@ -452,17 +452,17 @@ button.ytKpiCell {
   content: '';
   width: 52px;
   height: 1px;
-  background: #3f3f3f;
+  background: var(--studio-row-separator);
 }
 
 .tableCard {
-  background: #0f0f0f;
+  background: var(--studio-card-widget);
 }
 
 .overviewTable {
   border-color: transparent;
   border-radius: 6px;
-  background: #0f0f0f;
+  background: var(--studio-card-widget);
 }
 
 .overviewTable .ytTable {
@@ -521,8 +521,8 @@ button.ytKpiCell {
 .ytTable td {
   height: 58px;
   padding: 0 16px;
-  border-top: 1px solid #3f3f3f;
-  color: #f1f1f1;
+  border-top: 1px solid var(--studio-row-separator);
+  color: var(--studio-text);
   font-size: 13px;
   line-height: 18px;
   vertical-align: middle;
@@ -530,7 +530,7 @@ button.ytKpiCell {
 
 .ytTable th {
   height: 40px;
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 12px;
   font-weight: 400;
   line-height: 16px;
@@ -550,7 +550,7 @@ button.ytKpiCell {
 }
 
 .rank {
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 12px;
 }
 
@@ -585,7 +585,7 @@ button.ytKpiCell {
 .sideVideoTitle,
 .newVideoTitle,
 .ideaTitle {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 13px;
   font-weight: 500;
   line-height: 18px;
@@ -599,11 +599,11 @@ button.ytKpiCell {
 }
 
 .overviewTable .videoTitle {
-  color: #3ea6ff;
+  color: var(--studio-link);
 }
 
 .overviewTable .videoTitle:hover {
-  color: #7abfff;
+  color: var(--studio-link);
 }
 
 .analyticsSide {
@@ -620,7 +620,7 @@ button.ytKpiCell {
 }
 
 .sideBig {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 28px;
   font-weight: 500;
   line-height: 36px;
@@ -629,13 +629,13 @@ button.ytKpiCell {
 .sideDivider,
 .softDivider {
   height: 1px;
-  background: #3f3f3f;
+  background: var(--studio-row-separator);
   margin: 8px 0;
 }
 
 .nowLabel {
   align-self: flex-end;
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 11px;
 }
 
@@ -651,7 +651,7 @@ button.ytKpiCell {
 
 .sideTableHead {
   grid-template-columns: 1fr auto;
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 12px;
 }
 
@@ -668,7 +668,7 @@ button.ytKpiCell {
 }
 
 .sideVideoValue {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 12px;
 }
 
@@ -723,16 +723,16 @@ button.ytKpiCell {
   min-height: 42px;
   padding: 10px 0;
   border: 0;
-  color: #aaa;
+  color: var(--studio-text-muted);
   background: transparent;
   font-family: inherit;
   font-size: 12px;
-  border-top: 1px solid #3f3f3f;
+  border-top: 1px solid var(--studio-row-separator);
   text-align: left;
 }
 
 .metricRow strong {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-weight: 500;
   font-size: 14px;
 }
@@ -786,32 +786,32 @@ button.ytKpiCell {
 
 .overviewHeroCard .ytKpiStrip {
   min-height: 108px;
-  background: #0f0f0f;
+  background: var(--studio-kpi-bg);
 }
 
 .overviewHeroCard .ytKpiCell {
   min-height: 108px;
   padding: 17px 18px 11px;
-  background: #0f0f0f;
+  background: var(--studio-kpi-bg);
   overflow: hidden;
   transition: background-color 120ms ease;
 }
 
 .overviewHeroCard button.ytKpiCell:hover {
-  background: #1f1f1f;
+  background: var(--studio-surface-2);
 }
 
 .overviewHeroCard .ytKpiCellActive,
 .overviewHeroCard button.ytKpiCellActive:hover {
-  background: #282828;
+  background: var(--studio-kpi-active-bg);
 }
 
 .overviewHeroCard .ytKpiCellActive .ytKpiLabel {
-  color: #aaa;
+  color: var(--studio-text-muted);
 }
 
 .overviewHeroCard .ytKpiCellActive .ytKpiValue {
-  color: #f1f1f1;
+  color: var(--studio-text);
 }
 
 .overviewHeroCard .ytKpiValue {
@@ -831,22 +831,22 @@ button.ytKpiCell {
 }
 
 .audienceHeroCard .ytKpiStrip {
-  background: #0f0f0f;
+  background: var(--studio-kpi-bg);
 }
 
 .audienceHeroCard .ytKpiCell {
-  background: #0f0f0f;
+  background: var(--studio-kpi-bg);
   border-bottom: 0;
   transition: background-color 120ms ease;
 }
 
 .audienceHeroCard button.ytKpiCell:hover {
-  background: #1f1f1f;
+  background: var(--studio-surface-2);
 }
 
 .audienceHeroCard .ytKpiCellActive,
 .audienceHeroCard button.ytKpiCellActive:hover {
-  background: #282828;
+  background: var(--studio-kpi-active-bg);
 }
 
 .overviewHeroCard .ytHeroChart {
@@ -863,11 +863,11 @@ button.ytKpiCell {
   gap: 0 10px;
   min-height: 344px;
   border-radius: 12px;
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--studio-border-strong);
 }
 
 .aiInlineLink {
-  color: #3ea6ff;
+  color: var(--studio-link);
 }
 
 .overviewAICard .ytPillBtn {
@@ -922,7 +922,7 @@ button.ytKpiCell {
   gap: 8px;
   padding: 16px !important;
   width: 314px;
-  border: 1px solid #fff3;
+  border: 1px solid var(--studio-card-border);
 }
 
 .overviewSideCard .sideTitle {
@@ -934,7 +934,7 @@ button.ytKpiCell {
   padding: 0 !important;
   min-height: 509px;
   width: 314px;
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--studio-card-border);
 }
 
 .overviewNewVideoCard .sideTitle {
@@ -953,7 +953,7 @@ button.ytKpiCell {
 .overviewNewVideoCard .metricRow {
   min-height: 52px;
   padding: 0;
-  color: #fff;
+  color: var(--studio-text);
   font-size: 13px;
   line-height: 20px;
   width: auto;
@@ -966,7 +966,7 @@ button.ytKpiCell {
   gap: 6px;
   margin: 0 16px;
   padding: 12px 0;
-  border-top: 1px solid #3f3f3f;
+  border-top: 1px solid var(--studio-row-separator);
 }
 
 .newMetricPrimary,
@@ -978,18 +978,18 @@ button.ytKpiCell {
 }
 
 .newMetricLabel {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 13px;
   line-height: 20px;
 }
 
 .newMetricSecondary .newMetricLabel {
-  color: #aaa;
+  color: var(--studio-text-muted);
 }
 
 .newMetricValue,
 .newMetricSecondaryValue {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 13px;
   line-height: 20px;
   font-weight: 400;
@@ -997,7 +997,7 @@ button.ytKpiCell {
 }
 
 .newMetricSecondaryValue {
-  color: #aaa;
+  color: var(--studio-text-muted);
 }
 
 .overviewNewVideoCard .ytWideBtn {
@@ -1007,7 +1007,7 @@ button.ytKpiCell {
   padding: 0 16px;
   align-self: flex-start;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--studio-action-pill-bg);
   font-size: 14px;
   font-weight: 500;
   line-height: 20px;
@@ -1017,7 +1017,7 @@ button.ytKpiCell {
 }
 
 .overviewNewVideoCard .ytWideBtn:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--studio-action-pill-bg-hover);
 }
 
 .overviewNewVideoCard .pager {
@@ -1064,7 +1064,7 @@ button.ytKpiCell {
 }
 
 .liveNote {
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 12px;
   line-height: 17px;
 }
@@ -1073,7 +1073,7 @@ button.ytKpiCell {
   display: flex;
   gap: 6px;
   align-items: flex-start;
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 13px;
   line-height: 20px;
   margin: 6px 16px 8px;
@@ -1082,7 +1082,7 @@ button.ytKpiCell {
 .liveNoteIcon {
   display: inline-flex;
   flex: 0 0 auto;
-  color: #aaa;
+  color: var(--studio-text-muted);
   margin-top: 2px;
 }
 
@@ -1104,8 +1104,8 @@ button.ytKpiCell {
   gap: 18px;
   margin-top: 2px;
   padding-top: 12px;
-  border-top: 1px solid #3f3f3f;
-  color: #aaa;
+  border-top: 1px solid var(--studio-row-separator);
+  color: var(--studio-text-muted);
   font-size: 12px;
 }
 
@@ -1115,7 +1115,7 @@ button.ytKpiCell {
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #f1f1f1;
+  color: var(--studio-text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1277,14 +1277,14 @@ button.ytKpiCell {
   grid-template-columns: minmax(140px, 1fr) minmax(90px, 180px) 58px;
   gap: 12px;
   align-items: center;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 13px;
 }
 
 .trafficRow div {
   height: 4px;
   border-radius: 2px;
-  background: #3f3f3f;
+  background: var(--studio-progress-track);
   overflow: hidden;
 }
 
@@ -1297,7 +1297,7 @@ button.ytKpiCell {
 
 .trafficRow strong,
 .compactVideoRow strong {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 12px;
   font-weight: 500;
   text-align: right;
@@ -1321,8 +1321,8 @@ button.ytKpiCell {
   min-height: 116px;
   margin-top: 16px;
   border-radius: 8px;
-  background: #242424;
-  color: #aaa;
+  background: var(--studio-surface-2);
+  color: var(--studio-text-muted);
   font-size: 13px;
   text-align: center;
 }
@@ -1334,7 +1334,7 @@ button.ytKpiCell {
   margin: 18px 0 14px;
   border-radius: 999px;
   overflow: hidden;
-  background: #3f3f3f;
+  background: var(--studio-progress-track);
 }
 
 .segmentRows {
@@ -1345,7 +1345,7 @@ button.ytKpiCell {
 
 .segmentRows > div {
   grid-template-columns: minmax(0, 1fr) auto;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 13px;
 }
 
@@ -1369,14 +1369,14 @@ button.ytKpiCell {
 }
 
 .formatRow > span {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 13px;
 }
 
 .formatRow > div {
   height: 8px;
   border-radius: 999px;
-  background: #3f3f3f;
+  background: var(--studio-progress-track);
   overflow: hidden;
 }
 
@@ -1390,7 +1390,7 @@ button.ytKpiCell {
 .formatRow small {
   display: flex;
   justify-content: space-between;
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 11px;
 }
 
@@ -1406,7 +1406,7 @@ button.ytKpiCell {
   grid-template-columns: minmax(225px, 1fr) minmax(48px, 128px) auto;
   align-items: center;
   min-height: 46px;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 14px;
   gap: 12px;
 }
@@ -1432,7 +1432,7 @@ button.ytKpiCell {
 }
 
 .revenueSourceRow strong {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 14px;
   font-weight: 500;
   text-align: right;
@@ -1441,7 +1441,7 @@ button.ytKpiCell {
 
 .revenueSourceEmpty {
   padding: 18px 0;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 22px;
   font-weight: 600;
   line-height: 28px;
@@ -1560,7 +1560,7 @@ button.ytKpiCell {
 
 .revenueMetricLabel,
 .revenueMetricValue {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 14px;
   line-height: 20px;
 }
@@ -1614,14 +1614,14 @@ button.ytKpiCell {
 
 .revenuePerformancePrimary strong {
   min-height: 32px;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 26px;
   font-weight: 700;
   line-height: 32px;
 }
 
 .revenuePerformancePrimary span {
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
@@ -1642,7 +1642,7 @@ button.ytKpiCell {
 
 .revenuePerformanceMetricLine span,
 .revenuePerformanceMetricLine strong {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 13px;
   font-weight: 500;
   line-height: 19px;
@@ -1662,8 +1662,8 @@ button.ytKpiCell {
 .revenuePerformanceSummary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid #3f3f3f;
-  border-bottom: 1px solid #3f3f3f;
+  border-top: 1px solid var(--studio-row-separator);
+  border-bottom: 1px solid var(--studio-row-separator);
 }
 
 .performanceMetric {
@@ -1672,7 +1672,7 @@ button.ytKpiCell {
   gap: 4px;
   min-height: 96px;
   padding: 18px 22px 14px;
-  border-right: 1px solid #3f3f3f;
+  border-right: 1px solid var(--studio-row-separator);
   text-align: center;
 }
 
@@ -1681,14 +1681,14 @@ button.ytKpiCell {
 }
 
 .performanceMetric strong {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 24px;
   font-weight: 500;
   line-height: 32px;
 }
 
 .performanceMetric span {
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 12px;
   line-height: 17px;
 }
@@ -1717,12 +1717,12 @@ button.ytKpiCell {
 
 .summaryMetric span,
 .summaryMetric small {
-  color: #aaa;
+  color: var(--studio-text-muted);
   font-size: 12px;
 }
 
 .summaryMetric strong {
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 24px;
   font-weight: 500;
   line-height: 32px;
@@ -1746,7 +1746,7 @@ button.ytKpiCell {
 
 .trendsHeader h1 {
   margin: 0;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: var(--studio-page-title-font-size);
   font-weight: var(--studio-page-title-font-weight);
   line-height: var(--studio-page-title-line-height);
@@ -1760,8 +1760,8 @@ button.ytKpiCell {
   padding: 0 14px;
   border: 0;
   border-radius: 18px;
-  background: #3f3f3f;
-  color: #f1f1f1;
+  background: var(--studio-hover);
+  color: var(--studio-text);
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -1775,9 +1775,9 @@ button.ytKpiCell {
   width: min(760px, 100%);
   height: 48px;
   padding: 0 16px;
-  border: 1px solid #5f5f5f;
+  border: 1px solid var(--studio-border-strong);
   border-radius: 24px;
-  color: #aaa;
+  color: var(--studio-text-muted);
   background: transparent;
 }
 
@@ -1787,7 +1787,7 @@ button.ytKpiCell {
   border: 0;
   outline: 0;
   background: transparent;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font: inherit;
   font-size: 16px;
 }
@@ -1798,7 +1798,7 @@ button.ytKpiCell {
 
 .ideaSection h2 {
   margin: 0 0 16px;
-  color: #f1f1f1;
+  color: var(--studio-text);
   font-size: 18px;
   font-weight: 500;
   line-height: 26px;
@@ -1830,7 +1830,7 @@ button.ytKpiCell {
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #aaa;
+  color: var(--studio-text-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;

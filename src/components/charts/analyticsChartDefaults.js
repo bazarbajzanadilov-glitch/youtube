@@ -46,14 +46,14 @@ export const ANALYTICS_AREA_CHART_DEFAULT_PROPS = {
 const ANALYTICS_HERO_FILL_OPACITY = 0.08
 
 const ANALYTICS_HERO_TOOLTIP_CURSOR = {
-  stroke: '#6c6c6c',
+  stroke: 'var(--studio-text-subtle)',
   strokeOpacity: 0.8,
   strokeWidth: 1,
 }
 
 const ANALYTICS_HERO_ACTIVE_DOT = {
   r: 5,
-  stroke: '#282828',
+  stroke: 'var(--studio-card-widget)',
   strokeWidth: 2,
 }
 

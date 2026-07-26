@@ -35,7 +35,7 @@
   gap: 2px;
 }
 .sideScroll::-webkit-scrollbar { width: 6px; }
-.sideScroll::-webkit-scrollbar-thumb { background: #3f3f3f; border-radius: 3px; }
+.sideScroll::-webkit-scrollbar-thumb { background: var(--studio-border); border-radius: 3px; }
 
 .sideItem {
   width: 64px;
@@ -59,11 +59,11 @@
 }
 
 .sideItem:hover {
-  background: #3f3f3f;
+  background: var(--studio-hover);
 }
 
 .sideActive {
-  background: #3f3f3f;
+  background: var(--studio-hover);
 }
 
 .sideBottom {

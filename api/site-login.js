@@ -20,15 +20,27 @@ function loginHtml({ error = '', returnTo = '/' } = {}) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,nofollow" />
     <title>Доступ к YouTube Studio</title>
+    <script>
+      (() => {
+        let preference = 'dark'
+        try {
+          const stored = localStorage.getItem('youtube-studio-theme-v1')
+          if (stored === 'system' || stored === 'dark' || stored === 'light') preference = stored
+        } catch {}
+        const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        document.documentElement.dataset.theme = preference === 'system' ? systemTheme : preference
+      })()
+    </script>
     <style>
-      :root{font-family:Arial,sans-serif;color:#f1f1f1;background:#0f0f0f;color-scheme:dark}
-      *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 15%,#242424 0,#0f0f0f 48%)}
-      form{width:min(100%,390px);padding:34px;border:1px solid #303030;border-radius:18px;background:#181818;box-shadow:0 24px 70px #0008}
+      :root{--bg:#0f0f0f;--surface:#181818;--field:#101010;--text:#f1f1f1;--muted:#aaa;--border:#3f3f3f;--action:#f1f1f1;--action-text:#0f0f0f;font-family:Arial,sans-serif;color:var(--text);background:var(--bg);color-scheme:dark}
+      :root[data-theme="light"]{--bg:#fff;--surface:#fff;--field:#f2f2f2;--text:#0f0f0f;--muted:#606060;--border:#e5e5e5;--action:#0f0f0f;--action-text:#fff;color-scheme:light}
+      *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--bg)}
+      form{width:min(100%,390px);padding:34px;border:1px solid var(--border);border-radius:18px;background:var(--surface);box-shadow:0 24px 70px #0002}
       .mark{display:grid;place-items:center;width:54px;height:38px;margin-bottom:22px;border-radius:12px;background:#f00;color:white;font-weight:800}
-      h1{font-size:24px;margin:0 0 8px}p{margin:0 0 25px;color:#aaa;line-height:1.5}
-      label{display:grid;gap:8px;color:#ddd;font-size:13px}input{width:100%;padding:14px 15px;border:1px solid #3f3f3f;border-radius:10px;background:#101010;color:#fff;font-size:18px;outline:none}
-      input:focus{border-color:#3ea6ff;box-shadow:0 0 0 3px #3ea6ff22}
-      button{width:100%;margin-top:18px;padding:13px;border:0;border-radius:999px;background:#f1f1f1;color:#0f0f0f;font-size:15px;font-weight:700;cursor:pointer}
+      h1{font-size:24px;margin:0 0 8px}p{margin:0 0 25px;color:var(--muted);line-height:1.5}
+      label{display:grid;gap:8px;color:var(--text);font-size:13px}input{width:100%;padding:14px 15px;border:1px solid var(--border);border-radius:10px;background:var(--field);color:var(--text);font-size:18px;outline:none}
+      input:focus{border-color:#065fd4;box-shadow:0 0 0 3px #065fd422}
+      button{width:100%;margin-top:18px;padding:13px;border:0;border-radius:999px;background:var(--action);color:var(--action-text);font-size:15px;font-weight:700;cursor:pointer}
       .error{margin:14px 0 0;padding:10px 12px;border-radius:9px;background:#3b1515;color:#ffb4b4;font-size:13px}
     </style>
   </head>
