@@ -42,7 +42,7 @@
   background: var(--studio-surface-3);
   border: 1px solid var(--studio-border);
   border-radius: 12px;
-  box-shadow: 0 18px 40px -16px rgba(0,0,0,0.9);
+  box-shadow: var(--studio-menu-shadow);
   z-index: 90;
   overflow: hidden;
 }

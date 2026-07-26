@@ -2,47 +2,32 @@ import { useContext } from 'react'
 import s from './SidebarCompact.module.css'
 import { NavContext } from './NavContext.js'
 import { useChannel } from '../storage/useChannel.js'
-import {
-  SideHome, SideContent, SideAnalytics, SideCommunity, SideSubtitles,
-  SideCopyright, SideMonetize, SideMagic, SideAudio, SideSettings, SideFeedback,
-} from './icons.jsx'
-
-const ITEMS = [
-  { key: 'home', label: 'Главная', Icon: SideHome },
-  { key: 'content', label: 'Контент', Icon: SideContent },
-  { key: 'analytics', label: 'Аналитика', Icon: SideAnalytics },
-  { key: 'community', label: 'Сообщество', Icon: SideCommunity },
-  { key: 'subtitles', label: 'Субтитры', Icon: SideSubtitles },
-  { key: 'copyright', label: 'Обнаружение контента', Icon: SideCopyright },
-  { key: 'monetize', label: 'Монетизация', Icon: SideMonetize },
-  { key: 'channel', label: 'Настройка канала', Icon: SideMagic },
-  { key: 'audio', label: 'Creator Music (beta)', Icon: SideAudio },
-]
+import ChannelAvatar from '../components/ChannelAvatar.jsx'
+import { SIDEBAR_ITEMS, SidebarFeedbackIcon } from './sidebarItems.js'
 
 export default function SidebarCompact({ active = 'home' }) {
   const { go, showToast } = useContext(NavContext)
   const { channel } = useChannel()
-  const avatarUrl = channel.avatar || '/studio-assets/trading-avatar.svg'
   return (
     <div className={s.sidebar}>
-      <div className={s.sideAvatar} style={{ backgroundImage: `url(${avatarUrl})` }}/>
+      <ChannelAvatar className={s.sideAvatar} src={channel.avatar} />
       <div className={s.sideScroll}>
-        {ITEMS.map(({ key, label, Icon }) => (
-          <button
-            key={key}
-            type="button"
-            title={label}
-            className={`${s.sideItem} ${active === key ? s.sideActive : ''}`}
-            onClick={() => go(key)}
-            aria-label={label}
-            aria-current={active === key ? 'page' : undefined}
-          >
-            <Icon/>
-          </button>
-        ))}
-        <button type="button" className={`${s.sideItem} ${active === 'settings' ? s.sideActive : ''}`} onClick={() => go('settings')} aria-label="Настройки" title="Настройки">
-          <SideSettings/>
-        </button>
+        {SIDEBAR_ITEMS.map(({ key, label, Icon, ActiveIcon }) => {
+          const CurrentIcon = active === key ? ActiveIcon : Icon
+          return (
+            <button
+              key={key}
+              type="button"
+              title={label}
+              className={`${s.sideItem} ${active === key ? s.sideActive : ''}`}
+              onClick={() => go(key)}
+              aria-label={label}
+              aria-current={active === key ? 'page' : undefined}
+            >
+              <CurrentIcon />
+            </button>
+          )
+        })}
         <button
           type="button"
           className={s.sideItem}
@@ -50,7 +35,7 @@ export default function SidebarCompact({ active = 'home' }) {
           aria-label="Отправить отзыв"
           title="Отправить отзыв"
         >
-          <SideFeedback/>
+          <SidebarFeedbackIcon />
         </button>
       </div>
     </div>

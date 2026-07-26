@@ -35,25 +35,26 @@ insert into public.videos (
   views,
   likes,
   dislikes,
+  average_view_percentage,
   revenue,
   analytics_profile
 )
 values
-  ('btc-orderbook-income-breakdown', '00000000-0000-0000-0000-000000000001', 'Разбор сделки по BTC: вход, риск, профит', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-1.svg', '2026-05-08', 134, 'video', 2504, 125, 26, 146.80, 'steady'),
-  ('june-trading-income-plan', '00000000-0000-0000-0000-000000000001', 'Доход от трейдинга: план на июнь', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-2.svg', '2026-05-19', 64, 'video', 6, 0, 0, 12.40, 'gradualGrowth'),
-  ('scalping-risk-management', '00000000-0000-0000-0000-000000000001', 'Скальпинг без эмоций: риск-менеджмент', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-3.svg', '2026-05-21', 3, 'short', 3, 0, 0, 5.75, 'gradualGrowth'),
-  ('daily-profit-trading-setup', '00000000-0000-0000-0000-000000000001', 'Сетап дня: как забрать движение рынка', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-4.svg', '2026-05-24', 1, 'short', 1, 0, 0, 2.25, 'gradualGrowth'),
-  ('btc-weekly-levels-may-28', '00000000-0000-0000-0000-000000000001', 'План по BTC на неделю: уровни и сценарии', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-1.svg', '2026-05-28', 102, 'video', 1360, 68, 14, 18.20, 'steady'),
-  ('false-breakout-entry-june-02', '00000000-0000-0000-0000-000000000001', 'Как я ищу вход после ложного пробоя', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-2.svg', '2026-06-02', 126, 'video', 1820, 91, 18, 22.75, 'gradualGrowth'),
-  ('eth-trade-short-june-02', '00000000-0000-0000-0000-000000000001', 'Shorts: быстрый разбор сделки по ETH', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-3.svg', '2026-06-02', 38, 'short', 940, 47, 9, 8.60, 'gradualGrowth'),
-  ('morning-watchlist-june-11', '00000000-0000-0000-0000-000000000001', 'Портфель трейдера: что смотреть утром', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-4.svg', '2026-06-11', 88, 'video', 2110, 106, 21, 25.40, 'steady'),
-  ('daily-risk-stop-june-15', '00000000-0000-0000-0000-000000000001', 'Риск на день: где ставить стоп', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-1.svg', '2026-06-15', 71, 'video', 1640, 82, 16, 19.20, 'gradualGrowth'),
-  ('entry-mistakes-short-june-15', '00000000-0000-0000-0000-000000000001', 'Shorts: три ошибки перед входом', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-2.svg', '2026-06-15', 42, 'short', 1210, 61, 12, 10.90, 'gradualGrowth'),
-  ('weekly-close-market-scenario', '00000000-0000-0000-0000-000000000001', 'Сценарий по рынку перед закрытием недели', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-3.svg', '2026-06-20', 93, 'video', 1500, 75, 15, 16.80, 'steady'),
-  ('recent-processing-june-22', '00000000-0000-0000-0000-000000000001', 'Утренний план рынка: уровни и риск', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-1.svg', '2026-06-22', 72, 'video', 148, 7, 1, 8.20, 'steady'),
-  ('recent-processing-june-23', '00000000-0000-0000-0000-000000000001', 'BTC после импульса: где ждать вход', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-2.svg', '2026-06-23', 58, 'short', 132, 7, 1, 7.65, 'gradualGrowth'),
-  ('recent-processing-june-24', '00000000-0000-0000-0000-000000000001', 'Сделка дня: план, стоп и фиксация', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-3.svg', '2026-06-24', 96, 'video', 169, 8, 2, 9.84, 'steady'),
-  ('btc-report-mini-june-24', '00000000-0000-0000-0000-000000000001', 'Мини-разбор BTC перед отчетом', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-4.svg', '2026-06-24', 50, 'short', 88, 4, 1, 4.10, 'gradualGrowth')
+  ('btc-orderbook-income-breakdown', '00000000-0000-0000-0000-000000000001', 'Разбор сделки по BTC: вход, риск, профит', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-1.svg', '2026-05-08', 134, 'video', 2504, 125, 26, 48.20, 146.80, 'steady'),
+  ('june-trading-income-plan', '00000000-0000-0000-0000-000000000001', 'Доход от трейдинга: план на июнь', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-2.svg', '2026-05-19', 64, 'video', 6, 0, 0, 52.40, 12.40, 'gradualGrowth'),
+  ('scalping-risk-management', '00000000-0000-0000-0000-000000000001', 'Скальпинг без эмоций: риск-менеджмент', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-3.svg', '2026-05-21', 3, 'short', 3, 0, 0, 73.10, 5.75, 'gradualGrowth'),
+  ('daily-profit-trading-setup', '00000000-0000-0000-0000-000000000001', 'Сетап дня: как забрать движение рынка', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-4.svg', '2026-05-24', 1, 'short', 1, 0, 0, 68.70, 2.25, 'gradualGrowth'),
+  ('btc-weekly-levels-may-28', '00000000-0000-0000-0000-000000000001', 'План по BTC на неделю: уровни и сценарии', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-1.svg', '2026-05-28', 102, 'video', 1360, 68, 14, 46.90, 18.20, 'steady'),
+  ('false-breakout-entry-june-02', '00000000-0000-0000-0000-000000000001', 'Как я ищу вход после ложного пробоя', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-2.svg', '2026-06-02', 126, 'video', 1820, 91, 18, 49.60, 22.75, 'gradualGrowth'),
+  ('eth-trade-short-june-02', '00000000-0000-0000-0000-000000000001', 'Shorts: быстрый разбор сделки по ETH', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-3.svg', '2026-06-02', 38, 'short', 940, 47, 9, 71.80, 8.60, 'gradualGrowth'),
+  ('morning-watchlist-june-11', '00000000-0000-0000-0000-000000000001', 'Портфель трейдера: что смотреть утром', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-4.svg', '2026-06-11', 88, 'video', 2110, 106, 21, 51.30, 25.40, 'steady'),
+  ('daily-risk-stop-june-15', '00000000-0000-0000-0000-000000000001', 'Риск на день: где ставить стоп', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-1.svg', '2026-06-15', 71, 'video', 1640, 82, 16, 47.80, 19.20, 'gradualGrowth'),
+  ('entry-mistakes-short-june-15', '00000000-0000-0000-0000-000000000001', 'Shorts: три ошибки перед входом', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-2.svg', '2026-06-15', 42, 'short', 1210, 61, 12, 69.40, 10.90, 'gradualGrowth'),
+  ('weekly-close-market-scenario', '00000000-0000-0000-0000-000000000001', 'Сценарий по рынку перед закрытием недели', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-3.svg', '2026-06-20', 93, 'video', 1500, 75, 15, 50.20, 16.80, 'steady'),
+  ('recent-processing-june-22', '00000000-0000-0000-0000-000000000001', 'Утренний план рынка: уровни и риск', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-1.svg', '2026-06-22', 72, 'video', 148, 7, 1, 53.60, 8.20, 'steady'),
+  ('recent-processing-june-23', '00000000-0000-0000-0000-000000000001', 'BTC после импульса: где ждать вход', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-2.svg', '2026-06-23', 58, 'short', 132, 7, 1, 72.30, 7.65, 'gradualGrowth'),
+  ('recent-processing-june-24', '00000000-0000-0000-0000-000000000001', 'Сделка дня: план, стоп и фиксация', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-3.svg', '2026-06-24', 96, 'video', 169, 8, 2, 54.10, 9.84, 'steady'),
+  ('btc-report-mini-june-24', '00000000-0000-0000-0000-000000000001', 'Мини-разбор BTC перед отчетом', 'channels/00000000-0000-0000-0000-000000000001/videos/seed/trading-thumb-4.svg', '2026-06-24', 50, 'short', 88, 4, 1, 70.60, 4.10, 'gradualGrowth')
 on conflict (id) do update
 set title = excluded.title,
     cover_path = excluded.cover_path,
@@ -63,6 +64,7 @@ set title = excluded.title,
     views = excluded.views,
     likes = excluded.likes,
     dislikes = excluded.dislikes,
+    average_view_percentage = excluded.average_view_percentage,
     revenue = excluded.revenue,
     analytics_profile = excluded.analytics_profile;
 
@@ -117,14 +119,27 @@ with channel_target as (
 weighted as (
   select
     channel_target.channel_id,
-    (date '2025-07-24' + day_offset)::date as date,
+    (date '2025-07-26' + day_offset)::date as date,
     day_offset,
     channel_target.total_target,
     (
-      80
-      + day_offset * 0.6
-      + 24 * (1 + sin(day_offset * 0.52))
-      + 12 * (1 + sin(day_offset * 0.17))
+      (
+        80
+        + (day_offset + 2) * 0.6
+        + 24 * (1 + sin((day_offset + 2) * 0.52))
+        + 12 * (1 + sin((day_offset + 2) * 0.17))
+      )
+      * (
+        1
+        + 0.08 * sin((day_offset + 2) * 2.41 + 1.74)
+        + 0.10 * power(
+          greatest(
+            0::double precision,
+            sin(((day_offset + 2) + 4) * 1.13)
+          ),
+          6
+        )
+      )
     )::numeric as weight
   from channel_target
   cross join generate_series(0, 364) as day_offset

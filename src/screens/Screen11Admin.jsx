@@ -24,6 +24,8 @@ import {
   STUDIO_IMAGE_ACCEPT,
 } from '../lib/studioImage.js'
 import { getAlmatyDateISO } from '../lib/almatyDate.js'
+import ChannelAvatar from '../components/ChannelAvatar.jsx'
+import { normalizeAverageViewPercentage } from '../lib/videoMetrics.js'
 
 const COUNTRIES = [
   { code: 'RU', label: 'Россия' },
@@ -50,7 +52,6 @@ const ANALYTICS_PROFILES = [
 
 const todayISO = () => getAlmatyDateISO()
 const analyticsYesterdayISO = () => getAlmatyDateISO(new Date(Date.now() - 86400000))
-const DEFAULT_AVATAR = '/studio-assets/trading-avatar.svg'
 const blankForm = () => ({
   id: null,
   title: '',
@@ -66,6 +67,7 @@ const blankForm = () => ({
   revenue: '',
   likes: '',
   dislikes: '',
+  averageViewPercentage: '',
   autoViews: true,
   autoRevenue: true,
 })
@@ -156,7 +158,6 @@ function Screen11AdminContent() {
       .sort((a, b) => b.date.localeCompare(a.date)),
     [subscriberDailyStats],
   )
-  const avatarUrl = editableChannel.avatar || DEFAULT_AVATAR
 
   const isEditing = form.id !== null
   const allSelected = videos.length > 0 && selected.size === videos.length
@@ -326,6 +327,7 @@ function Screen11AdminContent() {
       revenue: form.autoRevenue ? undefined : parseRevenue(form.revenue),
       likes: parseCount(form.likes),
       dislikes: parseCount(form.dislikes),
+      averageViewPercentage: normalizeAverageViewPercentage(form.averageViewPercentage),
       autoViews: form.autoViews,
       autoRevenue: form.autoRevenue,
     }
@@ -363,6 +365,9 @@ function Screen11AdminContent() {
       revenue: String(video.revenue),
       likes: String(video.likes ?? 0),
       dislikes: String(video.dislikes ?? 0),
+      averageViewPercentage: video.averageViewPercentage == null
+        ? ''
+        : String(video.averageViewPercentage),
       autoViews: video._autoStats?.views === true,
       autoRevenue: video._autoStats?.revenue === true,
     })
@@ -747,6 +752,19 @@ function Screen11AdminContent() {
                     <input className={s.input} value={form.duration} onChange={(e) => setField('duration', e.target.value)} placeholder="4:06" />
                   </label>
                   <label className={s.field}>
+                    <span>Средний процент просмотра</span>
+                    <input
+                      className={s.input}
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={form.averageViewPercentage}
+                      onChange={(e) => setField('averageViewPercentage', e.target.value)}
+                      placeholder="45.1"
+                    />
+                  </label>
+                  <label className={s.field}>
                     <span>Тип</span>
                     <select className={s.input} value={form.type} onChange={(e) => setField('type', e.target.value)}>
                       {CONTENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
@@ -812,7 +830,7 @@ function Screen11AdminContent() {
               })}>Заполнить по умолчанию</button>
             </div>
             <div className={s.avatarRow}>
-              <div className={s.avatarPreview} style={{ backgroundImage: `url(${avatarUrl})` }} />
+              <ChannelAvatar className={s.avatarPreview} src={editableChannel.avatar} />
               <div className={s.avatarActions}>
                 <label className={s.uploadBtn}>
                   {processingImage === 'avatar'
@@ -886,6 +904,7 @@ function Screen11AdminContent() {
                     <th>Дата</th>
                     <th>Тип</th>
                     <th>Длительность</th>
+                    <th>Средний %</th>
                     <th>Просмотры</th>
                     <th>Доход</th>
                     <th>Лайки</th>
@@ -912,6 +931,20 @@ function Screen11AdminContent() {
                         </select>
                       </td>
                       <td><input className={s.tableInput} defaultValue={video.duration} onBlur={(e) => updateVideoField(video, { duration: e.target.value })} /></td>
+                      <td>
+                        <input
+                          className={s.tableInput}
+                          aria-label="Средний процент просмотра"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          defaultValue={video.averageViewPercentage ?? ''}
+                          onBlur={(e) => updateVideoField(video, {
+                            averageViewPercentage: normalizeAverageViewPercentage(e.target.value),
+                          })}
+                        />
+                      </td>
                       <td><input className={s.tableInput} type="number" min="0" defaultValue={video.views} onBlur={(e) => updateVideoField(video, { views: parseCount(e.target.value) ?? 0 })} /></td>
                       <td><input className={s.tableInput} type="number" min="0" step="0.01" defaultValue={video.revenue} onBlur={(e) => updateVideoField(video, { revenue: parseRevenue(e.target.value) ?? 0 })} /></td>
                       <td className={s.metricInputs}>

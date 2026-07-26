@@ -5,13 +5,14 @@ import Sidebar from './Sidebar.jsx'
 import { NavContext } from './NavContext.js'
 import {
   UploadIcon, LiveIcon, EditIcon, ChevronUp, ChevronRight, ChevronLeft,
-  ChartIcon, CommentIcon, ThumbUpIcon, KebabIcon, HelpIcon, SparkleIcon,
+  ChartIcon, CommentIcon, ThumbUpIcon, KebabIcon, SparkleIcon,
 } from './icons.jsx'
 import { useVideos } from '../storage/useVideos.js'
 import { useChannel } from '../storage/useChannel.js'
 import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
 import { formatNumber, formatMoney, formatViews } from '../storage/videoStore.js'
 import { effectiveComments, build as buildAnalytics } from '../lib/analyticsAggregator.js'
+import { averageViewFraction } from '../lib/videoMetrics.js'
 import VideoRow from '../components/ui/VideoRow.jsx'
 
 const PERFORMANCE_THUMB = '/studio-assets/dashboard-performance-reference.jpg'
@@ -84,7 +85,10 @@ export default function Screen1Dashboard() {
   const topVideos = [...videos].sort((a, b) => b.views - a.views).slice(0, 2)
   const publishedVideos = videos.slice(0, 4)
   const lastVideoComments = lastVideo ? effectiveComments(lastVideo) : 0
-  const avgViewDuration = lastVideo ? formatDuration(parseDurationSeconds(lastVideo.duration) * 0.45) : '0:00'
+  const lastVideoAverageFraction = averageViewFraction(lastVideo)
+  const avgViewDuration = lastVideo && lastVideoAverageFraction != null
+    ? formatDuration(parseDurationSeconds(lastVideo.duration) * lastVideoAverageFraction)
+    : '—'
   const maxConcurrent = lastVideo ? Math.max(3, Math.round((Number(lastVideo.views) || 0) * 0.007)) : 0
   const performanceTitle = lastVideo?.type === 'live' ? 'Эффективность прямой трансляции' : 'Эффективность последнего видео'
 
@@ -105,23 +109,6 @@ export default function Screen1Dashboard() {
 
         <div className={s.grid}>
           <section className={s.col}>
-            <div className={`${s.card} ${s.violationsCard}`}>
-              <div className={s.cardHead}>
-                <h2 className={s.cardTitle}>Нарушения</h2>
-                <button type="button" className={s.helpBtn} onClick={() => showToast('Справка')} aria-label="Справка"><HelpIcon size={24} /></button>
-              </div>
-              <div className={s.violationList}>
-                <button type="button" className={s.violationRow} onClick={() => showToast('Авторские права')}>
-                  <span>Действующие предупреждения о нарушении авторских прав</span>
-                  <strong className={s.dangerBadge}>1 из 3</strong>
-                </button>
-                <button type="button" className={s.violationRow} onClick={() => showToast('Правила сообщества')}>
-                  <span>Действительные предупреждения о нарушении правил сообщества</span>
-                  <strong className={s.noticeBadge}>Уведомление</strong>
-                </button>
-              </div>
-            </div>
-
             {lastVideo ? (
               <div className={s.card}>
                 <h2 className={s.cardTitle}>{performanceTitle}</h2>

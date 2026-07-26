@@ -9,6 +9,7 @@ import {
   formatPercent,
   formatSecondsAsClock,
 } from '../../lib/analyticsFormat.js'
+import { averageViewFraction } from '../../lib/videoMetrics.js'
 import s from './AnalyticsTabs.module.css'
 import {
   avgWatchPretty,
@@ -39,14 +40,20 @@ function normalizeVideoType(video) {
 }
 
 function averageDurationByViews(videos) {
-  const totalViews = videos.reduce((sum, video) => sum + (Number(video.views) || 0), 0)
+  const videosWithKnownRetention = videos.filter(
+    (video) => averageViewFraction(video) != null,
+  )
+  const totalViews = videosWithKnownRetention.reduce(
+    (sum, video) => sum + (Number(video.views) || 0),
+    0,
+  )
   if (totalViews <= 0) return 0
-  const totalSeconds = videos.reduce((sum, video) => {
+  const totalSeconds = videosWithKnownRetention.reduce((sum, video) => {
     const parts = String(video.duration || '0:00').split(':').map((part) => parseInt(part, 10) || 0)
     const seconds = parts.length === 3
       ? parts[0] * 3600 + parts[1] * 60 + parts[2]
       : (parts[0] || 0) * 60 + (parts[1] || 0)
-    return sum + (Number(video.views) || 0) * seconds * 0.45
+    return sum + (Number(video.views) || 0) * seconds * averageViewFraction(video)
   }, 0)
   return totalSeconds / totalViews
 }

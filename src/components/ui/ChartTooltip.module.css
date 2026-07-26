@@ -7,7 +7,7 @@
   font-size: 12px;
   color: var(--studio-text);
   min-width: 180px;
-  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.7);
+  box-shadow: var(--studio-tooltip-shadow);
   pointer-events: none;
   font-variant-numeric: tabular-nums;
 }

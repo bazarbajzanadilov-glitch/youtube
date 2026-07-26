@@ -13,7 +13,7 @@
   background: var(--studio-canvas);
   min-height: var(--studio-main-min-height);
   box-sizing: border-box;
-  filter: brightness(0.5);
+  filter: var(--studio-settings-backdrop-filter);
   pointer-events: none;
 }
 
@@ -79,7 +79,7 @@
 .scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: var(--studio-modal-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,7 +96,7 @@
   border-radius: 28px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  box-shadow: var(--studio-modal-shadow);
   pointer-events: auto;
   overflow: hidden;
 }

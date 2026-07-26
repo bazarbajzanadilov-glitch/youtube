@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../lib/supabaseClient.js'
 import { validatePreparedStudioImage } from '../lib/studioImage.js'
+import { normalizeAverageViewPercentage } from '../lib/videoMetrics.js'
 
 export const STUDIO_CHANNEL_ID = '00000000-0000-0000-0000-000000000001'
 const MEDIA_BUCKET = 'studio-media'
@@ -88,6 +89,7 @@ function videoToRow(video, coverPath) {
     views: Math.max(0, Number(video.views) || 0),
     likes: Math.max(0, Number(video.likes) || 0),
     dislikes: Math.max(0, Number(video.dislikes) || 0),
+    average_view_percentage: normalizeAverageViewPercentage(video.averageViewPercentage),
     revenue: Math.max(0, Number(video.revenue) || 0),
     analytics_profile: video.profile || 'gradualGrowth',
     auto_views: video._autoStats?.views === true,

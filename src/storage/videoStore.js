@@ -7,6 +7,7 @@ import {
   seededRng,
 } from '../lib/analyticsEngine.js'
 import { getAlmatyDateISO } from '../lib/almatyDate.js'
+import { normalizeAverageViewPercentage } from '../lib/videoMetrics.js'
 
 const RU_TRANSLIT = {
   а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'yo',
@@ -252,6 +253,9 @@ export function normalizeVideo(input = {}, options = {}) {
   const dislikes = metricsNeedRefresh
     ? (parseNonNegativeInteger(input.dislikes) ?? metrics.dislikes)
     : (parseNonNegativeInteger(input.dislikes) ?? parseNonNegativeInteger(base?.dislikes) ?? metrics.dislikes)
+  const averageViewPercentage = input.averageViewPercentage !== undefined
+    ? normalizeAverageViewPercentage(input.averageViewPercentage)
+    : normalizeAverageViewPercentage(base?.averageViewPercentage)
 
   return {
     id,
@@ -265,6 +269,7 @@ export function normalizeVideo(input = {}, options = {}) {
     likes,
     dislikes,
     likePct: likes + dislikes === 0 ? null : likes / (likes + dislikes),
+    averageViewPercentage,
     revenue,
     profile: input.profile || base?.profile || generated.profile || inferProfile({
       ...base,

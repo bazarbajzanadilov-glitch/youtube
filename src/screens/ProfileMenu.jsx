@@ -7,10 +7,11 @@ import {
   MdOutlineAccountBox,
   MdOutlineDarkMode,
   MdOutlineFeedback,
-  MdOutlineHome,
+  MdOutlineSmartDisplay,
   MdSwitchAccount,
 } from 'react-icons/md'
 import styles from './ProfileMenu.module.css'
+import ChannelAvatar from '../components/ChannelAvatar.jsx'
 
 const THEME_LABELS = {
   system: 'как на устройстве',
@@ -129,7 +130,7 @@ export default function ProfileMenu({
   return (
     <div ref={menuRef} className={styles.menu} role="menu" aria-label="Меню аккаунта">
       <div className={styles.accountHeader}>
-        <div className={styles.accountAvatar} style={{ backgroundImage: `url(${avatarUrl})` }} aria-hidden="true" />
+        <ChannelAvatar className={styles.accountAvatar} src={avatarUrl} />
         <div className={styles.accountMeta}>
           <div className={styles.accountName}>{channel.channelName || 'YouTube Studio'}</div>
           <div className={styles.accountHandle}>{handle}</div>
@@ -138,7 +139,7 @@ export default function ProfileMenu({
 
       <div className={styles.section}>
         <MenuRow icon={MdOutlineAccountBox} label="Мой канал" onClick={() => navigate('channel')} />
-        <MenuRow icon={MdOutlineHome} label="Главная" onClick={() => navigate('home')} />
+        <MenuRow icon={MdOutlineSmartDisplay} label="Главная" onClick={() => navigate('home')} />
         <MenuRow
           icon={MdSwitchAccount}
           label="Сменить аккаунт"

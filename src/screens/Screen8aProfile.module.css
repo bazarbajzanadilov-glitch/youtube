@@ -82,7 +82,7 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #202020, #3b3b3b);
-  color: var(--studio-text);
+  color: #ffffff;
   font-size: 22px;
   font-weight: 700;
 }

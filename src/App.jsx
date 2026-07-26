@@ -25,18 +25,90 @@ import {
 } from './theme/theme.js'
 
 const SCREENS = [
-  { key: 'home', route: 'dashboard', name: 'Панель управления каналом', Component: Screen1Dashboard },
-  { key: 'content', route: 'content', name: 'Контент', Component: Screen2Content },
-  { key: 'analytics', route: 'analytics', name: 'Аналитика', Component: Screen3Analytics },
-  { key: 'community', route: 'community', name: 'Сообщество', Component: Screen4Community },
-  { key: 'subtitles', route: 'subtitles', name: 'Субтитры', Component: Screen5Subtitles },
-  { key: 'copyright', route: 'copyright', name: 'Обнаружение контента', Component: Screen6Copyright },
-  { key: 'monetize', route: 'monetization', name: 'Монетизация', Component: Screen7Monetization },
-  { key: 'channel', route: 'channel-profile', name: 'Настройка канала: профиль', Component: Screen8aProfile },
-  { key: 'channel-home', route: 'channel-home', name: 'Настройка канала: главная', Component: Screen8bHomeTab },
-  { key: 'audio', route: 'audio-library', name: 'Creator Music (beta)', Component: Screen9AudioLibrary },
-  { key: 'settings', route: 'settings', name: 'Настройки', Component: Screen10Settings },
-  { key: 'admin', route: 'admin', name: 'Админка', Component: Screen11Admin },
+  {
+    key: 'home',
+    route: 'dashboard',
+    name: 'Панель управления каналом',
+    documentTitle: 'Панель управления каналом - YouTube Studio',
+    Component: Screen1Dashboard,
+  },
+  {
+    key: 'content',
+    route: 'content',
+    name: 'Контент',
+    documentTitle: 'Контент на канале - YouTube Studio',
+    Component: Screen2Content,
+  },
+  {
+    key: 'analytics',
+    route: 'analytics',
+    name: 'Аналитика',
+    documentTitle: 'Аналитика по каналу - YouTube Studio',
+    Component: Screen3Analytics,
+  },
+  {
+    key: 'community',
+    route: 'community',
+    name: 'Сообщество',
+    documentTitle: 'Сообщество - YouTube Studio',
+    Component: Screen4Community,
+  },
+  {
+    key: 'subtitles',
+    route: 'subtitles',
+    name: 'Субтитры',
+    documentTitle: 'Субтитры - YouTube Studio',
+    Component: Screen5Subtitles,
+  },
+  {
+    key: 'copyright',
+    route: 'copyright',
+    name: 'Обнаружение контента',
+    documentTitle: 'Обнаружение контента - YouTube Studio',
+    Component: Screen6Copyright,
+  },
+  {
+    key: 'monetize',
+    route: 'monetization',
+    name: 'Монетизация',
+    documentTitle: 'Зарабатывай на YouTube - YouTube Studio',
+    Component: Screen7Monetization,
+  },
+  {
+    key: 'channel',
+    route: 'channel-profile',
+    name: 'Настройка канала: профиль',
+    documentTitle: 'Настройки канала - YouTube Studio',
+    Component: Screen8aProfile,
+  },
+  {
+    key: 'channel-home',
+    route: 'channel-home',
+    name: 'Настройка канала: главная',
+    documentTitle: 'Настройки канала - YouTube Studio',
+    Component: Screen8bHomeTab,
+  },
+  {
+    key: 'audio',
+    route: 'audio-library',
+    name: 'Creator Music (beta)',
+    documentTitle: 'Creator Music - YouTube Studio',
+    Component: Screen9AudioLibrary,
+  },
+  {
+    key: 'settings',
+    route: 'settings',
+    name: 'Настройки',
+    documentTitle: 'Настройки - YouTube Studio',
+    Component: Screen10Settings,
+  },
+  {
+    key: 'admin',
+    route: 'admin',
+    name: 'Админка',
+    documentTitle: 'Админка - YouTube Studio',
+    Component: Screen11Admin,
+  },
 ]
 
 const ROUTE_ALIASES = {
@@ -140,6 +212,10 @@ export default function App() {
   useEffect(() => {
     applyResolvedTheme(resolvedTheme)
   }, [resolvedTheme])
+
+  useEffect(() => {
+    document.title = current.documentTitle
+  }, [current.documentTitle])
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return undefined

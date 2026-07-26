@@ -5,6 +5,7 @@ import { YTLogo, Hamburger, SearchIcon, SupportChatIcon, HelpIcon, SparkleIcon, 
 import { useChannel } from '../storage/useChannel.js'
 import { beginDoubleHardReset } from '../lib/hardResetSite.js'
 import ProfileMenu from './ProfileMenu.jsx'
+import ChannelAvatar from '../components/ChannelAvatar.jsx'
 
 export default function TopBar() {
   const {
@@ -19,7 +20,6 @@ export default function TopBar() {
   const searchRef = useRef(null)
   const profileWrapRef = useRef(null)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
-  const avatarUrl = channel.avatar || '/studio-assets/trading-avatar.svg'
 
   useEffect(() => {
     if (!profileMenuOpen) return undefined
@@ -81,11 +81,11 @@ export default function TopBar() {
             aria-haspopup="menu"
             aria-expanded={profileMenuOpen}
           >
-            <div className={s.avatar} style={{ backgroundImage: `url(${avatarUrl})` }}/>
+            <ChannelAvatar className={s.avatar} src={channel.avatar} />
           </button>
           {profileMenuOpen ? (
             <ProfileMenu
-              avatarUrl={avatarUrl}
+              avatarUrl={channel.avatar}
               channel={channel}
               themePreference={themePreference}
               onThemeChange={setThemePreference}

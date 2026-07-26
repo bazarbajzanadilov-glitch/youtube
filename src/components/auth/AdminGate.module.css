@@ -16,7 +16,7 @@
   border: 1px solid var(--studio-border);
   border-radius: 16px;
   background: var(--studio-card-widget);
-  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.36);
+  box-shadow: var(--studio-card-shadow);
 }
 
 .card h1 {
@@ -97,8 +97,8 @@
   margin-top: 12px;
   padding: 10px 12px;
   border-radius: 7px;
-  background: rgba(255, 107, 107, 0.12);
-  color: #ff8d8d;
+  background: var(--studio-danger-soft);
+  color: var(--studio-danger-text);
   font-size: 13px;
   line-height: 19px;
 }

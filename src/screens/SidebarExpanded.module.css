@@ -129,7 +129,7 @@
     bottom: 0;
     z-index: 160;
     width: min(284px, 86vw);
-    box-shadow: 24px 0 48px rgba(0, 0, 0, 0.45);
+    box-shadow: var(--studio-drawer-shadow);
   }
 
   .channel {

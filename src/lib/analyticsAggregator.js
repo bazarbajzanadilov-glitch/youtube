@@ -18,6 +18,7 @@ import {
   generateTrafficShares, generateDeviceShares, generateGeoShares,
   generateAgeGender, generateLanguageShares, generateReturningSeries,
 } from './analyticsEngine.js'
+import { averageViewFraction } from './videoMetrics.js'
 
 /* === range resolver === */
 
@@ -176,7 +177,9 @@ function attachVideoContribution({ video, channel, range, dayMap }) {
     ? scaled.map((x) => (x / totalViews) * totalComments)
     : new Array(scaled.length).fill(0)
   const durationSec = parseDuration(video.duration)
-  const watchEachSec = scaled.map((views) => views * durationSec * 0.45)
+  const watchEachSec = scaled.map(
+    (views) => views * durationSec * (averageViewFraction(video) ?? 0),
+  )
   for (let i = 0; i < ageDays; i += 1) {
     const day = addDays(publish, i)
     const key = isoDay(day)
@@ -410,7 +413,7 @@ function computeLifetime(videos, channel) {
     likes += Math.max(0, Number(v.likes) || 0)
     revenue += effectiveRevenue(v, channel)
     comments += effectiveComments(v)
-    watchSec += vv * parseDuration(v.duration) * 0.45
+    watchSec += vv * parseDuration(v.duration) * (averageViewFraction(v) ?? 0)
   }
   return {
     views,
@@ -486,8 +489,22 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const totalRevenue = isLifetime ? lifetime.revenue : totalRevenueRaw
   const totalWatchHours = isLifetime ? lifetime.watchHours : totalWatchSec / 3600
 
-  const allViewsForDuration = videos.reduce((s, v) => s + (v.views || 0), 0)
-  const allWatchSec = videos.reduce((s, v) => s + (v.views || 0) * parseDuration(v.duration) * 0.45, 0)
+  const videosWithKnownRetention = videos.filter(
+    (video) => averageViewFraction(video) != null,
+  )
+  const allViewsForDuration = videosWithKnownRetention.reduce(
+    (sum, video) => sum + (Number(video.views) || 0),
+    0,
+  )
+  const allWatchSec = videosWithKnownRetention.reduce(
+    (sum, video) => (
+      sum
+      + (Number(video.views) || 0)
+      * parseDuration(video.duration)
+      * averageViewFraction(video)
+    ),
+    0,
+  )
   const avgDurationSec = allViewsForDuration > 0 ? allWatchSec / allViewsForDuration : 0
 
   const videosByType = {

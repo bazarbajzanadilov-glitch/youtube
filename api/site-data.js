@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
-import { isSiteRequestAuthorized } from '../server/siteSession.js'
+import {
+  isSiteRequestAuthorized,
+  SITE_SESSION_MAX_AGE,
+} from '../server/siteSession.js'
 
 const MEDIA_BUCKET = 'studio-media'
 
@@ -26,7 +29,7 @@ async function mediaUrl(supabase, path) {
   if (String(path).startsWith('static:')) return String(path).slice(7)
   const { data, error } = await supabase.storage
     .from(MEDIA_BUCKET)
-    .createSignedUrl(path, 3600)
+    .createSignedUrl(path, SITE_SESSION_MAX_AGE)
   if (error) return null
   return data.signedUrl
 }
@@ -103,6 +106,9 @@ export default async function handler(request, response) {
           likes,
           dislikes,
           likePct: likes + dislikes === 0 ? null : likes / (likes + dislikes),
+          averageViewPercentage: item.average_view_percentage == null
+            ? null
+            : Number(item.average_view_percentage),
           revenue: Number(item.revenue) || 0,
           profile: item.analytics_profile,
           _autoStats: {

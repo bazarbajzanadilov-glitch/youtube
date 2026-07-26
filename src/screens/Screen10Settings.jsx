@@ -5,6 +5,7 @@ import Sidebar from './Sidebar.jsx'
 import { NavContext } from './NavContext.js'
 import { HelpIcon, ChevronDown } from './icons.jsx'
 import { useChannel } from '../storage/useChannel.js'
+import ChannelAvatar from '../components/ChannelAvatar.jsx'
 
 const MENU = ['Общие', 'Канал', 'Загрузка видео', 'Разрешения', 'Модерация сообщества', 'Соглашения']
 
@@ -100,7 +101,7 @@ function PaneUpload() {
   )
 }
 
-function PanePermissions({ channelName }) {
+function PanePermissions({ channel }) {
   return (
     <>
       <div className={s.note}>
@@ -108,9 +109,9 @@ function PanePermissions({ channelName }) {
       </div>
       <Field label="Текущие пользователи">
         <div className={s.userRow}>
-          <div className={s.userAvatar}/>
+          <ChannelAvatar className={s.userAvatar} src={channel.avatar} />
           <div className={s.userInfo}>
-            <div className={s.userName}>{channelName}</div>
+            <div className={s.userName}>{channel.channelName}</div>
             <div className={s.userEmail}>creator@trading.local</div>
           </div>
           <span className={s.userRole}>Владелец</span>
@@ -159,7 +160,6 @@ export default function Screen10Settings() {
   const { showToast, go } = useContext(NavContext)
   const { channel } = useChannel()
   const [menuIdx, setMenuIdx] = useState(0)
-  const channelName = channel.channelName
   const modalTitleId = useId()
   const closeModal = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -216,7 +216,7 @@ export default function Screen10Settings() {
               {menuIdx === 0 && <PaneGeneral showToast={showToast}/>}
               {menuIdx === 1 && <PaneChannel channel={channel}/>}
               {menuIdx === 2 && <PaneUpload/>}
-              {menuIdx === 3 && <PanePermissions channelName={channelName}/>}
+              {menuIdx === 3 && <PanePermissions channel={channel}/>}
               {menuIdx === 4 && <PaneModeration/>}
               {menuIdx === 5 && <PaneAgreements/>}
             </div>

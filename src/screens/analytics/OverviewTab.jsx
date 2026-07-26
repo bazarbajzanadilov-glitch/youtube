@@ -14,27 +14,22 @@ import {
   formatNumberRu,
 } from '../../lib/analyticsFormat.js'
 import {
-  ChevronLeft,
-  ChevronRight,
-  InfoIcon,
   ThumbDownIcon,
   ThumbUpIcon,
 } from '../icons.jsx'
 import s from './AnalyticsTabs.module.css'
 import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
 import MetricKpiCell from './MetricKpiCell.jsx'
+import NewContentCard from './NewContentCard.jsx'
 import {
   ANALYTICS_BLUE,
   avgWatchPercent,
   avgWatchPretty,
   buildPublishedVideoMarkers,
-  ctrPretty,
-  daysSinceLong,
   formatTengeChart,
   formatTengeAxis,
   formatTenge,
   kpiTrend,
-  liveEndedLong,
   signedNumber,
   usualComparison,
   videoDate,
@@ -63,27 +58,9 @@ function StudioAiSparkle({ size = 22 }) {
   )
 }
 
-function NewContentMetric({ label, value, secondaryLabel, secondaryValue }) {
-  return (
-    <div className={s.newMetricBlock}>
-      <div className={s.newMetricPrimary}>
-        <span className={s.newMetricLabel}>{label}</span>
-        <strong className={s.newMetricValue}>{value}</strong>
-      </div>
-      {secondaryLabel && secondaryValue ? (
-        <div className={s.newMetricSecondary}>
-          <span className={s.newMetricLabel}>{secondaryLabel}</span>
-          <strong className={s.newMetricSecondaryValue}>{secondaryValue}</strong>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-export default function OverviewTab({ data, onOpenAdmin }) {
+export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics }) {
   const { overview, audience, channel, content, monetization, realtime } = data
   const [metric, setMetric] = useState('views')
-  const [newestIdx, setNewestIdx] = useState(0)
   const realtimeFeed = useRealtimeFeed({
     initial: realtime.last48,
     seed: realtime.generatorSeed,
@@ -102,9 +79,8 @@ export default function OverviewTab({ data, onOpenAdmin }) {
   }
 
   const newestPool = (overview.recentVideos?.length ? overview.recentVideos : overview.topVideos).slice(0, 10)
-  const newestVideo = newestPool[newestIdx] || overview.newest
-  const canGoPrev = newestIdx > 0
-  const canGoNext = newestIdx < newestPool.length - 1
+  const newestPoolKey = newestPool.map((video) => video.id || video.title).join('|')
+  const newestVideo = newestPool[0] || overview.newest
   const watchSeries = overview.series.map((row) => ({ ...row, watchTimeHours: row.watchTime / 3600 }))
   const uniqueViewers = audience?.kpis?.uniqueViewers?.value || Math.round(overview.kpis.views.value * 0.7)
   const returningShare = Math.max(0, audience?.kpis?.returning?.value || 0)
@@ -146,7 +122,6 @@ export default function OverviewTab({ data, onOpenAdmin }) {
   const publishedMarkers = buildPublishedVideoMarkers(chart.data, content?.allVideos || [], 'date')
   const heroYAxisWidth = metric === 'revenue' ? 108 : 62
   const topVideo = overview.topVideos[0]
-  const replayViews = newestVideo ? Math.max(1, Math.round((newestVideo.views || 0) * (newestVideo.type === 'live' ? 0.01 : 0.08))) : 0
   const aiInsights = [
     (
       <>
@@ -167,42 +142,6 @@ export default function OverviewTab({ data, onOpenAdmin }) {
       </>
     ),
   ]
-  const newestMetrics = newestVideo
-    ? newestVideo.type === 'live'
-      ? [
-        {
-          label: 'Просмотры',
-          value: formatCompactNumber(newestVideo.views || 0),
-          secondaryLabel: 'При повторном воспроизведении',
-          secondaryValue: formatCompactNumber(replayViews),
-        },
-        {
-          label: 'Средняя продолжительность просмотра',
-          value: avgWatchPretty(newestVideo),
-          secondaryLabel: 'При повторном воспроизведении',
-          secondaryValue: avgWatchPretty(newestVideo),
-        },
-        {
-          label: 'Макс. число одновременных зрителей',
-          value: formatCompactNumber(Math.max(1, Math.round((newestVideo.views || 0) * 0.007))),
-        },
-      ]
-      : [
-        {
-          label: 'Просмотры',
-          value: formatCompactNumber(newestVideo.views || 0),
-        },
-        {
-          label: 'CTR для значков видео',
-          value: ctrPretty(newestVideo),
-        },
-        {
-          label: 'Средняя продолжительность просмотра',
-          value: avgWatchPretty(newestVideo),
-        },
-      ]
-    : []
-
   return (
     <div className={`${s.analyticsShell} ${s.overviewShell}`}>
       <div className={`${s.analyticsMain} ${s.overviewMain}`}>
@@ -338,7 +277,7 @@ export default function OverviewTab({ data, onOpenAdmin }) {
         <Card padding="lg" depth="md" className={`${s.sideCard} ${s.overviewSideCard}`}>
           <div className={s.sideTitle}>Текущая статистика</div>
           <RealtimeIndicator />
-          <div className={s.sideBig}>{formatNumberRu(realtimeFeed.liveSubscribers)}</div>
+          <div className={s.sideBig}>{formatNumberRu(channel?.subscriberCount || 0)}</div>
           <div className={s.sideLabel}>Подписчики</div>
           <button type="button" className={s.ytPillBtn}>Подробнее</button>
 
@@ -370,49 +309,12 @@ export default function OverviewTab({ data, onOpenAdmin }) {
           <button type="button" className={s.ytPillBtn}>Подробнее</button>
         </Card>
 
-        {newestVideo ? (
-          <Card padding="md" depth="md" className={`${s.sideCard} ${s.newVideoCard} ${s.overviewNewVideoCard}`}>
-            <div className={s.sideTitle}>Новый контент</div>
-            <div className={s.newVideoCover}>
-              {newestVideo.cover ? <img src={newestVideo.cover} alt="" /> : <div className={s.thumbBlank} />}
-              <div className={s.newVideoOverlay}>
-                <div className={s.newVideoOverlayTitle}>{newestVideo.title}</div>
-              </div>
-              <span>{newestVideo.duration}</span>
-            </div>
-            <div className={s.sideLabel}>
-              {newestVideo.type === 'live'
-                ? liveEndedLong(newestVideo.date)
-                : daysSinceLong(newestVideo.date)}
-            </div>
-            {newestVideo.type === 'live' ? (
-              <div className={s.liveNote}>
-                <span className={s.liveNoteIcon}><InfoIcon size={16} /></span>
-                <span>Для прямых трансляций сравнение показателей доступно только за периоды после публикации.</span>
-              </div>
-            ) : null}
-            {newestMetrics.map((item) => (
-              <NewContentMetric
-                key={item.label}
-                label={item.label}
-                value={item.value}
-                secondaryLabel={item.secondaryLabel}
-                secondaryValue={item.secondaryValue}
-              />
-            ))}
-            <button type="button" className={s.ytWideBtn}>Посмотреть аналитику для видео</button>
-            {newestPool.length > 1 ? (
-              <div className={s.pager}>
-                <button type="button" onClick={() => setNewestIdx((i) => Math.max(0, i - 1))} aria-label="Предыдущее" disabled={!canGoPrev}>
-                  <ChevronLeft size={30} />
-                </button>
-                <span>{newestIdx + 1} из {newestPool.length}</span>
-                <button type="button" onClick={() => setNewestIdx((i) => Math.min(newestPool.length - 1, i + 1))} aria-label="Следующее" disabled={!canGoNext}>
-                  <ChevronRight size={30} />
-                </button>
-              </div>
-            ) : null}
-          </Card>
+        {newestPool.length > 0 ? (
+          <NewContentCard
+            key={newestPoolKey}
+            videos={newestPool}
+            onOpenVideoAnalytics={onOpenVideoAnalytics}
+          />
         ) : null}
       </aside>
     </div>

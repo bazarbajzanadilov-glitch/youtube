@@ -5,6 +5,9 @@ import {
   formatPercent,
   formatSecondsAsClock,
 } from '../../lib/analyticsFormat.js'
+import { daysBetween } from '../../lib/analyticsEngine.js'
+import { getAlmatyDateISO } from '../../lib/almatyDate.js'
+import { averageViewFraction } from '../../lib/videoMetrics.js'
 
 export const ANALYTICS_BLUE = '#41b4d9'
 export const ANALYTICS_PURPLE = '#bc69f3'
@@ -69,12 +72,15 @@ export function durationToSec(duration) {
 }
 
 export function avgWatchPretty(video) {
-  return formatSecondsAsClock(Math.round(durationToSec(video?.duration) * 0.45))
+  const fraction = averageViewFraction(video)
+  if (fraction == null) return '—'
+  return formatSecondsAsClock(Math.round(durationToSec(video?.duration) * fraction))
 }
 
 export function avgWatchPercent(video) {
-  const seconds = Math.max(1, durationToSec(video?.duration))
-  return formatPercent((Math.round(seconds * 0.45) / seconds) * 100, 1)
+  const fraction = averageViewFraction(video)
+  if (fraction == null) return '—'
+  return formatPercent(fraction * 100, 1)
 }
 
 export function ctrPretty(video) {
@@ -82,9 +88,9 @@ export function ctrPretty(video) {
   return formatPercent(8 + (seed % 8), 1)
 }
 
-export function daysSinceLong(iso) {
+export function daysSinceLong(iso, now = new Date()) {
   if (!iso) return ''
-  const days = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000))
+  const days = Math.max(0, daysBetween(iso, getAlmatyDateISO(now)))
   if (days === 0) return 'Опубликовано сегодня'
   const lastTwo = days % 100
   const last = days % 10
@@ -92,32 +98,6 @@ export function daysSinceLong(iso) {
   if (last === 1) return `${days} день после публикации`
   if (last >= 2 && last <= 4) return `${days} дня после публикации`
   return `${days} дней после публикации`
-}
-
-function pluralizeRu(value, one, twoFour, many) {
-  const abs = Math.abs(value)
-  const lastTwo = abs % 100
-  const last = abs % 10
-  if (lastTwo >= 11 && lastTwo <= 14) return many
-  if (last === 1) return one
-  if (last >= 2 && last <= 4) return twoFour
-  return many
-}
-
-export function liveEndedLong(iso) {
-  if (!iso) return ''
-  const diffMs = Math.max(0, Date.now() - new Date(iso).getTime())
-  const totalHours = Math.floor(diffMs / 3600000)
-  const days = Math.floor(totalHours / 24)
-  const hours = totalHours % 24
-  const parts = []
-  if (days > 0) {
-    parts.push(`${days} ${pluralizeRu(days, 'день', 'дня', 'дней')}`)
-  }
-  if (hours > 0 || parts.length === 0) {
-    parts.push(`${hours} ${pluralizeRu(hours, 'час', 'часа', 'часов')}`)
-  }
-  return `Во время прямого эфира (он закончился ${parts.join(' ')} назад)`
 }
 
 export function belowUsual(value, format = formatCompactNumber, prefix = 'Значение ниже обычного') {

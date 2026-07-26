@@ -5,9 +5,9 @@ import Sidebar from './Sidebar.jsx'
 import { NavContext } from './NavContext.js'
 import { CopyIcon, PlusIcon, HelpIcon } from './icons.jsx'
 import { useChannel } from '../storage/useChannel.js'
+import ChannelAvatar from '../components/ChannelAvatar.jsx'
 
 const TABS = ['Профиль', 'Вкладка "Главная"']
-const DEFAULT_AVATAR = '/studio-assets/trading-avatar.svg'
 const LogoPlayer = () => <div className={s.logoGenerated}>TI</div>
 const BannerArt = ({ name }) => <div className={s.bannerGenerated}>{name}</div>
 
@@ -15,7 +15,6 @@ export default function Screen8aProfile() {
   const { go } = useContext(NavContext)
   const { channel } = useChannel()
   const [activeTab, setActiveTab] = useState(0)
-  const avatarUrl = channel.avatar || DEFAULT_AVATAR
   return (
     <div className={s.page}>
       <TopBar/>
@@ -61,9 +60,9 @@ export default function Screen8aProfile() {
           <div className={s.sectionTitle}>Фото профиля</div>
           <div className={s.sectionDesc}>Это изображение показывается рядом с вашими видео и комментариями на YouTube.</div>
           <div className={s.row}>
-            <div
+            <ChannelAvatar
               className={s.profilePreview}
-              style={{ backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+              src={channel.avatar}
             />
             <div>
               <div className={s.helperTextWide}>Рекомендуемое разрешение изображения — не менее 98 x 98 пикселей в формате PNG или GIF. Анимированные изображения не поддерживаются. Размер файла — не более 4 МБ.</div>

@@ -699,17 +699,6 @@ button.ytKpiCell {
   -webkit-line-clamp: 2;
 }
 
-.newVideoCover span {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  padding: 2px 5px;
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.78);
-  color: #fff;
-  font-size: 11px;
-}
-
 .newVideoTitle {
   white-space: normal;
   font-size: 14px;
@@ -932,79 +921,61 @@ button.ytKpiCell {
 .overviewNewVideoCard {
   gap: 0;
   padding: 0 !important;
-  min-height: 509px;
+  min-height: 0;
   width: 314px;
+  border-radius: var(--studio-analytics-card-radius);
   border-color: var(--studio-card-border);
 }
 
 .overviewNewVideoCard .sideTitle {
   font-family: var(--studio-font);
   font-size: 18px;
+  font-weight: 700;
   line-height: 24px;
-  padding: 14px 16px 10px;
+  padding: 14px 16px 12px;
 }
 
 .overviewNewVideoCard .sideLabel {
-  font-size: 13px;
+  color: var(--studio-text-muted);
+  font-size: 14px;
   line-height: 20px;
-  margin: 0 16px 0;
+  margin: 24px 16px 0;
 }
 
-.overviewNewVideoCard .metricRow {
-  min-height: 52px;
-  padding: 0;
-  color: var(--studio-text);
-  font-size: 13px;
-  line-height: 20px;
-  width: auto;
-  margin: 0 16px;
-}
-
-.newMetricBlock {
+.newVideoSlide {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 0 16px;
-  padding: 12px 0;
-  border-top: 1px solid var(--studio-row-separator);
 }
 
-.newMetricPrimary,
-.newMetricSecondary {
+.newMetricList {
+  display: grid;
+  margin: 14px 16px 0;
+}
+
+.newMetricRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-}
-
-.newMetricLabel {
+  min-height: 32px;
   color: var(--studio-text);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 20px;
 }
 
-.newMetricSecondary .newMetricLabel {
-  color: var(--studio-text-muted);
-}
-
-.newMetricValue,
-.newMetricSecondaryValue {
+.newMetricRow strong {
   color: var(--studio-text);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 20px;
   font-weight: 400;
   white-space: nowrap;
 }
 
-.newMetricSecondaryValue {
-  color: var(--studio-text-muted);
-}
-
 .overviewNewVideoCard .ytWideBtn {
   width: auto;
-  margin: 0 0 4px 8px;
+  margin: 1px 0 12px 8px;
   min-height: 36px;
-  padding: 0 16px;
+  padding: 0 18px;
   align-self: flex-start;
   border-radius: 18px;
   background: var(--studio-action-pill-bg);
@@ -1023,16 +994,19 @@ button.ytKpiCell {
 .overviewNewVideoCard .pager {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
   gap: 0;
-  width: calc(100% - 32px);
-  margin: 2px 16px 0;
-  padding-top: 6px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .overviewNewVideoCard .pager span {
   justify-self: center;
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .overviewNewVideoCard .pager button {
@@ -1042,10 +1016,12 @@ button.ytKpiCell {
 
 .overviewNewVideoCard .pager button:first-child {
   justify-self: start;
+  transform: translateX(-2px);
 }
 
 .overviewNewVideoCard .pager button:last-child {
   justify-self: end;
+  transform: translateX(1px);
 }
 
 .overviewNewVideoCard .pager button svg {
@@ -1088,7 +1064,20 @@ button.ytKpiCell {
 
 .overviewNewVideoCard .newVideoCover {
   margin: 0 16px;
+  border-radius: 8px;
   background: #111;
+}
+
+.overviewNewVideoCard .newVideoOverlay {
+  padding-right: 18px;
+  padding-bottom: 11px;
+  padding-left: 18px;
+}
+
+.overviewNewVideoCard .newVideoOverlayTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
 }
 
 .overviewNewVideoCard .newVideoCover img {
@@ -1232,11 +1221,11 @@ button.ytKpiCell {
   }
 
   .overviewNewVideoCard {
-    min-height: 469px;
+    min-height: 0;
   }
 
   .overviewNewVideoCard .ytWideBtn {
-    margin: 0 16px 12px;
+    margin: 1px 16px 12px;
   }
 
   .revenueRail {

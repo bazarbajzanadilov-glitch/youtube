@@ -51,7 +51,15 @@ export default function Screen3Analytics() {
   }, [advancedOpen])
 
   const renderTab = () => {
-    if (activeTab === 0) return <OverviewTab data={data} onOpenAdmin={() => go('admin')} />
+    if (activeTab === 0) {
+      return (
+        <OverviewTab
+          data={data}
+          onOpenAdmin={() => go('admin')}
+          onOpenVideoAnalytics={() => setActiveTab(1)}
+        />
+      )
+    }
     if (activeTab === 1) return <ContentTab data={data} onOpenAdmin={() => go('admin')} />
     if (activeTab === 2) return <AudienceTab data={data} onOpenAdmin={() => go('admin')} />
     if (activeTab === 3) return <RevenueTab data={data} />

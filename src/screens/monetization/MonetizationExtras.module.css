@@ -356,8 +356,8 @@
 
 .statusOk {
   display: inline-block;
-  background: rgba(43, 166, 64, 0.18);
-  color: #67e08c;
+  background: var(--studio-positive-soft);
+  color: var(--studio-positive-text);
   padding: 2px 10px;
   border-radius: 999px;
   font-size: 11px;

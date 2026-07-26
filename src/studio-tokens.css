@@ -20,6 +20,15 @@
   --studio-text-disabled: #5f6368;
   --studio-link: #3ea6ff;
   --studio-positive: #2ba640;
+  --studio-positive-text: #67e08c;
+  --studio-positive-soft: rgba(43, 166, 64, 0.18);
+  --studio-danger: #ff6b6b;
+  --studio-danger-text: #ff8d8d;
+  --studio-danger-soft: rgba(255, 107, 107, 0.12);
+  --studio-danger-badge-bg: rgba(229, 57, 53, 0.34);
+  --studio-on-danger: #0f0f0f;
+  --studio-warning-text: #ffd6b5;
+  --studio-warning-soft: rgba(142, 87, 53, 0.72);
   --studio-icon-accent: var(--studio-positive);
   --studio-chart-stroke: #39cfc2;
   --studio-chart-fill-top: rgba(57, 207, 194, 0.16);
@@ -90,7 +99,16 @@
   --studio-chip-bg: #333333;
   --studio-chip-border: #3f3f3f;
   --studio-modal-menu-active: #3f3f3f;
+  --studio-modal-scrim: rgba(0, 0, 0, 0.5);
+  --studio-advanced-scrim: rgba(0, 0, 0, 0.56);
+  --studio-confirm-scrim: rgba(0, 0, 0, 0.62);
+  --studio-confirm-modal-bg: var(--studio-surface-2);
+  --studio-settings-backdrop-filter: brightness(0.5);
   --studio-menu-shadow: 0 4px 32px rgba(0, 0, 0, 0.32);
+  --studio-card-shadow: 0 24px 72px rgba(0, 0, 0, 0.36);
+  --studio-modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  --studio-tooltip-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.7);
+  --studio-drawer-shadow: 24px 0 48px rgba(0, 0, 0, 0.45);
   --studio-compact-canvas-width: 1920px;
   --studio-expanded-canvas-width: 1920px;
   --ytcp-font-yt-headline1-font-weight: 700;
@@ -111,7 +129,7 @@
   --studio-surface-3: #ffffff;
   --studio-card-widget: #ffffff;
   --studio-search-bg: #f2f2f2;
-  --studio-hover: #e5e5e5;
+  --studio-hover: #f2f2f2;
   --studio-hover-soft: rgba(0, 0, 0, 0.05);
   --studio-border: #e5e5e5;
   --studio-card-border: rgba(0, 0, 0, 0.1);
@@ -122,6 +140,15 @@
   --studio-text-subtle: #909090;
   --studio-text-disabled: #909090;
   --studio-link: #065fd4;
+  --studio-positive-text: #137333;
+  --studio-positive-soft: rgba(19, 115, 51, 0.12);
+  --studio-danger: #c5221f;
+  --studio-danger-text: #b3261e;
+  --studio-danger-soft: rgba(197, 34, 31, 0.1);
+  --studio-danger-badge-bg: rgba(197, 34, 31, 0.12);
+  --studio-on-danger: #ffffff;
+  --studio-warning-text: #7a3e00;
+  --studio-warning-soft: rgba(230, 126, 34, 0.14);
   --studio-progress-track: #e5e5e5;
   --studio-action-pill-bg: rgba(0, 0, 0, 0.05);
   --studio-action-pill-bg-hover: rgba(0, 0, 0, 0.1);
@@ -143,7 +170,16 @@
   --studio-chip-bg: #f2f2f2;
   --studio-chip-border: #e5e5e5;
   --studio-modal-menu-active: #f2f2f2;
+  --studio-modal-scrim: rgba(0, 0, 0, 0.32);
+  --studio-advanced-scrim: rgba(0, 0, 0, 0.36);
+  --studio-confirm-scrim: rgba(0, 0, 0, 0.4);
+  --studio-confirm-modal-bg: #ffffff;
+  --studio-settings-backdrop-filter: none;
   --studio-menu-shadow: 0 4px 32px rgba(0, 0, 0, 0.1);
+  --studio-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --studio-modal-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  --studio-tooltip-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+  --studio-drawer-shadow: 16px 0 40px rgba(0, 0, 0, 0.16);
 }
 
 @media (max-width: 720px) {

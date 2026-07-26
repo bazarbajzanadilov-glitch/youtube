@@ -112,7 +112,7 @@
 }
 
 .themeMenu {
-  min-height: 248px;
+  min-height: 226px;
 }
 
 .themeHeader {
@@ -144,14 +144,14 @@
 
 .themeHint {
   margin: 0;
-  padding: 16px 24px 8px;
+  padding: 12px 16px 3px;
   color: var(--studio-text-muted);
   font-size: 12px;
   line-height: 17px;
 }
 
 .themeOptions {
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 .themeOption {

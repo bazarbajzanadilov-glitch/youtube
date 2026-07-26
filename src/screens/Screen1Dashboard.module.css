@@ -88,7 +88,6 @@
 .ideaTop .cardTitle {
   margin-bottom: 0;
 }
-.helpBtn,
 .miniIconBtn {
   width: 32px;
   height: 32px;
@@ -101,7 +100,6 @@
   justify-content: center;
   cursor: pointer;
 }
-.helpBtn:hover,
 .miniIconBtn:hover:not(:disabled) {
   background: var(--studio-hover);
   color: var(--studio-text);
@@ -109,51 +107,6 @@
 .miniIconBtn:disabled {
   color: var(--studio-text-disabled);
   cursor: default;
-}
-
-.violationsCard { min-height: 184px; }
-.violationList { margin-top: 12px; }
-.violationRow {
-  width: 100%;
-  min-height: 48px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  border: 0;
-  border-top: 1px solid var(--studio-row-separator);
-  padding: 12px 0;
-  background: transparent;
-  color: var(--studio-text);
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-}
-.violationRow:first-child { border-top: 0; }
-.violationRow:hover span:first-child { color: var(--studio-text); }
-.violationRow span:first-child {
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 18px;
-}
-.dangerBadge,
-.noticeBadge {
-  min-height: 22px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  line-height: 1;
-  white-space: nowrap;
-}
-.dangerBadge {
-  color: #ffc0c0;
-  background: rgba(229, 57, 53, 0.34);
-}
-.noticeBadge {
-  color: #ffd6b5;
-  background: rgba(142, 87, 53, 0.72);
 }
 
 .perfThumb {
@@ -392,7 +345,7 @@
   margin-top: 6px;
 }
 .deltaLine { color: var(--studio-text-muted); }
-.negativeLine { color: #ff6d6d; }
+.negativeLine { color: var(--studio-danger); }
 .divider {
   border-top: 1px solid var(--studio-row-separator);
   margin: 16px 0;
@@ -673,8 +626,7 @@
   }
 
   .analyticsCard,
-  .ideasCard,
-  .violationsCard {
+  .ideasCard {
     min-height: auto;
   }
 

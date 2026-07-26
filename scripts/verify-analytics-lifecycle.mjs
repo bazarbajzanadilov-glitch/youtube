@@ -13,7 +13,15 @@ import {
   normalizeToTotal,
 } from '../src/lib/analyticsEngine.js'
 import { getAlmatyDateISO } from '../src/lib/almatyDate.js'
-import { generateVideoStats } from '../src/storage/videoStore.js'
+import {
+  generateVideoStats,
+  normalizeVideo,
+} from '../src/storage/videoStore.js'
+import {
+  avgWatchPercent,
+  avgWatchPretty,
+  daysSinceLong,
+} from '../src/screens/analytics/studioAnalyticsHelpers.js'
 
 const today = new Date('2026-05-12T12:00:00')
 const channel = {
@@ -61,6 +69,7 @@ const oldVideo = {
   likes: oldStats.likes,
   dislikes: oldStats.dislikes,
   likePct: oldStats.likePct,
+  averageViewPercentage: 52.5,
   profile: 'decayAfterPeak',
 }
 const analytics = build([oldVideo], channel, { kind: '28d' }, { today })
@@ -71,6 +80,55 @@ const maxRevenueDay = Math.max(...revenueSeries)
 
 assert.ok(nonZeroRevenueDays > 10, 'revenue should be distributed across many days')
 assert.ok(maxRevenueDay / totalRevenue < 0.35, 'revenue should not be concentrated in one day')
+assert.equal(avgWatchPercent(oldVideo), '52,5%')
+assert.equal(avgWatchPretty(oldVideo), '4:18')
+
+const normalizedVideo = normalizeVideo({
+  ...oldVideo,
+  averageViewPercentage: 64.8,
+})
+assert.equal(normalizedVideo.averageViewPercentage, 64.8)
+assert.equal(
+  normalizeVideo({ title: 'Updated title' }, { base: normalizedVideo }).averageViewPercentage,
+  64.8,
+  'patches without the field must preserve the stored percentage',
+)
+assert.equal(normalizeVideo({ ...oldVideo, averageViewPercentage: -1 }).averageViewPercentage, 0)
+assert.equal(normalizeVideo({ ...oldVideo, averageViewPercentage: 101 }).averageViewPercentage, 100)
+assert.equal(normalizeVideo({ ...oldVideo, averageViewPercentage: '' }).averageViewPercentage, null)
+assert.equal(avgWatchPercent({ ...oldVideo, averageViewPercentage: null }), '—')
+assert.equal(avgWatchPretty({ ...oldVideo, averageViewPercentage: null }), '—')
+
+const noPercentageAnalytics = build(
+  [{ ...oldVideo, averageViewPercentage: null }],
+  channel,
+  { kind: '28d' },
+  { today },
+)
+assert.equal(
+  noPercentageAnalytics.overview.kpis.watchTime.value,
+  0,
+  'missing percentage must not fall back to a fabricated watch-time ratio',
+)
+const mixedRetentionAnalytics = build(
+  [
+    oldVideo,
+    {
+      ...oldVideo,
+      id: 'unknown-retention-video',
+      views: oldVideo.views * 10,
+      averageViewPercentage: null,
+    },
+  ],
+  channel,
+  { kind: '28d' },
+  { today },
+)
+assert.equal(
+  Math.round(mixedRetentionAnalytics.content.kpis.avgDuration.value),
+  258,
+  'videos with unknown retention must not dilute the known average duration',
+)
 
 const futureVideo = {
   ...oldVideo,
@@ -93,6 +151,14 @@ const beforeAlmatyMidnight = new Date('2026-07-23T18:59:59.000Z')
 const afterAlmatyMidnight = new Date('2026-07-23T19:00:00.000Z')
 assert.equal(getAlmatyDateISO(beforeAlmatyMidnight), '2026-07-23')
 assert.equal(getAlmatyDateISO(afterAlmatyMidnight), '2026-07-24')
+assert.equal(
+  daysSinceLong('2026-07-23', beforeAlmatyMidnight),
+  'Опубликовано сегодня',
+)
+assert.equal(
+  daysSinceLong('2026-07-23', afterAlmatyMidnight),
+  '1 день после публикации',
+)
 assert.equal(
   localIso(getAnalyticsEndDate(beforeAlmatyMidnight)),
   '2026-07-22',
