@@ -376,8 +376,12 @@ export function buildSubscriberSeries(channel, dates) {
     byDate.set(date, { gained, lost })
   }
 
-  return dates.map(({ date }) => {
-    const row = byDate.get(date) || { gained: 0, lost: 0 }
+  return dates.flatMap(({ date }) => {
+    const row = byDate.get(date)
+    // A missing database row is stale history, not a real zero-growth day.
+    // Supabase fills completed dates daily; omitting a missing point prevents
+    // an infrastructure gap from being rendered as a subscriber collapse.
+    if (!row) return []
     return {
       date,
       gained: row.gained,
@@ -576,14 +580,69 @@ function aggregateDatedHeatmap(dailySeries, seed) {
   return matrix.map((row) => row.map((value) => value / totalWeight))
 }
 
+function dailyCtrForRow(row, seed) {
+  const dailySeed = hashSeed(seed, row.date, 'ctr')
+  return 0.082 + ((dailySeed % 1000) / 1000) * 0.06
+}
+
+function buildContentMetricSeries(dailySeries, granularity, seed) {
+  const daily = dailySeries.map((row) => {
+    const views = Math.max(0, Number(row.views) || 0)
+    const watchTime = Math.max(0, Number(row.watchTime) || 0)
+    const ctr = dailyCtrForRow(row, seed)
+    const impressions = views > 0 ? views / Math.max(0.04, ctr) : 0
+
+    return {
+      ...row,
+      impressions,
+      ctr: impressions > 0 ? (views / impressions) * 100 : 0,
+      averageViewDuration: views > 0 ? watchTime / views : 0,
+    }
+  })
+
+  if (granularity === 'day' || daily.length === 0) return daily
+
+  const buckets = new Map()
+  for (const row of daily) {
+    const key = bucketKey(row.date, granularity)
+    if (!buckets.has(key)) {
+      buckets.set(key, {
+        date: key,
+        weekday: 0,
+        views: 0,
+        watchTime: 0,
+        revenue: 0,
+        likes: 0,
+        comments: 0,
+        impressions: 0,
+      })
+    }
+    const bucket = buckets.get(key)
+    bucket.views += Math.max(0, Number(row.views) || 0)
+    bucket.watchTime += Math.max(0, Number(row.watchTime) || 0)
+    bucket.revenue += Math.max(0, Number(row.revenue) || 0)
+    bucket.likes += Math.max(0, Number(row.likes) || 0)
+    bucket.comments += Math.max(0, Number(row.comments) || 0)
+    bucket.impressions += Math.max(0, Number(row.impressions) || 0)
+  }
+
+  return Array.from(buckets.values())
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((row) => ({
+      ...row,
+      revenue: +row.revenue.toFixed(2),
+      ctr: row.impressions > 0 ? (row.views / row.impressions) * 100 : 0,
+      averageViewDuration: row.views > 0 ? row.watchTime / row.views : 0,
+    }))
+}
+
 function buildPeriodCtr(dailySeries, seed) {
   let views = 0
   let impressions = 0
   dailySeries.forEach((row) => {
     const dailyViews = Math.max(0, Number(row.views) || 0)
     if (dailyViews <= 0) return
-    const dailySeed = hashSeed(seed, row.date, 'ctr')
-    const dailyCtr = 0.082 + ((dailySeed % 1000) / 1000) * 0.06
+    const dailyCtr = dailyCtrForRow(row, seed)
     views += dailyViews
     impressions += dailyViews / Math.max(0.04, dailyCtr)
   })
@@ -858,6 +917,21 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       bucketSeries(rows, granularity),
     ]),
   )
+  const contentMetricSeries = buildContentMetricSeries(
+    dailySeries,
+    granularity,
+    channelSeed,
+  )
+  const contentMetricSeriesByType = Object.fromEntries(
+    Object.entries(dailySeriesByType).map(([key, rows]) => [
+      key,
+      buildContentMetricSeries(
+        rows,
+        granularity,
+        hashSeed(channelSeed, key, 'ctr'),
+      ),
+    ]),
+  )
 
   const prev = buildPrevSeries(videos, channel, range, asOf, contributionCache)
   const prevWatchHours = prev.watch / 3600
@@ -1101,6 +1175,8 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       kpis: kpis.content,
       series,
       seriesByType,
+      metricSeries: contentMetricSeries,
+      metricSeriesByType: contentMetricSeriesByType,
       traffic,
       trafficByType,
       ctrByType,

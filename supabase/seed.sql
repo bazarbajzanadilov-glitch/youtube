@@ -109,82 +109,11 @@ set name = excluded.name,
 delete from public.subscriber_daily_stats
 where channel_id = '00000000-0000-0000-0000-000000000001'::uuid;
 
-with channel_target as (
-  select
-    id as channel_id,
-    greatest(0, subscriber_count)::bigint as total_target
-  from public.channels
-  where id = '00000000-0000-0000-0000-000000000001'::uuid
-),
-weighted as (
-  select
-    channel_target.channel_id,
-    (date '2025-07-26' + day_offset)::date as date,
-    day_offset,
-    channel_target.total_target,
-    (
-      (
-        80
-        + (day_offset + 2) * 0.6
-        + 24 * (1 + sin((day_offset + 2) * 0.52))
-        + 12 * (1 + sin((day_offset + 2) * 0.17))
-      )
-      * (
-        1
-        + 0.08 * sin((day_offset + 2) * 2.41 + 1.74)
-        + 0.10 * power(
-          greatest(
-            0::double precision,
-            sin(((day_offset + 2) + 4) * 1.13)
-          ),
-          6
-        )
-      )
-    )::numeric as weight
-  from channel_target
-  cross join generate_series(0, 364) as day_offset
-),
-normalized as (
-  select
-    *,
-    weight * total_target
-      / sum(weight) over (partition by channel_id) as exact_value
-  from weighted
-),
-floored as (
-  select
-    *,
-    floor(exact_value)::bigint as gained_floor,
-    exact_value - floor(exact_value) as fraction
-  from normalized
-),
-ranked as (
-  select
-    *,
-    row_number() over (
-      partition by channel_id
-      order by fraction desc, day_offset
-    ) as fraction_rank,
-    total_target - sum(gained_floor) over (
-      partition by channel_id
-    ) as remainder
-  from floored
+-- The canonical function owns both the rolling dates and their bounded shape.
+-- It always ends on yesterday in Asia/Almaty and avoids stale hardcoded dates.
+select private.refresh_subscriber_daily_stats(
+  id,
+  subscriber_count
 )
-insert into public.subscriber_daily_stats (
-  channel_id,
-  date,
-  gained,
-  lost,
-  share_weight
-)
-select
-  channel_id,
-  date,
-  (
-    gained_floor
-    + case when fraction_rank <= remainder then 1 else 0 end
-  )::integer as gained,
-  0 as lost,
-  weight as share_weight
-from ranked
-order by date;
+from public.channels
+where id = '00000000-0000-0000-0000-000000000001'::uuid;

@@ -25,6 +25,58 @@ import {
   daysSinceLong,
 } from '../src/screens/analytics/studioAnalyticsHelpers.js'
 
+const DAY_MS = 86_400_000
+const SUBSCRIBER_WEIGHT_EPOCH_MS = Date.parse('2020-01-01T00:00:00Z')
+
+function subscriberHistoryWeight(date, manualMultiplier = 1) {
+  const ordinal = Math.floor(
+    (Date.parse(`${date}T00:00:00Z`) - SUBSCRIBER_WEIGHT_EPOCH_MS) / DAY_MS,
+  )
+  const tau = 2 * Math.PI
+  const automaticWeight = Math.max(0.8, Math.min(
+    1.2,
+    1
+      + 0.10 * Math.sin((tau * ordinal) / 11 + 0.7)
+      + 0.06 * Math.sin((tau * ordinal) / 29 + 1.9)
+      + 0.035 * Math.sin((tau * ordinal) / 5 + 2.6),
+  ))
+  const boundedManualMultiplier = Math.max(0.9, Math.min(1.1, manualMultiplier))
+  return Math.max(0.8, Math.min(1.2, automaticWeight * boundedManualMultiplier))
+}
+
+function allocateSubscriberHistory(total, dates, manualMultiplierForDate = () => 1) {
+  const target = Math.max(0, Math.trunc(Number(total) || 0))
+  if (dates.length === 0 || target === 0) return []
+  const activeDates = dates.slice(-Math.min(dates.length, target))
+
+  const rows = activeDates.map((date) => ({
+    date,
+    gained: 1,
+    lost: 0,
+    weight: subscriberHistoryWeight(date, manualMultiplierForDate(date)),
+  }))
+  const extraTarget = target - rows.length
+  const weightTotal = rows.reduce((sum, row) => sum + row.weight, 0)
+  rows.forEach((row) => {
+    const exactExtra = (extraTarget * row.weight) / weightTotal
+    row.gained += Math.floor(exactExtra)
+    row.fraction = exactExtra - Math.floor(exactExtra)
+  })
+  const remainder = target - rows.reduce((sum, row) => sum + row.gained, 0)
+  ;[...rows]
+    .sort((a, b) => b.fraction - a.fraction || a.date.localeCompare(b.date))
+    .slice(0, remainder)
+    .forEach((row) => { row.gained += 1 })
+  return rows.map(({ date, gained, lost }) => ({ date, gained, lost }))
+}
+
+function isoDatesEndingAt(endDate, days) {
+  const end = Date.parse(`${endDate}T00:00:00Z`)
+  return Array.from({ length: days }, (_, index) => (
+    new Date(end - (days - index - 1) * DAY_MS).toISOString().slice(0, 10)
+  ))
+}
+
 const today = new Date('2026-05-12T12:00:00')
 const channel = {
   channelName: 'inside-trading',
@@ -83,6 +135,32 @@ const analytics = build([oldVideo], channel, { kind: '28d' }, { today })
 const analytics7Days = build([oldVideo], channel, { kind: '7d' }, { today })
 const analytics365Days = build([oldVideo], channel, { kind: '365d' }, { today })
 const analyticsLifetime = build([oldVideo], channel, { kind: 'lifetime' }, { today })
+const contentMetricImpressions = analytics.content.metricSeries.reduce(
+  (sum, row) => sum + row.impressions,
+  0,
+)
+assert.equal(
+  Math.round(contentMetricImpressions),
+  analytics.content.kpis.impressions.value,
+  'content impression chart must reconcile to its KPI',
+)
+assert.ok(
+  analytics.content.metricSeries.every((row) => (
+    Number.isFinite(row.ctr)
+    && row.ctr >= 0
+    && Number.isFinite(row.averageViewDuration)
+    && row.averageViewDuration >= 0
+  )),
+  'content CTR and average-duration series must contain valid chart values',
+)
+assert.ok(
+  analytics365Days.content.metricSeries.every((row) => (
+    Number.isFinite(row.impressions)
+    && Number.isFinite(row.ctr)
+    && Number.isFinite(row.averageViewDuration)
+  )),
+  'monthly content metric buckets must preserve all switchable chart fields',
+)
 assert.deepEqual(
   analytics7Days.realtime.last48,
   analytics.realtime.last48,
@@ -397,7 +475,6 @@ const rawSubscriberSeries = buildSubscriberSeries(subscriberChannel, [
 assert.deepEqual(rawSubscriberSeries, [
   { date: '2026-05-08', gained: 5, lost: 2, subscribers: 5 },
   { date: '2026-05-09', gained: 1, lost: 4, subscribers: 1 },
-  { date: '2026-05-11', gained: 0, lost: 0, subscribers: 0 },
 ])
 
 const subscriberBucketsSource = [
@@ -413,5 +490,77 @@ assert.deepEqual(aggregateSubscriberSeries(subscriberBucketsSource, 'month'), [
   { date: '2026-01-01', gained: 5, lost: 2, subscribers: 5 },
   { date: '2026-02-01', gained: 3, lost: 4, subscribers: 3 },
 ])
+
+const smoothSubscriberDates = isoDatesEndingAt('2026-07-27', 365)
+const smoothSubscriberHistory = allocateSubscriberHistory(1_446_000, smoothSubscriberDates)
+const smoothSubscriberValues = smoothSubscriberHistory.map((row) => row.gained)
+const smoothSubscriberAverage = 1_446_000 / smoothSubscriberHistory.length
+
+assert.equal(smoothSubscriberHistory.length, 365)
+assert.equal(smoothSubscriberHistory.at(-1).date, '2026-07-27')
+assert.equal(
+  smoothSubscriberValues.reduce((sum, value) => sum + value, 0),
+  1_446_000,
+  'smooth subscriber allocation must reconcile exactly to the channel total',
+)
+assert.ok(
+  smoothSubscriberValues.every((value) => Number.isInteger(value) && value > 0),
+  'every completed day for an active channel must have a positive integer gain',
+)
+assert.ok(
+  Math.min(...smoothSubscriberValues) >= smoothSubscriberAverage * 0.75,
+  'the bounded formula must not create artificial low outliers',
+)
+assert.ok(
+  Math.max(...smoothSubscriberValues) <= smoothSubscriberAverage * 1.25,
+  'the bounded formula must not create artificial high outliers',
+)
+assert.ok(
+  smoothSubscriberValues.every((value, index) => (
+    index === 0
+    || Math.abs(value - smoothSubscriberValues[index - 1]) <= smoothSubscriberAverage * 0.18
+  )),
+  'adjacent completed days must change gradually',
+)
+assert.ok(
+  Math.abs(subscriberHistoryWeight('2026-07-27') - 1.1396004062571419) < 1e-12,
+  'the JS reference must use the same 2020-01-01 epoch as the SQL function',
+)
+
+for (const total of [0, 1, 10, 364, 365, 1_000, 1_446_000]) {
+  const rows = allocateSubscriberHistory(total, smoothSubscriberDates)
+  assert.equal(rows.length, Math.min(365, total), `history length for total ${total}`)
+  assert.equal(
+    rows.reduce((sum, row) => sum + row.gained, 0),
+    total,
+    `exact subscriber reconciliation for total ${total}`,
+  )
+  assert.ok(
+    rows.every((row) => Number.isInteger(row.gained) && row.gained > 0),
+    `no zero or fractional completed days for total ${total}`,
+  )
+}
+
+const boundedManualHistory = allocateSubscriberHistory(
+  1_446_000,
+  smoothSubscriberDates,
+  (date) => (Number(date.slice(-2)) % 2 === 0 ? 0.9 : 1.1),
+)
+const boundedManualValues = boundedManualHistory.map((row) => row.gained)
+assert.ok(
+  Math.min(...boundedManualValues) >= smoothSubscriberAverage * 0.75
+    && Math.max(...boundedManualValues) <= smoothSubscriberAverage * 1.25,
+  'admin adjustments must remain inside the same safe daily envelope',
+)
+
+const nextDaySubscriberHistory = allocateSubscriberHistory(
+  1_446_000,
+  isoDatesEndingAt('2026-07-28', 365),
+)
+assert.equal(nextDaySubscriberHistory.at(-1).date, '2026-07-28')
+assert.ok(
+  nextDaySubscriberHistory.at(-1).gained > 0,
+  'the daily refresh must add a positive newest completed day',
+)
 
 console.log('analytics lifecycle verification passed')

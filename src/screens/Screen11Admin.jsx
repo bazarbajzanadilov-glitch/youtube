@@ -51,7 +51,6 @@ const ANALYTICS_PROFILES = [
 ]
 
 const todayISO = () => getAlmatyDateISO()
-const analyticsYesterdayISO = () => getAlmatyDateISO(new Date(Date.now() - 86400000))
 const blankForm = () => ({
   id: null,
   title: '',
@@ -97,12 +96,6 @@ function parseCount(value) {
 function parseRevenue(value) {
   if (value === '' || value == null) return undefined
   return Math.max(0, parseFloat(value) || 0)
-}
-
-function previousISO(value) {
-  const date = new Date(`${value}T12:00:00.000Z`)
-  date.setUTCDate(date.getUTCDate() - 1)
-  return date.toISOString().slice(0, 10)
 }
 
 function revokeBlobUrl(value) {
@@ -568,24 +561,6 @@ function Screen11AdminContent() {
     })
   }
 
-  function addSubscriberStat() {
-    const occupiedDates = new Set(subscriberDailyStats.map((row) => row.date))
-    let date = analyticsYesterdayISO()
-    while (occupiedDates.has(date)) date = previousISO(date)
-    setSubscriberStatsDraft([
-      ...subscriberDailyStats.map((row) => ({ ...row })),
-      { date, gained: 0, lost: 0 },
-    ])
-  }
-
-  function removeSubscriberStat(sourceIndex) {
-    setSubscriberStatsDraft(
-      subscriberDailyStats
-        .filter((_, index) => index !== sourceIndex)
-        .map((row) => ({ ...row })),
-    )
-  }
-
   async function onSaveSubscriberStats() {
     setSavingSubscriberStats(true)
     try {
@@ -969,11 +944,10 @@ function Screen11AdminContent() {
             <div>
               <h2>История подписчиков ({subscriberDailyStats.length})</h2>
               <span className={s.sectionHint}>
-                Укажите дневной прирост. При изменении общего числа подписчиков история автоматически масштабируется и сохраняется в Supabase.
+                Завершённые дни добавляются автоматически. Можно скорректировать плавное распределение, а его сумма всегда синхронизируется с общим числом подписчиков в Supabase.
               </span>
             </div>
             <div className={s.toolbar}>
-              <button type="button" className={s.ghostBtn} onClick={addSubscriberStat}>Добавить день</button>
               <button
                 type="button"
                 className={s.submitBtn}
@@ -986,7 +960,7 @@ function Screen11AdminContent() {
           </div>
 
           {subscriberStatsRows.length === 0 ? (
-            <div className={s.empty}>Истории пока нет. Добавьте первый день.</div>
+            <div className={s.empty}>История появится автоматически после сохранения числа подписчиков.</div>
           ) : (
             <div className={`${s.tableWrap} ${s.subscriberStatsTableWrap}`}>
               <table className={`${s.table} ${s.subscriberStatsTable}`}>
@@ -1005,9 +979,8 @@ function Screen11AdminContent() {
                           <input
                             className={s.tableInput}
                             type="date"
-                            max={analyticsYesterdayISO()}
                             value={row.date}
-                            onChange={(event) => updateSubscriberStat(row.sourceIndex, { date: event.target.value })}
+                            readOnly
                           />
                         </td>
                         <td>
@@ -1019,9 +992,7 @@ function Screen11AdminContent() {
                             onChange={(event) => updateSubscriberStat(row.sourceIndex, { gained: parseCount(event.target.value) ?? 0 })}
                           />
                         </td>
-                        <td className={s.actionCell}>
-                          <button type="button" className={s.deleteBtn} onClick={() => removeSubscriberStat(row.sourceIndex)}>Удалить</button>
-                        </td>
+                        <td></td>
                       </tr>
                     )
                   })}
