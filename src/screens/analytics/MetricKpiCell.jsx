@@ -1,5 +1,5 @@
 import clockIcon from '../../assets/clock.svg'
-import { KpiDownCircleIcon, KpiUpCircleIcon } from '../icons.jsx'
+import { CheckCircle, KpiDownCircleIcon, KpiUpCircleIcon } from '../icons.jsx'
 import s from './AnalyticsTabs.module.css'
 
 export default function MetricKpiCell({
@@ -15,7 +15,7 @@ export default function MetricKpiCell({
   className = '',
 }) {
   const Tag = onClick ? 'button' : 'div'
-  const showTrend = trend === 'up' || trend === 'down'
+  const showTrend = trend === 'up' || trend === 'down' || trend === 'usual'
 
   return (
     <Tag
@@ -34,10 +34,12 @@ export default function MetricKpiCell({
       <div className={s.ytKpiValue}>
         {value}
         {showTrend ? (
-          <span className={`${s.trendMark} ${trend === 'up' ? s.trendUp : s.trendDown}`}>
+          <span className={`${s.trendMark} ${trend === 'down' ? s.trendDown : s.trendUp}`}>
             {trend === 'up'
               ? <KpiUpCircleIcon size={18} color="#2ba640" />
-              : <KpiDownCircleIcon size={18} color="#909090" />}
+              : trend === 'usual'
+                ? <CheckCircle size={18} color="#2ba640" />
+                : <KpiDownCircleIcon size={18} color="#909090" />}
           </span>
         ) : null}
       </div>

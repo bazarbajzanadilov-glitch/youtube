@@ -7,9 +7,7 @@ import {
   formatCompactNumber,
   formatNumberRu,
   formatPercent,
-  formatSecondsAsClock,
 } from '../../lib/analyticsFormat.js'
-import { averageViewFraction } from '../../lib/videoMetrics.js'
 import s from './AnalyticsTabs.module.css'
 import {
   avgWatchPretty,
@@ -17,15 +15,16 @@ import {
   ctrPretty,
   KPI_DESCRIPTIONS,
   kpiTrend,
-  usualComparison,
+  previousPeriodComparison,
+  signedNumber,
   videoDate,
 } from './studioAnalyticsHelpers.js'
 import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
 import MetricKpiCell from './MetricKpiCell.jsx'
 
-const TYPE_FILTERS = ['Все', 'Shorts', 'Прямой эфир']
+const TYPE_FILTERS = ['Все', 'Видео', 'Shorts', 'Прямой эфир', 'Записи']
 const TRAFFIC_TABS = ['Общие', 'Внешние источники', 'Поиск на YouTube', 'Рекомендуемые видео', 'Плейлисты']
-const TYPE_KEYS = ['all', 'short', 'live']
+const TYPE_KEYS = ['all', 'video', 'short', 'live', 'post']
 const TRAFFIC_KEYS_BY_TAB = [
   null,
   ['external'],
@@ -45,25 +44,6 @@ function normalizeVideoType(video) {
     : (parts[0] || 0) * 60 + (parts[1] || 0)
   if (seconds <= 60) return 'short'
   return 'video'
-}
-
-function averageDurationByViews(videos) {
-  const videosWithKnownRetention = videos.filter(
-    (video) => averageViewFraction(video) != null,
-  )
-  const totalViews = videosWithKnownRetention.reduce(
-    (sum, video) => sum + (Number(video.periodViews) || 0),
-    0,
-  )
-  if (totalViews <= 0) return 0
-  const totalSeconds = videosWithKnownRetention.reduce((sum, video) => {
-    const parts = String(video.duration || '0:00').split(':').map((part) => parseInt(part, 10) || 0)
-    const seconds = parts.length === 3
-      ? parts[0] * 3600 + parts[1] * 60 + parts[2]
-      : (parts[0] || 0) * 60 + (parts[1] || 0)
-    return sum + (Number(video.periodViews) || 0) * seconds * averageViewFraction(video)
-  }, 0)
-  return totalSeconds / totalViews
 }
 
 export default function ContentTab({ data, onOpenAdmin }) {
@@ -87,26 +67,18 @@ export default function ContentTab({ data, onOpenAdmin }) {
   const filteredSeries = typeKey === 'all'
     ? (content.metricSeries || content.series)
     : (content.metricSeriesByType?.[typeKey] || content.seriesByType?.[typeKey] || [])
+  const selectedKpis = typeKey === 'all'
+    ? content.kpis
+    : (content.kpisByType?.[typeKey] || {})
   const publishedMarkers = buildPublishedVideoMarkers(
     filteredSeries,
     filteredVideos,
     'date',
     range,
   )
-  const filteredViews = filteredSeries.reduce(
-    (sum, row) => sum + (Number(row.views) || 0),
-    0,
-  )
-  const filteredCtr = typeKey === 'all'
-    ? content.kpis.ctr.value
-    : (content.ctrByType?.[typeKey] || 0)
-  const filteredImpressions = filteredViews > 0
-    ? Math.round(filteredSeries.reduce(
-      (sum, row) => sum + (Number(row.impressions) || 0),
-      0,
-    ))
-    : 0
-  const filteredAvgDuration = averageDurationByViews(filteredVideos)
+  const filteredSubscriberSeries = typeKey === 'all'
+    ? (content.subscribers || [])
+    : (content.subscribersByType?.[typeKey] || [])
   const chartByMetric = {
     views: {
       dataKey: 'views',
@@ -114,26 +86,29 @@ export default function ContentTab({ data, onOpenAdmin }) {
       formatY: formatCompactNumber,
       formatTooltipValue: formatNumberRu,
     },
-    impressions: {
-      dataKey: 'impressions',
-      name: 'Показы',
+    engagedViews: {
+      dataKey: 'engagedViews',
+      name: 'Заинтересованные просмотры',
       formatY: formatCompactNumber,
       formatTooltipValue: formatNumberRu,
     },
-    ctr: {
-      dataKey: 'ctr',
-      name: 'CTR для значков видео',
-      formatY: (value) => formatPercent(value, 1),
-      formatTooltipValue: (value) => formatPercent(value, 1),
+    likes: {
+      dataKey: 'likes',
+      name: 'Отметки "Нравится"',
+      formatY: formatCompactNumber,
+      formatTooltipValue: formatNumberRu,
     },
-    avgDuration: {
-      dataKey: 'averageViewDuration',
-      name: 'Средняя продолжительность просмотра',
-      formatY: formatSecondsAsClock,
-      formatTooltipValue: formatSecondsAsClock,
+    subscribers: {
+      dataKey: 'subscribers',
+      name: 'Подписчики',
+      formatY: formatCompactNumber,
+      formatTooltipValue: formatNumberRu,
     },
   }
   const chart = chartByMetric[metric]
+  const chartData = metric === 'subscribers'
+    ? filteredSubscriberSeries
+    : filteredSeries
   const trafficTitle = typeKey === 'live'
     ? 'Как зрители находят ваши прямые трансляции'
     : typeKey === 'short'
@@ -157,7 +132,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
     return (
       <EmptyState
         title="Пока нет данных по контенту"
-        description="Добавьте видео в админке — здесь появятся источники трафика, CTR и лучшие ролики."
+        description="Добавьте видео в админке — здесь появятся просмотры, реакции и лучшие ролики."
         action={<button type="button" className={s.linkBtn} onClick={onOpenAdmin}>Открыть админку</button>}
       />
     )
@@ -190,7 +165,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
         chart={(
           <AreaLineChart
             {...analyticsHeroChartProps(s, { color: CONTENT_CHART_COLOR })}
-            data={filteredSeries}
+            data={chartData}
             dataKey={chart.dataKey}
             xKey="date"
             color={CONTENT_CHART_COLOR}
@@ -205,41 +180,43 @@ export default function ContentTab({ data, onOpenAdmin }) {
         <div className={s.ytKpiStrip}>
           <MetricKpiCell
             label="Просмотры"
-            value={formatCompactNumber(filteredViews)}
-            note={typeKey === 'all' ? usualComparison(content.kpis.views, formatCompactNumber) : 'Обычное значение'}
+            value={formatCompactNumber(selectedKpis.views?.value || 0)}
+            note="Обычное значение"
             description={KPI_DESCRIPTIONS.views}
-            trend={typeKey === 'all' ? kpiTrend(content.kpis.views.delta) : 'neutral'}
+            trend="usual"
             active={metric === 'views'}
             accentColor={CONTENT_CHART_COLOR}
             onClick={() => setMetric('views')}
           />
           <MetricKpiCell
-            label="Показы"
-            value={formatCompactNumber(filteredImpressions)}
-            note={typeKey === 'all' ? usualComparison(content.kpis.impressions, formatCompactNumber) : 'Обычное значение'}
-            description={KPI_DESCRIPTIONS.impressions}
-            trend={typeKey === 'all' ? kpiTrend(content.kpis.impressions.delta) : 'neutral'}
-            active={metric === 'impressions'}
+            label="Заинтересованные просмотры"
+            value={formatCompactNumber(selectedKpis.engagedViews?.value || 0)}
+            note={previousPeriodComparison(selectedKpis.engagedViews, range)}
+            description={KPI_DESCRIPTIONS.engagedViews}
+            trend={kpiTrend(selectedKpis.engagedViews?.delta)}
+            active={metric === 'engagedViews'}
             accentColor={CONTENT_CHART_COLOR}
-            onClick={() => setMetric('impressions')}
+            onClick={() => setMetric('engagedViews')}
           />
           <MetricKpiCell
-            label="CTR для значков видео"
-            value={formatPercent(filteredCtr, 1)}
-            note="Обычное значение"
-            description={KPI_DESCRIPTIONS.ctr}
-            active={metric === 'ctr'}
+            label={'Отметки "Нравится"'}
+            value={formatCompactNumber(selectedKpis.likes?.value || 0)}
+            note={previousPeriodComparison(selectedKpis.likes, range)}
+            description={KPI_DESCRIPTIONS.likes}
+            trend={kpiTrend(selectedKpis.likes?.delta)}
+            active={metric === 'likes'}
             accentColor={CONTENT_CHART_COLOR}
-            onClick={() => setMetric('ctr')}
+            onClick={() => setMetric('likes')}
           />
           <MetricKpiCell
-            label="Средняя продолжительность просмотра"
-            value={formatSecondsAsClock(filteredAvgDuration)}
-            note="Обычное значение"
-            description={KPI_DESCRIPTIONS.averageViewDuration}
-            active={metric === 'avgDuration'}
+            label="Подписчики"
+            value={signedNumber(selectedKpis.subscribers?.value || 0)}
+            note={previousPeriodComparison(selectedKpis.subscribers, range)}
+            description={KPI_DESCRIPTIONS.subscribers}
+            trend={kpiTrend(selectedKpis.subscribers?.delta)}
+            active={metric === 'subscribers'}
             accentColor={CONTENT_CHART_COLOR}
-            onClick={() => setMetric('avgDuration')}
+            onClick={() => setMetric('subscribers')}
           />
         </div>
       </AnalyticsHeroCard>

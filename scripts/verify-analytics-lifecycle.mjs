@@ -161,10 +161,33 @@ const contentMetricImpressions = analytics.content.metricSeries.reduce(
   (sum, row) => sum + row.impressions,
   0,
 )
+const contentMetricEngagedViews = analytics.content.metricSeries.reduce(
+  (sum, row) => sum + row.engagedViews,
+  0,
+)
+const contentMetricLikes = analytics.content.metricSeries.reduce(
+  (sum, row) => sum + row.likes,
+  0,
+)
 assert.equal(
   Math.round(contentMetricImpressions),
   analytics.content.kpis.impressions.value,
   'content impression chart must reconcile to its KPI',
+)
+assert.equal(
+  Math.round(contentMetricEngagedViews),
+  analytics.content.kpis.engagedViews.value,
+  'content engaged-view chart must reconcile to its KPI',
+)
+assert.equal(
+  Math.round(contentMetricLikes),
+  analytics.content.kpis.likes.value,
+  'content likes chart must reconcile to its KPI',
+)
+assert.equal(
+  analytics.content.kpis.subscribers.value,
+  analytics.overview.kpis.subscribers.value,
+  'content and overview subscriber KPIs must use the same stored history',
 )
 assert.ok(
   analytics.content.metricSeries.every((row) => (
@@ -172,16 +195,80 @@ assert.ok(
     && row.ctr >= 0
     && Number.isFinite(row.averageViewDuration)
     && row.averageViewDuration >= 0
+    && Number.isFinite(row.engagedViews)
+    && row.engagedViews >= 0
+    && Number.isFinite(row.likes)
+    && row.likes >= 0
   )),
-  'content CTR and average-duration series must contain valid chart values',
+  'all switchable content series must contain valid chart values',
 )
 assert.ok(
   analytics365Days.content.metricSeries.every((row) => (
     Number.isFinite(row.impressions)
     && Number.isFinite(row.ctr)
     && Number.isFinite(row.averageViewDuration)
+    && Number.isFinite(row.engagedViews)
+    && Number.isFinite(row.likes)
   )),
   'monthly content metric buckets must preserve all switchable chart fields',
+)
+assert.deepEqual(
+  Object.keys(analytics.content.kpisByType).sort(),
+  ['live', 'post', 'short', 'video'],
+  'content type filters must expose the same KPI schema',
+)
+assert.ok(
+  Object.values(analytics.content.kpisByType).every((typeKpis) => (
+    ['views', 'engagedViews', 'likes', 'subscribers'].every((key) => (
+      Number.isFinite(typeKpis[key].value)
+      && typeKpis[key].value >= 0
+    ))
+  )),
+  'each content type must expose nonnegative dynamic KPIs',
+)
+const boundedInteractionVideo = {
+  ...oldVideo,
+  id: 'bounded-interactions',
+  date: '2026-04-15',
+  views: 10_000,
+  likes: 10_000,
+  averageViewPercentage: 100,
+}
+const boundedInteractionDaily = build(
+  [boundedInteractionVideo],
+  channel,
+  { kind: '28d' },
+  { today },
+)
+const boundedInteractionBuckets = build(
+  [boundedInteractionVideo],
+  channel,
+  { kind: '365d' },
+  { today },
+)
+for (const result of [boundedInteractionDaily, boundedInteractionBuckets]) {
+  assert.ok(
+    result.content.metricSeries.every((row) => (
+      row.engagedViews <= row.views && row.likes <= row.views
+    )),
+    'daily and bucketed interactions must not exceed their source views',
+  )
+}
+const boundedInteractionLifetime = build(
+  [boundedInteractionVideo],
+  channel,
+  { kind: 'lifetime' },
+  { today },
+)
+assert.equal(
+  boundedInteractionLifetime.content.kpis.engagedViews.value,
+  boundedInteractionVideo.views,
+  'lifetime engaged views must reconcile exactly to their source total',
+)
+assert.equal(
+  boundedInteractionLifetime.content.kpis.likes.value,
+  boundedInteractionVideo.likes,
+  'lifetime likes must reconcile exactly to their source total',
 )
 assert.deepEqual(
   analytics7Days.realtime.last48,
@@ -465,6 +552,61 @@ assert.equal(
   subscriberAnalytics.audience.kpis.subscribers.value,
   'overview and audience should use the same subscriber KPI',
 )
+assert.equal(
+  subscriberAnalytics.content.kpis.subscribers.value,
+  subscriberAnalytics.overview.kpis.subscribers.value,
+  'content should use the same subscriber KPI for the all-content filter',
+)
+assert.deepEqual(
+  subscriberAnalytics.content.subscribers,
+  subscriberAnalytics.audience.subscribers,
+  'content subscriber chart should use the stored daily subscriber series',
+)
+const oneSubscriberChannel = {
+  ...subscriberChannel,
+  subscriberDailyStats: [{ date: '2026-05-08', gained: 1, lost: 0 }],
+}
+const equalTypeVideos = ['video', 'short', 'live'].map((type) => ({
+  ...oldVideo,
+  id: 'equal-allocation-video',
+  type,
+}))
+const typedSubscriberAnalytics = build(
+  equalTypeVideos,
+  oneSubscriberChannel,
+  { kind: '7d' },
+  { today },
+)
+const contentTypeKeys = ['video', 'short', 'live', 'post']
+assert.equal(
+  contentTypeKeys.reduce(
+    (sum, key) => sum + typedSubscriberAnalytics.content.kpisByType[key].subscribers.value,
+    0,
+  ),
+  typedSubscriberAnalytics.content.kpis.subscribers.value,
+  'type subscriber KPIs must reconcile exactly to the all-content KPI',
+)
+for (const key of contentTypeKeys) {
+  assert.equal(
+    typedSubscriberAnalytics.content.subscribersByType[key]
+      .reduce((sum, row) => sum + row.subscribers, 0),
+    typedSubscriberAnalytics.content.kpisByType[key].subscribers.value,
+    `${key} subscriber chart must reconcile exactly to its KPI`,
+  )
+}
+typedSubscriberAnalytics.content.subscribers.forEach((row, index) => {
+  assert.equal(
+    contentTypeKeys.reduce(
+      (sum, key) => (
+        sum
+        + typedSubscriberAnalytics.content.subscribersByType[key][index].subscribers
+      ),
+      0,
+    ),
+    row.subscribers,
+    `type subscriber allocation must reconcile on ${row.date}`,
+  )
+})
 
 const subscriberLifetime = build([], subscriberChannel, { kind: 'lifetime' }, { today })
 assert.equal(

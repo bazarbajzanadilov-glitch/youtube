@@ -121,7 +121,16 @@ function buildDailyMap(from, days) {
     const d = addDays(from, i)
     const key = isoDay(d)
     dates.push({ date: key, weekday: d.getDay() })
-    map.set(key, { date: key, views: 0, watchTime: 0, revenue: 0, likes: 0, comments: 0, weekday: d.getDay() })
+    map.set(key, {
+      date: key,
+      views: 0,
+      engagedViews: 0,
+      watchTime: 0,
+      revenue: 0,
+      likes: 0,
+      comments: 0,
+      weekday: d.getDay(),
+    })
   }
   return { dates, map }
 }
@@ -164,6 +173,104 @@ function distributeDiscreteTotal(values, total, precision = 0) {
   return units.map((value) => value / factor)
 }
 
+function allocateIntegerTotalByWeights(weights, total, tieBreakers = []) {
+  const size = Array.isArray(weights) ? weights.length : 0
+  const target = Math.max(0, Math.round(Number(total) || 0))
+  if (size === 0 || target === 0) return new Array(size).fill(0)
+
+  let safeWeights = weights.map((value) => Math.max(0, Number(value) || 0))
+  let weightTotal = safeWeights.reduce((sum, value) => sum + value, 0)
+  if (weightTotal <= 0) {
+    safeWeights = safeWeights.map((_, index) => (index === 0 ? 1 : 0))
+    weightTotal = 1
+  }
+
+  const exact = safeWeights.map((value) => (target * value) / weightTotal)
+  const allocated = exact.map(Math.floor)
+  let remaining = target - allocated.reduce((sum, value) => sum + value, 0)
+  const order = exact
+    .map((value, index) => ({
+      index,
+      remainder: value - Math.floor(value),
+      tieBreaker: Number(tieBreakers[index]) || index,
+    }))
+    .sort((a, b) => (
+      b.remainder - a.remainder
+      || a.tieBreaker - b.tieBreaker
+      || a.index - b.index
+    ))
+
+  for (let index = 0; remaining > 0; index += 1) {
+    allocated[order[index % order.length].index] += 1
+    remaining -= 1
+  }
+  return allocated
+}
+
+function distributeBoundedIntegerTotal(weights, total, capacities) {
+  const size = Array.isArray(weights) ? weights.length : 0
+  const target = Math.max(0, Math.round(Number(total) || 0))
+  if (size === 0 || target === 0) return new Array(size).fill(0)
+
+  const caps = Array.from({ length: size }, (_, index) => (
+    Math.max(0, Math.floor(Number(capacities?.[index]) || 0))
+  ))
+  const capacityTotal = caps.reduce((sum, value) => sum + value, 0)
+  if (target > capacityTotal) {
+    return allocateIntegerTotalByWeights(weights, target)
+  }
+
+  const safeWeights = weights.map((value) => Math.max(0, Number(value) || 0))
+  const allocated = new Array(size).fill(0)
+  let remaining = target
+
+  while (remaining > 0) {
+    const active = allocated
+      .map((value, index) => ({ index, capacity: caps[index] - value }))
+      .filter((item) => item.capacity > 0)
+    if (active.length === 0) break
+
+    let weightTotal = active.reduce((sum, item) => sum + safeWeights[item.index], 0)
+    const useCapacityWeights = weightTotal <= 0
+    if (useCapacityWeights) {
+      weightTotal = active.reduce((sum, item) => sum + item.capacity, 0)
+    }
+
+    const shares = active.map((item) => {
+      const weight = useCapacityWeights ? item.capacity : safeWeights[item.index]
+      const exact = (remaining * weight) / weightTotal
+      const base = Math.min(item.capacity, Math.floor(exact))
+      return {
+        ...item,
+        exact,
+        base,
+        remainder: exact - Math.floor(exact),
+      }
+    })
+    let allocatedThisRound = 0
+    shares.forEach((item) => {
+      allocated[item.index] += item.base
+      allocatedThisRound += item.base
+    })
+    remaining -= allocatedThisRound
+    if (remaining <= 0) break
+
+    const order = shares
+      .filter((item) => allocated[item.index] < caps[item.index])
+      .sort((a, b) => b.remainder - a.remainder || a.index - b.index)
+    let granted = 0
+    for (const item of order) {
+      if (remaining <= 0) break
+      allocated[item.index] += 1
+      remaining -= 1
+      granted += 1
+    }
+    if (allocatedThisRound === 0 && granted === 0) break
+  }
+
+  return allocated
+}
+
 function videoContributionKey(video) {
   return [
     video?.id,
@@ -174,6 +281,7 @@ function videoContributionKey(video) {
     video?.revenue,
     video?.duration,
     video?.averageViewPercentage,
+    video?.type,
     video?.profile,
   ].join('|')
 }
@@ -209,10 +317,17 @@ function prepareVideoContribution(video, channel, asOf, cache) {
     ? distributeDiscreteTotal(normalizeToTotal(revenueShape, totalRevenue), totalRevenue, 2)
     : new Array(scaled.length).fill(0)
   const totalLikes = Math.max(0, Number(video.likes) || 0)
+  const likesRand = seededRevenue(hashSeed(channel.channelName, video.id, 'likes', totalLikes))
+  const likesShape = scaled.map((views, index) => (
+    views
+    * (0.84 + likesRand() * 0.32)
+    * (index < 3 ? 0.94 + index * 0.03 : 1)
+  ))
   const likesScaled = totalViews > 0 && totalLikes > 0
-    ? distributeDiscreteTotal(
-      scaled.map((x) => (x / totalViews) * totalLikes),
+    ? distributeBoundedIntegerTotal(
+      likesShape,
       totalLikes,
+      scaled,
     )
     : new Array(scaled.length).fill(0)
   const totalComments = effectiveComments(video)
@@ -220,6 +335,26 @@ function prepareVideoContribution(video, channel, asOf, cache) {
     ? distributeDiscreteTotal(
       scaled.map((x) => (x / totalViews) * totalComments),
       totalComments,
+    )
+    : new Array(scaled.length).fill(0)
+  const engagementFraction = Math.max(0, Math.min(
+    1,
+    Number(averageViewFraction(video)) || 0,
+  ))
+  const totalEngagedViews = Math.round(totalViews * engagementFraction)
+  const engagementRand = seededRevenue(
+    hashSeed(channel.channelName, video.id, 'engaged-views', totalEngagedViews),
+  )
+  const engagementShape = scaled.map((views, index) => (
+    views
+    * (0.88 + engagementRand() * 0.24)
+    * (index < 3 ? 0.92 + index * 0.04 : 1)
+  ))
+  const engagedViewsScaled = totalViews > 0 && totalEngagedViews > 0
+    ? distributeBoundedIntegerTotal(
+      engagementShape,
+      totalEngagedViews,
+      scaled,
     )
     : new Array(scaled.length).fill(0)
   const durationSec = parseDuration(video.duration)
@@ -233,6 +368,7 @@ function prepareVideoContribution(video, channel, asOf, cache) {
     revenueScaled,
     likesScaled,
     commentsScaled,
+    engagedViewsScaled,
     watchEachSec,
   }
   cache?.set(cacheKey, contribution)
@@ -256,6 +392,7 @@ function attachVideoContribution({
     revenueScaled,
     likesScaled,
     commentsScaled,
+    engagedViewsScaled,
     watchEachSec,
   } = contribution
   const firstIndex = Math.max(0, daysBetween(publish, range.from))
@@ -271,6 +408,7 @@ function attachVideoContribution({
       slot.watchTime += watchEachSec[i]
       slot.likes += likesScaled[i]
       slot.comments += commentsScaled[i]
+      slot.engagedViews += engagedViewsScaled[i]
     }
   }
 }
@@ -320,14 +458,16 @@ function buildPrevSeries(videos, channel, range, asOf = range.to, cache) {
   let revenue = 0
   let likes = 0
   let comments = 0
+  let engagedViews = 0
   for (const x of map.values()) {
     views += x.views
     watch += x.watchTime
     revenue += x.revenue
     likes += x.likes
     comments += x.comments
+    engagedViews += x.engagedViews
   }
-  return { views, watch, revenue, likes, comments }
+  return { views, watch, revenue, likes, comments, engagedViews }
 }
 
 function pctDelta(curr, prev) {
@@ -391,13 +531,50 @@ export function buildSubscriberSeries(channel, dates) {
   })
 }
 
+const CONTENT_TYPE_KEYS = ['video', 'short', 'live', 'post']
+
+function allocateSubscriberSeriesByType(series, weightsByType) {
+  const result = Object.fromEntries(CONTENT_TYPE_KEYS.map((key) => [key, []]))
+  const weights = CONTENT_TYPE_KEYS.map((key) => (
+    Math.max(0, Number(weightsByType?.[key]) || 0)
+  ))
+
+  for (const row of series) {
+    const tieBreakers = CONTENT_TYPE_KEYS.map((key) => (
+      hashSeed(row.date, key, 'subscriber-allocation')
+    ))
+    const gained = allocateIntegerTotalByWeights(weights, row.gained, tieBreakers)
+    const lost = allocateIntegerTotalByWeights(weights, row.lost, tieBreakers)
+    const subscribers = allocateIntegerTotalByWeights(weights, row.subscribers, tieBreakers)
+    CONTENT_TYPE_KEYS.forEach((key, index) => {
+      result[key].push({
+        ...row,
+        gained: gained[index],
+        lost: lost[index],
+        subscribers: subscribers[index],
+      })
+    })
+  }
+
+  return result
+}
+
 function bucketSeries(series, granularity) {
   if (granularity === 'day' || series.length === 0) return series
   const buckets = new Map()
   for (const row of series) {
     const key = bucketKey(row.date, granularity)
     if (!buckets.has(key)) {
-      buckets.set(key, { date: key, weekday: 0, views: 0, watchTime: 0, revenue: 0, likes: 0, comments: 0 })
+      buckets.set(key, {
+        date: key,
+        weekday: 0,
+        views: 0,
+        engagedViews: 0,
+        watchTime: 0,
+        revenue: 0,
+        likes: 0,
+        comments: 0,
+      })
     }
     const b = buckets.get(key)
     b.views += row.views
@@ -405,6 +582,7 @@ function bucketSeries(series, granularity) {
     b.revenue += row.revenue
     b.likes += row.likes
     b.comments += row.comments
+    b.engagedViews += row.engagedViews
   }
   return Array.from(buckets.values()).sort((a, b) => a.date.localeCompare(b.date)).map((b) => ({
     ...b,
@@ -450,6 +628,7 @@ function buildSeriesForVideos(
       date,
       weekday,
       views: +slot.views.toFixed(3),
+      engagedViews: +slot.engagedViews.toFixed(3),
       watchTime: +slot.watchTime.toFixed(3),
       revenue: +slot.revenue.toFixed(2),
       likes: +slot.likes.toFixed(3),
@@ -610,6 +789,7 @@ function buildContentMetricSeries(dailySeries, granularity, seed) {
         date: key,
         weekday: 0,
         views: 0,
+        engagedViews: 0,
         watchTime: 0,
         revenue: 0,
         likes: 0,
@@ -619,6 +799,7 @@ function buildContentMetricSeries(dailySeries, granularity, seed) {
     }
     const bucket = buckets.get(key)
     bucket.views += Math.max(0, Number(row.views) || 0)
+    bucket.engagedViews += Math.max(0, Number(row.engagedViews) || 0)
     bucket.watchTime += Math.max(0, Number(row.watchTime) || 0)
     bucket.revenue += Math.max(0, Number(row.revenue) || 0)
     bucket.likes += Math.max(0, Number(row.likes) || 0)
@@ -815,6 +996,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     date,
     weekday,
     views: Math.round(rawViews[i]),
+    engagedViews: Math.round(map.get(date).engagedViews),
     watchTime: +rawWatch[i].toFixed(3),
     revenue: +rawRev[i].toFixed(2),
     likes: Math.round(rawLikes[i]),
@@ -846,12 +1028,14 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
 
   const isLifetime = range.kind === 'lifetime'
   const totalViewsRaw = series.reduce((s, x) => s + x.views, 0)
+  const totalEngagedViewsRaw = series.reduce((s, x) => s + x.engagedViews, 0)
   const totalLikesRaw = series.reduce((s, x) => s + x.likes, 0)
   const totalCommentsRaw = series.reduce((s, x) => s + x.comments, 0)
   const totalWatchSec = series.reduce((s, x) => s + x.watchTime, 0)
   const totalRevenueRaw = series.reduce((s, x) => s + x.revenue, 0)
 
   const totalViews = totalViewsRaw
+  const totalEngagedViews = totalEngagedViewsRaw
   const totalLikes = totalLikesRaw
   const totalComments = totalCommentsRaw
   const totalRevenue = +totalRevenueRaw.toFixed(2)
@@ -934,6 +1118,12 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   )
 
   const prev = buildPrevSeries(videos, channel, range, asOf, contributionCache)
+  const prevByType = Object.fromEntries(
+    Object.entries(videosByType).map(([key, rows]) => [
+      key,
+      buildPrevSeries(rows, channel, range, asOf, contributionCache),
+    ]),
+  )
   const prevWatchHours = prev.watch / 3600
   const subscribersDaily = buildSubscriberSeries(channel, dates)
   const subscribers = aggregateSubscriberSeries(subscribersDaily, granularity)
@@ -941,9 +1131,70 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const subscribersLost = subscribersDaily.reduce((sum, row) => sum + row.lost, 0)
   const subscribersValue = subscribersDaily.reduce((sum, row) => sum + row.subscribers, 0)
   const previousSubscriberDates = buildDailyMap(addDays(range.from, -range.days), range.days).dates
-  const previousSubscribersValue = buildSubscriberSeries(channel, previousSubscriberDates)
+  const previousSubscribersDaily = buildSubscriberSeries(channel, previousSubscriberDates)
+  const previousSubscribers = aggregateSubscriberSeries(previousSubscribersDaily, granularity)
+  const previousSubscribersValue = previousSubscribersDaily
     .reduce((sum, row) => sum + row.subscribers, 0)
   const subscribersDelta = isLifetime ? null : pctDelta(subscribersValue, previousSubscribersValue)
+  const currentTypeViews = Object.fromEntries(CONTENT_TYPE_KEYS.map((key) => [
+    key,
+    (contentMetricSeriesByType[key] || []).reduce(
+      (sum, row) => sum + (Number(row.views) || 0),
+      0,
+    ),
+  ]))
+  const previousTypeViews = Object.fromEntries(CONTENT_TYPE_KEYS.map((key) => [
+    key,
+    Math.max(0, Number(prevByType[key]?.views) || 0),
+  ]))
+  const subscribersByType = allocateSubscriberSeriesByType(subscribers, currentTypeViews)
+  const previousSubscribersByType = allocateSubscriberSeriesByType(
+    previousSubscribers,
+    previousTypeViews,
+  )
+  const contentKpisByType = Object.fromEntries(
+    CONTENT_TYPE_KEYS.map((key) => {
+      const rows = contentMetricSeriesByType[key] || []
+      const typeViews = rows.reduce((sum, row) => sum + (Number(row.views) || 0), 0)
+      const typeEngagedViews = rows.reduce(
+        (sum, row) => sum + (Number(row.engagedViews) || 0),
+        0,
+      )
+      const typeLikes = rows.reduce((sum, row) => sum + (Number(row.likes) || 0), 0)
+      const previous = prevByType[key] || {}
+      const attributedSubscribers = (subscribersByType[key] || []).reduce(
+        (sum, row) => sum + (Number(row.subscribers) || 0),
+        0,
+      )
+      const previousAttributedSubscribers = (previousSubscribersByType[key] || []).reduce(
+        (sum, row) => sum + (Number(row.subscribers) || 0),
+        0,
+      )
+
+      return [key, {
+        views: {
+          value: Math.round(typeViews),
+          delta: isLifetime ? null : pctDelta(typeViews, previous.views),
+        },
+        engagedViews: {
+          value: Math.round(typeEngagedViews),
+          delta: isLifetime
+            ? null
+            : pctDelta(typeEngagedViews, previous.engagedViews),
+        },
+        likes: {
+          value: Math.round(typeLikes),
+          delta: isLifetime ? null : pctDelta(typeLikes, previous.likes),
+        },
+        subscribers: {
+          value: attributedSubscribers,
+          delta: isLifetime
+            ? null
+            : pctDelta(attributedSubscribers, previousAttributedSubscribers),
+        },
+      }]
+    }),
+  )
 
   const traffic = aggregateDatedShares(
     dailySeries,
@@ -1115,6 +1366,22 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
         delta: isLifetime ? null : pctDelta(totalViews, prev.views),
         lifetime: lifetime.views,
       },
+      engagedViews: {
+        value: totalEngagedViews,
+        delta: isLifetime ? null : pctDelta(totalEngagedViews, prev.engagedViews),
+      },
+      likes: {
+        value: totalLikes,
+        delta: isLifetime ? null : pctDelta(totalLikes, prev.likes),
+        lifetime: lifetime.likes,
+      },
+      subscribers: {
+        value: subscribersValue,
+        delta: subscribersDelta,
+        gained: subscribersGained,
+        lost: subscribersLost,
+        absolute: channel.subscriberCount || 0,
+      },
       impressions: {
         value: impressions,
         delta: isLifetime ? null : pctDelta(totalViews, prev.views),
@@ -1177,6 +1444,9 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       seriesByType,
       metricSeries: contentMetricSeries,
       metricSeriesByType: contentMetricSeriesByType,
+      kpisByType: contentKpisByType,
+      subscribers,
+      subscribersByType,
       traffic,
       trafficByType,
       ctrByType,
