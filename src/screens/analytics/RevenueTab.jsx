@@ -15,6 +15,7 @@ import {
   formatTenge,
   formatTengeChart,
   formatTengeAxis,
+  KPI_DESCRIPTIONS,
 } from './studioAnalyticsHelpers.js'
 
 const REVENUE_LINE_COLOR = ANALYTICS_TEAL
@@ -392,6 +393,7 @@ export default function RevenueTab({ data }) {
           <MetricKpiCell
             label="Расчетный доход"
             value={formatTenge(revenue)}
+            description={KPI_DESCRIPTIONS.revenue}
             active
             clock
           />

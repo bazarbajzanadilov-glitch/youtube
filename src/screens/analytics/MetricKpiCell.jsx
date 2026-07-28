@@ -6,6 +6,7 @@ export default function MetricKpiCell({
   label,
   value,
   note,
+  description,
   active = false,
   clock = false,
   trend = 'neutral',
@@ -20,6 +21,8 @@ export default function MetricKpiCell({
     <Tag
       type={onClick ? 'button' : undefined}
       aria-pressed={onClick ? active : undefined}
+      aria-description={description || undefined}
+      title={description || undefined}
       className={`${s.ytKpiCell} ${active ? s.ytKpiCellActive : ''} ${className}`}
       onClick={onClick}
       style={active && accentColor ? { '--yt-kpi-accent': accentColor } : undefined}

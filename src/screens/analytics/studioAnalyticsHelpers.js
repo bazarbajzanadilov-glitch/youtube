@@ -15,6 +15,18 @@ export const ANALYTICS_TEAL = '#39cfc2'
 export const ANALYTICS_MUTED = 'var(--studio-text-muted)'
 
 const NBSP = '\u00a0'
+const USUAL_DELTA_THRESHOLD = 10
+
+export const KPI_DESCRIPTIONS = {
+  views: 'Количество просмотров всех ваших видео, включая удаленные, за текущий период по сравнению с вашими обычными показателями. Если проанализировать сведения за долгое время, можно выявить наиболее эффективные видео, предсказать сезонные изменения, а также определить, когда лучше всего загружать ролики.',
+  watchTime: 'Время просмотра всех видео (включая ролики с ограниченным доступом и доступом по ссылке) на канале за текущий период по сравнению с обычными показателями. Учитываются в том числе и удаленные ролики.',
+  subscribers: 'Изменение числа подписчиков за текущий период в сравнении с предыдущим. По данным за продолжительный отрезок времени можно понять, почему пользователи подписываются на ваш канал или отменяют подписку.',
+  revenue: 'Расчетный доход от всех источников за выбранный период. Итоговая сумма может измениться после окончательной обработки данных.',
+  monthlyViewers: 'Предполагаемое общее количество зрителей за последние 28 дней. Этот показатель рассчитывается ежедневно и всегда за предыдущие 28 дней с определенного дня.',
+  impressions: 'Количество показов значков ваших видео зрителям на YouTube за выбранный период.',
+  ctr: 'Доля показов значков видео, после которых зрители начали смотреть видео.',
+  averageViewDuration: 'Средняя продолжительность просмотра одного видео за выбранный период.',
+}
 
 function tengeValue(amount) {
   return (Number(amount) || 0) * 512
@@ -124,17 +136,42 @@ function diffFromDelta(value, delta) {
 }
 
 export function usualComparison(kpi, format = formatCompactNumber) {
-  if (kpi?.delta == null) return '—'
-  const delta = Number(kpi?.delta) || 0
-  if (Math.abs(delta) <= 0.1) return 'Обычное значение'
+  if (kpi?.delta == null || !Number.isFinite(Number(kpi.delta))) return ''
+  const delta = Number(kpi.delta)
+  if (Math.abs(delta) <= USUAL_DELTA_THRESHOLD) return 'Обычное значение'
   const diff = diffFromDelta(kpi?.value, delta) || Math.abs(Number(kpi?.value) || 0)
-  return `На ${format(diff)} ${delta > 0 ? 'больше' : 'меньше'}, чем обычно`
+  return `Значение ${delta > 0 ? 'выше' : 'ниже'} обычного (на ${format(diff)})`
 }
 
 export function absoluteUsualComparison(value, format = formatCompactNumber) {
   const amount = Math.abs(Number(value) || 0)
   if (amount <= 0) return 'Обычное значение'
   return `На ${format(amount)} ${Number(value) >= 0 ? 'больше' : 'меньше'}, чем обычно`
+}
+
+function declineDays(value) {
+  const days = Math.abs(Math.round(Number(value) || 0))
+  const lastTwo = days % 100
+  const last = days % 10
+  if (lastTwo >= 11 && lastTwo <= 14) return 'дней'
+  if (last === 1) return 'день'
+  if (last >= 2 && last <= 4) return 'дня'
+  return 'дней'
+}
+
+function previousPeriodLabel(range) {
+  const days = Math.max(1, Math.round(Number(range?.days) || 28))
+  return `за предыдущие ${days.toLocaleString('ru-RU')} ${declineDays(days)}`
+}
+
+export function previousPeriodComparison(kpi, range) {
+  if (range?.kind === 'lifetime') return ''
+  if (kpi?.delta == null || !Number.isFinite(Number(kpi.delta))) return ''
+  const delta = Number(kpi.delta)
+  const label = previousPeriodLabel(range)
+  if (Math.abs(delta) < 0.5) return `Как ${label}`
+  const percent = Math.max(1, Math.round(Math.abs(delta)))
+  return `На ${percent.toLocaleString('ru-RU')} % ${delta > 0 ? 'больше' : 'меньше'}, чем ${label}`
 }
 
 export function buildPublishedVideoMarkers(
@@ -199,10 +236,6 @@ export function buildPublishedVideoMarkers(
           views: video.views || 0,
         })),
     }))
-}
-
-export function comparePreviousText() {
-  return 'На 99 % меньше, чем за предыдущие 28 дней'
 }
 
 export function signedNumber(value) {

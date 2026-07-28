@@ -14,8 +14,10 @@ import s from './AnalyticsTabs.module.css'
 import {
   ANALYTICS_PURPLE,
   buildPublishedVideoMarkers,
+  KPI_DESCRIPTIONS,
+  kpiTrend,
+  previousPeriodComparison,
   signedNumber,
-  usualComparison,
   videoDate,
 } from './studioAnalyticsHelpers.js'
 import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
@@ -119,7 +121,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
           <MetricKpiCell
             label="Зрителей в месяц"
             value={formatCompactNumber(monthlyViewers)}
-            note="Обновляется каждый день"
+            description={KPI_DESCRIPTIONS.monthlyViewers}
             active={metric === 'viewers'}
             clock
             onClick={() => setMetric('viewers')}
@@ -127,8 +129,9 @@ export default function AudienceTab({ data, onOpenAdmin }) {
           <MetricKpiCell
             label="Подписчики"
             value={signedNumber(audience.kpis.subscribers.value)}
-            note={usualComparison(audience.kpis.subscribers, formatCompactNumber)}
-            trend={audience.kpis.subscribers.value > 0 ? 'up' : 'neutral'}
+            note={previousPeriodComparison(audience.kpis.subscribers, range)}
+            description={KPI_DESCRIPTIONS.subscribers}
+            trend={kpiTrend(audience.kpis.subscribers.delta)}
             active={metric === 'subscribers'}
             onClick={() => setMetric('subscribers')}
           />

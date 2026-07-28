@@ -23,6 +23,8 @@ import {
   avgWatchPretty,
   buildPublishedVideoMarkers,
   daysSinceLong,
+  previousPeriodComparison,
+  usualComparison,
 } from '../src/screens/analytics/studioAnalyticsHelpers.js'
 
 const DAY_MS = 86_400_000
@@ -135,6 +137,26 @@ const analytics = build([oldVideo], channel, { kind: '28d' }, { today })
 const analytics7Days = build([oldVideo], channel, { kind: '7d' }, { today })
 const analytics365Days = build([oldVideo], channel, { kind: '365d' }, { today })
 const analyticsLifetime = build([oldVideo], channel, { kind: 'lifetime' }, { today })
+assert.equal(
+  usualComparison({ value: 100, delta: -50 }, (value) => String(Math.round(value))),
+  'Значение ниже обычного (на 100)',
+)
+assert.equal(
+  usualComparison({ value: 100, delta: 5 }, (value) => String(Math.round(value))),
+  'Обычное значение',
+)
+assert.equal(
+  previousPeriodComparison({ value: 76, delta: -24.4 }, { kind: '28d', days: 28 }),
+  'На 24 % меньше, чем за предыдущие 28 дней',
+)
+assert.equal(
+  previousPeriodComparison({ value: 126, delta: 25.6 }, { kind: '28d', days: 28 }),
+  'На 26 % больше, чем за предыдущие 28 дней',
+)
+assert.equal(
+  previousPeriodComparison({ value: 126, delta: 25.6 }, { kind: 'lifetime', days: 365 }),
+  '',
+)
 const contentMetricImpressions = analytics.content.metricSeries.reduce(
   (sum, row) => sum + row.impressions,
   0,

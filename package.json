@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev-secure.mjs",
-    "dev:secure": "node scripts/dev-secure.mjs",
-    "start": "node scripts/dev-secure.mjs",
+    "dev": "node --env-file-if-exists=.env.local scripts/dev-secure.mjs",
+    "dev:secure": "node --env-file-if-exists=.env.local scripts/dev-secure.mjs",
+    "start": "node --env-file-if-exists=.env.local scripts/dev-secure.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "verify:analytics": "node scripts/verify-analytics-lifecycle.mjs",

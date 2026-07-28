@@ -15,6 +15,7 @@ import {
   avgWatchPretty,
   buildPublishedVideoMarkers,
   ctrPretty,
+  KPI_DESCRIPTIONS,
   kpiTrend,
   usualComparison,
   videoDate,
@@ -206,6 +207,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
             label="Просмотры"
             value={formatCompactNumber(filteredViews)}
             note={typeKey === 'all' ? usualComparison(content.kpis.views, formatCompactNumber) : 'Обычное значение'}
+            description={KPI_DESCRIPTIONS.views}
             trend={typeKey === 'all' ? kpiTrend(content.kpis.views.delta) : 'neutral'}
             active={metric === 'views'}
             accentColor={CONTENT_CHART_COLOR}
@@ -215,6 +217,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
             label="Показы"
             value={formatCompactNumber(filteredImpressions)}
             note={typeKey === 'all' ? usualComparison(content.kpis.impressions, formatCompactNumber) : 'Обычное значение'}
+            description={KPI_DESCRIPTIONS.impressions}
             trend={typeKey === 'all' ? kpiTrend(content.kpis.impressions.delta) : 'neutral'}
             active={metric === 'impressions'}
             accentColor={CONTENT_CHART_COLOR}
@@ -224,6 +227,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
             label="CTR для значков видео"
             value={formatPercent(filteredCtr, 1)}
             note="Обычное значение"
+            description={KPI_DESCRIPTIONS.ctr}
             active={metric === 'ctr'}
             accentColor={CONTENT_CHART_COLOR}
             onClick={() => setMetric('ctr')}
@@ -232,6 +236,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
             label="Средняя продолжительность просмотра"
             value={formatSecondsAsClock(filteredAvgDuration)}
             note="Обычное значение"
+            description={KPI_DESCRIPTIONS.averageViewDuration}
             active={metric === 'avgDuration'}
             accentColor={CONTENT_CHART_COLOR}
             onClick={() => setMetric('avgDuration')}

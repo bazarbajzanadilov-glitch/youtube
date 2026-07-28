@@ -29,7 +29,9 @@ import {
   formatTengeChart,
   formatTengeAxis,
   formatTenge,
+  KPI_DESCRIPTIONS,
   kpiTrend,
+  previousPeriodComparison,
   signedNumber,
   usualComparison,
   videoDate,
@@ -175,6 +177,7 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
               label="Просмотры"
               value={formatCompactNumber(overview.kpis.views.value)}
               note={usualComparison(overview.kpis.views, formatCompactNumber)}
+              description={KPI_DESCRIPTIONS.views}
               trend={kpiTrend(overview.kpis.views.delta)}
               active={metric === 'views'}
               accentColor={chartByMetric.views.color}
@@ -184,6 +187,7 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
               label="Время просмотра (часы)"
               value={formatHours(overview.kpis.watchTime.value)}
               note={usualComparison(overview.kpis.watchTime, formatHours)}
+              description={KPI_DESCRIPTIONS.watchTime}
               trend={kpiTrend(overview.kpis.watchTime.delta)}
               active={metric === 'watch'}
               accentColor={chartByMetric.watch.color}
@@ -192,8 +196,9 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
             <MetricKpiCell
               label="Подписчики"
               value={signedNumber(overview.kpis.subscribers.value)}
-              note={usualComparison(overview.kpis.subscribers, formatCompactNumber)}
-              trend={overview.kpis.subscribers.value > 0 ? 'up' : 'neutral'}
+              note={previousPeriodComparison(overview.kpis.subscribers, range)}
+              description={KPI_DESCRIPTIONS.subscribers}
+              trend={kpiTrend(overview.kpis.subscribers.delta)}
               active={metric === 'subscribers'}
               accentColor={chartByMetric.subscribers.color}
               onClick={() => setMetric('subscribers')}
@@ -201,8 +206,7 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
             <MetricKpiCell
               label="Расчетный доход"
               value={formatTenge(monetization?.kpis?.revenue?.value || 0)}
-              note={usualComparison(monetization?.kpis?.revenue, formatTenge)}
-              trend={kpiTrend(monetization?.kpis?.revenue?.delta)}
+              description={KPI_DESCRIPTIONS.revenue}
               active={metric === 'revenue'}
               clock
               accentColor={chartByMetric.revenue.color}
