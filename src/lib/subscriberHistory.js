@@ -54,19 +54,83 @@ function recentWeights(rows, startIndex) {
   })
 }
 
-function reduceRange(rows, indices, amount) {
-  const available = indices.reduce((sum, index) => sum + rows[index].gained, 0)
-  const batch = Math.min(Math.max(0, amount), available)
-  if (batch <= 0) return 0
+function dateOrdinal(date) {
+  return Math.floor(Date.parse(`${date}T00:00:00Z`) / 86_400_000)
+}
 
-  const reductions = allocateByWeights(
-    indices.map((index) => rows[index].gained),
-    batch,
+function targetTemporalTilt(date, target) {
+  const ordinal = dateOrdinal(date)
+  const phase = Math.log1p(Math.max(0, target)) * 0.83
+  return Math.exp(
+    (0.24 * Math.sin(((2 * Math.PI * ordinal) / 83) + phase))
+    + (0.08 * Math.sin(((2 * Math.PI * ordinal) / 29) - (phase * 0.37))),
   )
-  indices.forEach((rowIndex, index) => {
-    rows[rowIndex].gained = Math.max(0, rows[rowIndex].gained - reductions[index])
+}
+
+function protectedFloorIndices(rowCount, windowDays, target) {
+  const comparisonDays = Math.max(1, windowDays)
+  const protectedStart = Math.max(0, rowCount - (comparisonDays * 2))
+  const currentStart = Math.max(protectedStart, rowCount - comparisonDays)
+  const current = Array.from(
+    { length: rowCount - currentStart },
+    (_, index) => currentStart + index,
+  )
+  const previous = Array.from(
+    { length: currentStart - protectedStart },
+    (_, index) => protectedStart + index,
+  )
+  const priority = []
+  const priorityLength = Math.max(current.length, previous.length)
+
+  for (let index = 0; index < priorityLength; index += 1) {
+    if (current[index] != null) priority.push(current[index])
+    if (previous[index] != null) priority.push(previous[index])
+  }
+
+  return priority.slice(0, Math.min(priority.length, target))
+}
+
+function repairCollapsedComparisonWeights(rows, windowDays) {
+  const comparisonStart = Math.max(0, rows.length - (windowDays * 2))
+  const sourceDailyAverage = Math.max(
+    1,
+    Math.round(
+      rows.reduce((sum, row) => sum + row.gained, 0)
+      / Math.max(1, rows.length),
+    ),
+  )
+
+  return rows.map((row, index) => (
+    index >= comparisonStart && row.gained === 0
+      ? { ...row, gained: sourceDailyAverage }
+      : row
+  ))
+}
+
+function redistributeSubscriberHistory(rows, target, windowDays) {
+  const floors = new Array(rows.length).fill(0)
+  const protectedIndices = protectedFloorIndices(
+    rows.length,
+    windowDays,
+    target,
+  )
+  protectedIndices.forEach((index) => {
+    floors[index] = 1
   })
-  return batch
+
+  const remaining = target - protectedIndices.length
+  const allocations = allocateByWeights(
+    rows.map((row) => (
+      Math.max(1, row.gained) * targetTemporalTilt(row.date, target)
+    )),
+    remaining,
+  )
+
+  return rows.map((row, index) => ({
+    ...row,
+    gained: floors[index] + allocations[index],
+    lost: 0,
+  }))
 }
 
 /**
@@ -86,7 +150,21 @@ export function reconcileSubscriberHistoryToTotal(
   const target = Math.max(0, Math.trunc(Number(targetTotal) || 0))
   const current = rows.reduce((sum, row) => sum + row.gained, 0)
   let delta = target - current
-  if (delta === 0) return rows
+  const comparisonDays = Math.max(1, windowDays)
+  const currentStart = Math.max(0, rows.length - comparisonDays)
+  const previousStart = Math.max(0, currentStart - comparisonDays)
+  const currentWindowTotal = rows
+    .slice(currentStart)
+    .reduce((sum, row) => sum + row.gained, 0)
+  const previousWindowTotal = rows
+    .slice(previousStart, currentStart)
+    .reduce((sum, row) => sum + row.gained, 0)
+  const needsCollapsedHistoryRepair = (
+    target > 0
+    && currentWindowTotal === 0
+    && previousWindowTotal > 0
+  )
+  if (delta === 0 && !needsCollapsedHistoryRepair) return rows
 
   const recentStart = Math.max(0, rows.length - Math.max(1, windowDays))
   const recentIndices = Array.from(
@@ -105,18 +183,12 @@ export function reconcileSubscriberHistoryToTotal(
     return rows
   }
 
-  delta = -delta
-  delta -= reduceRange(rows, recentIndices, delta)
-  if (delta > 0 && recentStart > 0) {
-    const olderIndices = Array.from(
-      { length: recentStart },
-      (_, index) => recentStart - index - 1,
-    )
-    delta -= reduceRange(rows, olderIndices, delta)
-  }
-
-  if (delta > 0) {
-    throw new Error('Subscriber history cannot be reconciled to the requested total')
-  }
-  return rows
+  const redistributionSource = needsCollapsedHistoryRepair
+    ? repairCollapsedComparisonWeights(rows, comparisonDays)
+    : rows
+  return redistributeSubscriberHistory(
+    redistributionSource,
+    target,
+    comparisonDays,
+  )
 }

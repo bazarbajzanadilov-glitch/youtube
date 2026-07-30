@@ -1069,6 +1069,95 @@ assert.ok(
   reducedSubscriberRows.every((row) => row.gained >= 0 && row.lost === 0),
   'subscriber reconciliation must remain positive-only',
 )
+const reducedSubscriberAnalytics = build(
+  [],
+  {
+    ...channel,
+    subscriberCount: 500,
+    subscriberDailyStats: reducedSubscriberRows,
+  },
+  { kind: '28d' },
+  { today },
+)
+const reducedOverviewSubscribers = reducedSubscriberAnalytics.overview.kpis.subscribers
+assert.ok(
+  reducedOverviewSubscribers.value > 0,
+  'a large subscriber reduction must not erase the current 28-day KPI',
+)
+assert.ok(
+  reducedOverviewSubscribers.previousValue > 0,
+  'a large subscriber reduction must preserve the previous comparison period',
+)
+assert.notEqual(
+  Math.round(reducedOverviewSubscribers.delta),
+  -100,
+  'a large subscriber reduction must not render a false 100% collapse',
+)
+assert.equal(
+  reducedSubscriberAnalytics.content.kpis.subscribers.value,
+  reducedOverviewSubscribers.value,
+  'overview and content must show the same subscriber KPI after a reduction',
+)
+assert.equal(
+  reducedSubscriberAnalytics.audience.kpis.subscribers.value,
+  reducedOverviewSubscribers.value,
+  'overview and audience must show the same subscriber KPI after a reduction',
+)
+
+const alternateReducedSubscriberRows = reconcileSubscriberHistoryToTotal(
+  adaptiveSubscriberRows,
+  3_000,
+)
+const alternateReducedSubscriberAnalytics = build(
+  [],
+  {
+    ...channel,
+    subscriberCount: 3_000,
+    subscriberDailyStats: alternateReducedSubscriberRows,
+  },
+  { kind: '28d' },
+  { today },
+)
+assert.notEqual(
+  Math.round(alternateReducedSubscriberAnalytics.overview.kpis.subscribers.delta),
+  Math.round(reducedOverviewSubscribers.delta),
+  'different edited subscriber totals must produce different visible comparisons',
+)
+
+const collapsedExactTargetRows = adaptiveSubscriberRows.map((row, index) => ({
+  ...row,
+  gained: index < 28 ? 100 : 0,
+}))
+const collapsedExactTarget = collapsedExactTargetRows.reduce(
+  (sum, row) => sum + row.gained,
+  0,
+)
+assert.equal(
+  collapsedExactTargetRows.slice(-28).reduce((sum, row) => sum + row.gained, 0),
+  0,
+  'the collapsed-history fixture must start with an empty current period',
+)
+assert.ok(
+  collapsedExactTargetRows.slice(0, 28).reduce((sum, row) => sum + row.gained, 0) > 0,
+  'the collapsed-history fixture must retain a populated previous period',
+)
+const repairedCollapsedSubscriberRows = reconcileSubscriberHistoryToTotal(
+  collapsedExactTargetRows,
+  collapsedExactTarget,
+)
+assert.equal(
+  repairedCollapsedSubscriberRows.reduce((sum, row) => sum + row.gained, 0),
+  collapsedExactTarget,
+  'repairing collapsed history must preserve the exact authoritative total',
+)
+assert.ok(
+  repairedCollapsedSubscriberRows.slice(-28).reduce((sum, row) => sum + row.gained, 0) > 0,
+  'exact-target reconciliation must restore the current 28-day period',
+)
+assert.ok(
+  repairedCollapsedSubscriberRows.slice(0, 28).reduce((sum, row) => sum + row.gained, 0) > 0,
+  'exact-target reconciliation must preserve the previous 28-day period',
+)
 
 const subscriberBucketsSource = [
   { date: '2026-01-31', gained: 5, lost: 2, subscribers: 3 },
