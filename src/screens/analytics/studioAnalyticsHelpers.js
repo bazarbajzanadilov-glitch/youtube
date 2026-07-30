@@ -1,7 +1,6 @@
 import {
   formatCompactNumber,
   formatDateLong,
-  formatNumberRu,
   formatPercent,
   formatSecondsAsClock,
 } from '../../lib/analyticsFormat.js'
@@ -176,6 +175,22 @@ export function previousPeriodComparison(kpi, range) {
   return `На ${percent.toLocaleString('ru-RU')} % ${delta > 0 ? 'больше' : 'меньше'}, чем ${label}`
 }
 
+export function metricPerformanceComparison(kpi, range, format = formatCompactNumber) {
+  if (range?.kind === 'lifetime') return ''
+  if (kpi?.delta == null || !Number.isFinite(Number(kpi.delta))) return ''
+
+  const delta = Number(kpi.delta)
+  if (delta > 0.1) return previousPeriodComparison(kpi, range)
+  if (delta < -0.1) {
+    const previousValue = Number(kpi?.previousValue)
+    const diff = Number.isFinite(previousValue)
+      ? Math.abs((Number(kpi?.value) || 0) - previousValue)
+      : diffFromDelta(kpi?.value, delta)
+    return `Значение ниже обычного (на ${format(diff)})`
+  }
+  return 'Обычное значение'
+}
+
 export function buildPublishedVideoMarkers(
   series = [],
   videos = [],
@@ -238,11 +253,6 @@ export function buildPublishedVideoMarkers(
           views: video.views || 0,
         })),
     }))
-}
-
-export function signedNumber(value) {
-  const n = Math.round(Number(value) || 0)
-  return `${n >= 0 ? '+' : ''}${formatNumberRu(n)}`
 }
 
 export function videoDate(video) {

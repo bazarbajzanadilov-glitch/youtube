@@ -1175,22 +1175,26 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
         views: {
           value: Math.round(typeViews),
           delta: isLifetime ? null : pctDelta(typeViews, previous.views),
+          previousValue: Number(previous.views) || 0,
         },
         engagedViews: {
           value: Math.round(typeEngagedViews),
           delta: isLifetime
             ? null
             : pctDelta(typeEngagedViews, previous.engagedViews),
+          previousValue: Number(previous.engagedViews) || 0,
         },
         likes: {
           value: Math.round(typeLikes),
           delta: isLifetime ? null : pctDelta(typeLikes, previous.likes),
+          previousValue: Number(previous.likes) || 0,
         },
         subscribers: {
           value: attributedSubscribers,
           delta: isLifetime
             ? null
             : pctDelta(attributedSubscribers, previousAttributedSubscribers),
+          previousValue: previousAttributedSubscribers,
         },
       }]
     }),
@@ -1334,16 +1338,19 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       views: {
         value: totalViews,
         delta: isLifetime ? null : pctDelta(totalViews, prev.views),
+        previousValue: prev.views,
         lifetime: lifetime.views,
       },
       watchTime: {
         value: totalWatchHours,
         delta: isLifetime ? null : pctDelta(totalWatchHours, prevWatchHours),
+        previousValue: prevWatchHours,
         lifetime: lifetime.watchHours,
       },
       subscribers: {
         value: subscribersValue,
         delta: subscribersDelta,
+        previousValue: previousSubscribersValue,
         gained: subscribersGained,
         lost: subscribersLost,
         absolute: channel.subscriberCount || 0,
@@ -1364,20 +1371,24 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       views: {
         value: totalViews,
         delta: isLifetime ? null : pctDelta(totalViews, prev.views),
+        previousValue: prev.views,
         lifetime: lifetime.views,
       },
       engagedViews: {
         value: totalEngagedViews,
         delta: isLifetime ? null : pctDelta(totalEngagedViews, prev.engagedViews),
+        previousValue: prev.engagedViews,
       },
       likes: {
         value: totalLikes,
         delta: isLifetime ? null : pctDelta(totalLikes, prev.likes),
+        previousValue: prev.likes,
         lifetime: lifetime.likes,
       },
       subscribers: {
         value: subscribersValue,
         delta: subscribersDelta,
+        previousValue: previousSubscribersValue,
         gained: subscribersGained,
         lost: subscribersLost,
         absolute: channel.subscriberCount || 0,
@@ -1393,6 +1404,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       subscribers: {
         value: subscribersValue,
         delta: subscribersDelta,
+        previousValue: previousSubscribersValue,
         gained: subscribersGained,
         lost: subscribersLost,
         absolute: channel.subscriberCount || 0,

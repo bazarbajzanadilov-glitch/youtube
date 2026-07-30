@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 
 import {
   aggregateSubscriberSeries,
@@ -12,6 +13,10 @@ import {
   hashSeed,
   normalizeToTotal,
 } from '../src/lib/analyticsEngine.js'
+import {
+  formatHours,
+  formatSignedCompactNumber,
+} from '../src/lib/analyticsFormat.js'
 import { getAlmatyDateISO } from '../src/lib/almatyDate.js'
 import {
   generateVideoStats,
@@ -23,30 +28,46 @@ import {
   avgWatchPretty,
   buildPublishedVideoMarkers,
   daysSinceLong,
+  metricPerformanceComparison,
   previousPeriodComparison,
   usualComparison,
 } from '../src/screens/analytics/studioAnalyticsHelpers.js'
 
 const DAY_MS = 86_400_000
 const SUBSCRIBER_WEIGHT_EPOCH_MS = Date.parse('2020-01-01T00:00:00Z')
+const STUDIO_CHANNEL_ID = '00000000-0000-0000-0000-000000000001'
 
-function subscriberHistoryWeight(date, manualMultiplier = 1) {
+function subscriberHistoryWeight(
+  date,
+  manualMultiplier = 1,
+  channelId = STUDIO_CHANNEL_ID,
+) {
   const ordinal = Math.floor(
     (Date.parse(`${date}T00:00:00Z`) - SUBSCRIBER_WEIGHT_EPOCH_MS) / DAY_MS,
   )
   const tau = 2 * Math.PI
-  const automaticWeight = Math.max(0.8, Math.min(
-    1.2,
-    1
-      + 0.10 * Math.sin((tau * ordinal) / 11 + 0.7)
-      + 0.06 * Math.sin((tau * ordinal) / 29 + 1.9)
-      + 0.035 * Math.sin((tau * ordinal) / 5 + 2.6),
+  const channelSeed = (
+    createHash('md5').update(channelId).digest().readUInt32BE(0)
+    / 4_294_967_295
+  )
+  const automaticWeight = Math.max(0.4, Math.min(
+    1.8,
+    Math.exp(
+      0.48 * Math.sin((tau * ordinal) / 112 + tau * channelSeed - 0.5)
+      + 0.07 * Math.sin((tau * ordinal) / 11 + 0.7)
+      + 0.03 * Math.sin((tau * ordinal) / 5 + 2.6),
+    ),
   ))
   const boundedManualMultiplier = Math.max(0.9, Math.min(1.1, manualMultiplier))
-  return Math.max(0.8, Math.min(1.2, automaticWeight * boundedManualMultiplier))
+  return Math.max(0.4, Math.min(1.8, automaticWeight * boundedManualMultiplier))
 }
 
-function allocateSubscriberHistory(total, dates, manualMultiplierForDate = () => 1) {
+function allocateSubscriberHistory(
+  total,
+  dates,
+  manualMultiplierForDate = () => 1,
+  channelId = STUDIO_CHANNEL_ID,
+) {
   const target = Math.max(0, Math.trunc(Number(total) || 0))
   if (dates.length === 0 || target === 0) return []
   const activeDates = dates.slice(-Math.min(dates.length, target))
@@ -55,7 +76,7 @@ function allocateSubscriberHistory(total, dates, manualMultiplierForDate = () =>
     date,
     gained: 1,
     lost: 0,
-    weight: subscriberHistoryWeight(date, manualMultiplierForDate(date)),
+    weight: subscriberHistoryWeight(date, manualMultiplierForDate(date), channelId),
   }))
   const extraTarget = target - rows.length
   const weightTotal = rows.reduce((sum, row) => sum + row.weight, 0)
@@ -155,6 +176,58 @@ assert.equal(
 )
 assert.equal(
   previousPeriodComparison({ value: 126, delta: 25.6 }, { kind: 'lifetime', days: 365 }),
+  '',
+)
+assert.equal(formatSignedCompactNumber(0), '0')
+assert.equal(formatSignedCompactNumber(0.3), '+0,3')
+assert.equal(formatSignedCompactNumber(28.7), '+28,7')
+assert.equal(formatSignedCompactNumber(999), '+999')
+assert.equal(formatSignedCompactNumber(1_000), '+1\u00a0тыс.')
+assert.equal(formatSignedCompactNumber(6_188), '+6,1\u00a0тыс.')
+assert.equal(formatSignedCompactNumber(9_700), '+9,7\u00a0тыс.')
+assert.equal(formatSignedCompactNumber(1_100_000), '+1,1\u00a0млн')
+assert.equal(formatSignedCompactNumber(-6_188), '-6,1\u00a0тыс.')
+assert.equal(
+  metricPerformanceComparison(
+    { value: 431, previousValue: 41, delta: 951 },
+    { kind: '7d', days: 7 },
+  ),
+  'На 951 % больше, чем за предыдущие 7 дней',
+)
+assert.equal(
+  metricPerformanceComparison(
+    { value: 13_100, previousValue: 21_600, delta: -39.35 },
+    { kind: '28d', days: 28 },
+  ),
+  'Значение ниже обычного (на 8,5\u00a0тыс.)',
+)
+assert.equal(
+  metricPerformanceComparison(
+    { value: 5_000, previousValue: 6_200, delta: -19.35 },
+    { kind: '28d', days: 28 },
+  ),
+  'Значение ниже обычного (на 1,2\u00a0тыс.)',
+)
+assert.equal(
+  metricPerformanceComparison(
+    { value: 28.7, previousValue: 130, delta: -77.92 },
+    { kind: '28d', days: 28 },
+    formatHours,
+  ),
+  'Значение ниже обычного (на 101,3)',
+)
+assert.equal(
+  metricPerformanceComparison(
+    { value: 100, previousValue: 100, delta: 0 },
+    { kind: '28d', days: 28 },
+  ),
+  'Обычное значение',
+)
+assert.equal(
+  metricPerformanceComparison(
+    { value: 100, previousValue: 90, delta: 11.1 },
+    { kind: 'lifetime', days: 365 },
+  ),
   '',
 )
 const contentMetricImpressions = analytics.content.metricSeries.reduce(
@@ -659,6 +732,11 @@ const smoothSubscriberDates = isoDatesEndingAt('2026-07-27', 365)
 const smoothSubscriberHistory = allocateSubscriberHistory(1_446_000, smoothSubscriberDates)
 const smoothSubscriberValues = smoothSubscriberHistory.map((row) => row.gained)
 const smoothSubscriberAverage = 1_446_000 / smoothSubscriberHistory.length
+const current28SubscriberTotal = smoothSubscriberValues.slice(-28)
+  .reduce((sum, value) => sum + value, 0)
+const previous28SubscriberTotal = smoothSubscriberValues.slice(-56, -28)
+  .reduce((sum, value) => sum + value, 0)
+const adjacentPeriodRatio = current28SubscriberTotal / previous28SubscriberTotal
 
 assert.equal(smoothSubscriberHistory.length, 365)
 assert.equal(smoothSubscriberHistory.at(-1).date, '2026-07-27')
@@ -672,23 +750,27 @@ assert.ok(
   'every completed day for an active channel must have a positive integer gain',
 )
 assert.ok(
-  Math.min(...smoothSubscriberValues) >= smoothSubscriberAverage * 0.75,
-  'the bounded formula must not create artificial low outliers',
+  Math.min(...smoothSubscriberValues) >= smoothSubscriberAverage * 0.35,
+  'the slow regime must keep every daily gain inside its lower safety bound',
 )
 assert.ok(
-  Math.max(...smoothSubscriberValues) <= smoothSubscriberAverage * 1.25,
-  'the bounded formula must not create artificial high outliers',
+  Math.max(...smoothSubscriberValues) <= smoothSubscriberAverage * 1.9,
+  'the slow regime must keep every daily gain inside its upper safety bound',
 )
 assert.ok(
   smoothSubscriberValues.every((value, index) => (
     index === 0
-    || Math.abs(value - smoothSubscriberValues[index - 1]) <= smoothSubscriberAverage * 0.18
+    || Math.abs(value - smoothSubscriberValues[index - 1]) <= smoothSubscriberAverage * 0.2
   )),
   'adjacent completed days must change gradually',
 )
 assert.ok(
-  Math.abs(subscriberHistoryWeight('2026-07-27') - 1.1396004062571419) < 1e-12,
-  'the JS reference must use the same 2020-01-01 epoch as the SQL function',
+  adjacentPeriodRatio > 1.4 && adjacentPeriodRatio < 2,
+  'adjacent 28-day periods must differ meaningfully without a one-day spike',
+)
+assert.ok(
+  Math.abs(subscriberHistoryWeight('2026-07-27') - 1.5515838998804317) < 1e-12,
+  'the JS reference must match the SQL epoch and channel phase',
 )
 
 for (const total of [0, 1, 10, 364, 365, 1_000, 1_446_000]) {
@@ -712,9 +794,23 @@ const boundedManualHistory = allocateSubscriberHistory(
 )
 const boundedManualValues = boundedManualHistory.map((row) => row.gained)
 assert.ok(
-  Math.min(...boundedManualValues) >= smoothSubscriberAverage * 0.75
-    && Math.max(...boundedManualValues) <= smoothSubscriberAverage * 1.25,
+  Math.min(...boundedManualValues) >= smoothSubscriberAverage * 0.35
+    && Math.max(...boundedManualValues) <= smoothSubscriberAverage * 1.9,
   'admin adjustments must remain inside the same safe daily envelope',
+)
+
+const rescaledSubscriberHistory = allocateSubscriberHistory(
+  2_000_000,
+  smoothSubscriberDates,
+)
+const rescaledValues = rescaledSubscriberHistory.map((row) => row.gained)
+const rescaledAdjacentRatio = (
+  rescaledValues.slice(-28).reduce((sum, value) => sum + value, 0)
+  / rescaledValues.slice(-56, -28).reduce((sum, value) => sum + value, 0)
+)
+assert.ok(
+  Math.abs(rescaledAdjacentRatio - adjacentPeriodRatio) < 0.001,
+  'changing the channel total must rescale the same stable history shape',
 )
 
 const nextDaySubscriberHistory = allocateSubscriberHistory(

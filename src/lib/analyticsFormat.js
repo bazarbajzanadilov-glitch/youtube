@@ -14,6 +14,35 @@ export function formatCompactNumber(n) {
   return Math.round(v).toLocaleString('ru-RU')
 }
 
+function truncateCompact(value, divisor) {
+  const truncated = Math.trunc((value / divisor) * 10) / 10
+  return truncated.toLocaleString('ru-RU', {
+    minimumFractionDigits: Number.isInteger(truncated) ? 0 : 1,
+    maximumFractionDigits: 1,
+  })
+}
+
+export function formatSignedCompactNumber(n) {
+  const value = Number(n) || 0
+  const magnitude = Math.abs(value)
+  if (magnitude === 0) return '0'
+
+  const sign = value > 0 ? '+' : '-'
+  if (magnitude >= 1_000_000) {
+    return `${sign}${truncateCompact(magnitude, 1_000_000)}${NBSP}млн`
+  }
+  if (magnitude >= 1_000) {
+    return `${sign}${truncateCompact(magnitude, 1_000)}${NBSP}тыс.`
+  }
+  const compactValue = Number.isInteger(magnitude)
+    ? magnitude.toLocaleString('ru-RU')
+    : magnitude.toLocaleString('ru-RU', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })
+  return `${sign}${compactValue}`
+}
+
 export function formatHours(hours) {
   const v = Number(hours) || 0
   if (v >= 1000) return v.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')

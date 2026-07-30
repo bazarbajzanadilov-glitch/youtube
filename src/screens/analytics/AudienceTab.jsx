@@ -9,6 +9,7 @@ import {
   formatCompactNumber,
   formatNumberRu,
   formatPercent,
+  formatSignedCompactNumber,
 } from '../../lib/analyticsFormat.js'
 import s from './AnalyticsTabs.module.css'
 import {
@@ -16,8 +17,7 @@ import {
   buildPublishedVideoMarkers,
   KPI_DESCRIPTIONS,
   kpiTrend,
-  previousPeriodComparison,
-  signedNumber,
+  metricPerformanceComparison,
   videoDate,
 } from './studioAnalyticsHelpers.js'
 import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
@@ -128,8 +128,8 @@ export default function AudienceTab({ data, onOpenAdmin }) {
           />
           <MetricKpiCell
             label="Подписчики"
-            value={signedNumber(audience.kpis.subscribers.value)}
-            note={previousPeriodComparison(audience.kpis.subscribers, range)}
+            value={formatSignedCompactNumber(audience.kpis.subscribers.value)}
+            note={metricPerformanceComparison(audience.kpis.subscribers, range, formatCompactNumber)}
             description={KPI_DESCRIPTIONS.subscribers}
             trend={kpiTrend(audience.kpis.subscribers.delta)}
             active={metric === 'subscribers'}

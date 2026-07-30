@@ -7,6 +7,7 @@ import {
   formatCompactNumber,
   formatNumberRu,
   formatPercent,
+  formatSignedCompactNumber,
 } from '../../lib/analyticsFormat.js'
 import s from './AnalyticsTabs.module.css'
 import {
@@ -15,8 +16,8 @@ import {
   ctrPretty,
   KPI_DESCRIPTIONS,
   kpiTrend,
+  metricPerformanceComparison,
   previousPeriodComparison,
-  signedNumber,
   videoDate,
 } from './studioAnalyticsHelpers.js'
 import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
@@ -180,17 +181,17 @@ export default function ContentTab({ data, onOpenAdmin }) {
         <div className={s.ytKpiStrip}>
           <MetricKpiCell
             label="Просмотры"
-            value={formatCompactNumber(selectedKpis.views?.value || 0)}
-            note="Обычное значение"
+            value={formatSignedCompactNumber(selectedKpis.views?.value || 0)}
+            note={metricPerformanceComparison(selectedKpis.views, range, formatCompactNumber)}
             description={KPI_DESCRIPTIONS.views}
-            trend="usual"
+            trend={kpiTrend(selectedKpis.views?.delta)}
             active={metric === 'views'}
             accentColor={CONTENT_CHART_COLOR}
             onClick={() => setMetric('views')}
           />
           <MetricKpiCell
             label="Заинтересованные просмотры"
-            value={formatCompactNumber(selectedKpis.engagedViews?.value || 0)}
+            value={formatSignedCompactNumber(selectedKpis.engagedViews?.value || 0)}
             note={previousPeriodComparison(selectedKpis.engagedViews, range)}
             description={KPI_DESCRIPTIONS.engagedViews}
             trend={kpiTrend(selectedKpis.engagedViews?.delta)}
@@ -210,8 +211,8 @@ export default function ContentTab({ data, onOpenAdmin }) {
           />
           <MetricKpiCell
             label="Подписчики"
-            value={signedNumber(selectedKpis.subscribers?.value || 0)}
-            note={previousPeriodComparison(selectedKpis.subscribers, range)}
+            value={formatSignedCompactNumber(selectedKpis.subscribers?.value || 0)}
+            note={metricPerformanceComparison(selectedKpis.subscribers, range, formatCompactNumber)}
             description={KPI_DESCRIPTIONS.subscribers}
             trend={kpiTrend(selectedKpis.subscribers?.delta)}
             active={metric === 'subscribers'}

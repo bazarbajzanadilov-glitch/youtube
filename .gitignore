@@ -34,6 +34,7 @@ dev.log
 reference/
 tmp/
 codex-shots/
+.codex/
 tmp-*.png
 *.pdf
 .claude/worktrees/

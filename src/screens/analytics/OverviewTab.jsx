@@ -12,6 +12,7 @@ import {
   formatHours,
   formatDateLong,
   formatNumberRu,
+  formatSignedCompactNumber,
 } from '../../lib/analyticsFormat.js'
 import {
   ThumbDownIcon,
@@ -31,9 +32,7 @@ import {
   formatTenge,
   KPI_DESCRIPTIONS,
   kpiTrend,
-  previousPeriodComparison,
-  signedNumber,
-  usualComparison,
+  metricPerformanceComparison,
   videoDate,
 } from './studioAnalyticsHelpers.js'
 
@@ -175,8 +174,8 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
           <div className={s.ytKpiStrip}>
             <MetricKpiCell
               label="Просмотры"
-              value={formatCompactNumber(overview.kpis.views.value)}
-              note={usualComparison(overview.kpis.views, formatCompactNumber)}
+              value={formatSignedCompactNumber(overview.kpis.views.value)}
+              note={metricPerformanceComparison(overview.kpis.views, range, formatCompactNumber)}
               description={KPI_DESCRIPTIONS.views}
               trend={kpiTrend(overview.kpis.views.delta)}
               active={metric === 'views'}
@@ -185,8 +184,8 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
             />
             <MetricKpiCell
               label="Время просмотра (часы)"
-              value={formatHours(overview.kpis.watchTime.value)}
-              note={usualComparison(overview.kpis.watchTime, formatHours)}
+              value={formatSignedCompactNumber(overview.kpis.watchTime.value)}
+              note={metricPerformanceComparison(overview.kpis.watchTime, range, formatHours)}
               description={KPI_DESCRIPTIONS.watchTime}
               trend={kpiTrend(overview.kpis.watchTime.delta)}
               active={metric === 'watch'}
@@ -195,8 +194,8 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
             />
             <MetricKpiCell
               label="Подписчики"
-              value={signedNumber(overview.kpis.subscribers.value)}
-              note={previousPeriodComparison(overview.kpis.subscribers, range)}
+              value={formatSignedCompactNumber(overview.kpis.subscribers.value)}
+              note={metricPerformanceComparison(overview.kpis.subscribers, range, formatCompactNumber)}
               description={KPI_DESCRIPTIONS.subscribers}
               trend={kpiTrend(overview.kpis.subscribers.delta)}
               active={metric === 'subscribers'}
