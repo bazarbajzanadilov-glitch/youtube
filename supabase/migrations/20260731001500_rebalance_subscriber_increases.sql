@@ -112,7 +112,7 @@ begin
   );
   needs_inflated_history_repair := (
     target_total > 0
-    and current_window_total::numeric > target_total::numeric * 0.15
+    and current_window_total::numeric > target_total::numeric * 0.10
   );
 
   if delta = 0
@@ -313,7 +313,7 @@ grant execute on function private.reconcile_subscriber_daily_stats(
 ) to authenticated;
 
 -- One-time repair for histories created by the former positive-delta branch.
--- Only channels whose newest 28 rows exceed 15% of the authoritative total
+-- Only channels whose newest 28 rows exceed 10% of the authoritative total
 -- are rebased. Resetting weights to one is deterministic and touches only
 -- `gained`/`lost`; the reconciliation function then performs the exact,
 -- target-tilted allocation while preserving all manual metadata.
@@ -350,7 +350,7 @@ begin
       on channel_history.channel_id = channels.id
     where channels.subscriber_count > 0
       and channel_history.current_28_total::numeric
-        > channels.subscriber_count::numeric * 0.15
+        > channels.subscriber_count::numeric * 0.10
     order by channels.id
   loop
     perform pg_catalog.pg_advisory_xact_lock(

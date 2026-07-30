@@ -165,7 +165,7 @@ export function reconcileSubscriberHistoryToTotal(
   )
   const needsInflatedHistoryRepair = (
     target > 0
-    && currentWindowTotal > (target * 0.15)
+    && currentWindowTotal > (target * 0.10)
   )
   if (
     delta === 0
