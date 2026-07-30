@@ -13,6 +13,7 @@ import {
   hashSeed,
   normalizeToTotal,
 } from '../src/lib/analyticsEngine.js'
+import { reconcileSubscriberHistoryToTotal } from '../src/lib/subscriberHistory.js'
 import {
   formatHours,
   formatSignedCompactNumber,
@@ -159,6 +160,19 @@ const analytics7Days = build([oldVideo], channel, { kind: '7d' }, { today })
 const analytics365Days = build([oldVideo], channel, { kind: '365d' }, { today })
 const analyticsLifetime = build([oldVideo], channel, { kind: 'lifetime' }, { today })
 
+assert.notEqual(
+  Math.round(analytics.overview.kpis.views.delta),
+  Math.round(analytics.overview.kpis.watchTime.delta),
+  'views and watch-time comparisons must use independent daily shapes',
+)
+assert.ok(
+  Math.abs(
+    analyticsLifetime.overview.kpis.watchTime.value
+    - (oldVideo.views * 492 * 0.525) / 3600,
+  ) < 1 / 3600,
+  'independent watch-time history must still reconcile to the lifetime total',
+)
+
 const persistedDates = isoDatesEndingAt('2026-05-11', 56)
 const persistedRows = persistedDates.map((date, index) => {
   const views = index < 28 ? 100 : 120
@@ -166,7 +180,7 @@ const persistedRows = persistedDates.map((date, index) => {
     videoId: 'persisted-video',
     date,
     views,
-    watchSeconds: views * 180,
+    watchSeconds: views * (index < 28 ? 170 : 190),
     engagedViews: Math.round(views * 0.6),
     impressions: views * 10,
     likes: Math.round(views * 0.1),
@@ -218,6 +232,22 @@ assert.equal(
   20,
   'comparison percentage must be calculated from persisted period sums',
 )
+assert.notEqual(
+  Math.round(persistedAnalytics.overview.kpis.views.delta),
+  Math.round(persistedAnalytics.overview.kpis.watchTime.delta),
+  'persisted views and watch time must retain distinct period comparisons',
+)
+assert.notEqual(
+  metricPerformanceComparison(
+    persistedAnalytics.overview.kpis.views,
+    { kind: '28d', days: 28 },
+  ),
+  metricPerformanceComparison(
+    persistedAnalytics.overview.kpis.watchTime,
+    { kind: '28d', days: 28 },
+  ),
+  'the rendered views and watch-time comparison labels must differ',
+)
 assert.equal(
   persistedAnalytics.overview.kpis.views.value,
   persistedAnalytics.content.kpis.views.value,
@@ -232,6 +262,70 @@ assert.deepEqual(
   persistedAnalytics.overview.series,
   persistedAnalytics.content.series,
   'overview and content charts must share the same persisted series',
+)
+
+const viewsOnlyRows = persistedRows.map((row) => (
+  row.date === '2026-05-11'
+    ? { ...row, views: row.views + 600 }
+    : row
+))
+const viewsOnlyAnalytics = build(
+  [{ ...persistedVideo, views: persistedVideo.views + 600 }],
+  { ...persistedChannel, videoDailyStats: viewsOnlyRows },
+  { kind: '28d' },
+  { today },
+)
+assert.equal(
+  viewsOnlyAnalytics.overview.kpis.views.value,
+  persistedAnalytics.overview.kpis.views.value + 600,
+  'a views-only mutation must update the views KPI',
+)
+assert.equal(
+  viewsOnlyAnalytics.overview.kpis.views.previousValue,
+  persistedAnalytics.overview.kpis.views.previousValue,
+  'a views-only mutation must preserve previous views',
+)
+assert.equal(
+  viewsOnlyAnalytics.overview.kpis.watchTime.value,
+  persistedAnalytics.overview.kpis.watchTime.value,
+  'a views-only mutation must not change stored watch time',
+)
+assert.equal(
+  viewsOnlyAnalytics.overview.kpis.watchTime.delta,
+  persistedAnalytics.overview.kpis.watchTime.delta,
+  'a views-only mutation must not change the watch-time comparison',
+)
+
+const watchOnlyRows = persistedRows.map((row) => (
+  row.date === '2026-05-11'
+    ? { ...row, watchSeconds: row.watchSeconds + 108_000 }
+    : row
+))
+const watchOnlyAnalytics = build(
+  [persistedVideo],
+  { ...persistedChannel, videoDailyStats: watchOnlyRows },
+  { kind: '28d' },
+  { today },
+)
+assert.equal(
+  watchOnlyAnalytics.overview.kpis.watchTime.value,
+  persistedAnalytics.overview.kpis.watchTime.value + 30,
+  'a watch-only mutation must update the watch-time KPI',
+)
+assert.equal(
+  watchOnlyAnalytics.overview.kpis.watchTime.previousValue,
+  persistedAnalytics.overview.kpis.watchTime.previousValue,
+  'a watch-only mutation must preserve previous watch time',
+)
+assert.equal(
+  watchOnlyAnalytics.overview.kpis.views.value,
+  persistedAnalytics.overview.kpis.views.value,
+  'a watch-only mutation must not change stored views',
+)
+assert.equal(
+  watchOnlyAnalytics.overview.kpis.views.delta,
+  persistedAnalytics.overview.kpis.views.delta,
+  'a watch-only mutation must not change the views comparison',
 )
 
 const mutatedPersistedRows = persistedRows.map((row) => (
@@ -903,6 +997,78 @@ assert.deepEqual(rawSubscriberSeries, [
   { date: '2026-05-08', gained: 5, lost: 2, subscribers: 5 },
   { date: '2026-05-09', gained: 1, lost: 4, subscribers: 1 },
 ])
+
+const adaptiveSubscriberRows = isoDatesEndingAt('2026-05-11', 56).map(
+  (date, index) => ({
+    date,
+    gained: index < 28 ? 100 : 120,
+    lost: 0,
+  }),
+)
+const adaptiveSubscriberTotal = adaptiveSubscriberRows.reduce(
+  (sum, row) => sum + row.gained,
+  0,
+)
+const adaptiveSubscribersBefore = build(
+  [],
+  {
+    ...channel,
+    subscriberCount: adaptiveSubscriberTotal,
+    subscriberDailyStats: adaptiveSubscriberRows,
+  },
+  { kind: '28d' },
+  { today },
+)
+const reconciledSubscriberRows = reconcileSubscriberHistoryToTotal(
+  adaptiveSubscriberRows,
+  adaptiveSubscriberTotal + 1_400,
+)
+const adaptiveSubscribersAfter = build(
+  [],
+  {
+    ...channel,
+    subscriberCount: adaptiveSubscriberTotal + 1_400,
+    subscriberDailyStats: reconciledSubscriberRows,
+  },
+  { kind: '28d' },
+  { today },
+)
+assert.equal(
+  reconciledSubscriberRows.reduce((sum, row) => sum + row.gained, 0),
+  adaptiveSubscriberTotal + 1_400,
+  'subscriber reconciliation must exactly match the edited channel total',
+)
+assert.equal(
+  reconciledSubscriberRows.slice(0, 28).reduce((sum, row) => sum + row.gained, 0),
+  adaptiveSubscriberRows.slice(0, 28).reduce((sum, row) => sum + row.gained, 0),
+  'a subscriber increase must leave the previous comparison period unchanged',
+)
+assert.notEqual(
+  Math.round(adaptiveSubscribersAfter.overview.kpis.subscribers.delta),
+  Math.round(adaptiveSubscribersBefore.overview.kpis.subscribers.delta),
+  'editing subscriber count must recalculate the subscriber comparison',
+)
+assert.deepEqual(
+  reconcileSubscriberHistoryToTotal(
+    adaptiveSubscriberRows,
+    adaptiveSubscriberTotal + 1_400,
+  ),
+  reconciledSubscriberRows,
+  'subscriber reconciliation must be deterministic',
+)
+const reducedSubscriberRows = reconcileSubscriberHistoryToTotal(
+  adaptiveSubscriberRows,
+  500,
+)
+assert.equal(
+  reducedSubscriberRows.reduce((sum, row) => sum + row.gained, 0),
+  500,
+  'subscriber reductions must also reconcile exactly',
+)
+assert.ok(
+  reducedSubscriberRows.every((row) => row.gained >= 0 && row.lost === 0),
+  'subscriber reconciliation must remain positive-only',
+)
 
 const subscriberBucketsSource = [
   { date: '2026-01-31', gained: 5, lost: 2, subscribers: 3 },

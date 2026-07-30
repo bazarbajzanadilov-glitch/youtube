@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../lib/supabaseClient.js'
 import { validatePreparedStudioImage } from '../lib/studioImage.js'
+import { reconcileSubscriberHistoryToTotal } from '../lib/subscriberHistory.js'
 import { normalizeAverageViewPercentage } from '../lib/videoMetrics.js'
 
 export const STUDIO_CHANNEL_ID = '00000000-0000-0000-0000-000000000001'
@@ -339,6 +340,16 @@ export async function replaceSubscriberDailyStats(stats) {
 
 export async function saveChannel(channel, previous) {
   const supabase = getSupabaseClient()
+  const subscriberCountChanged = (
+    Math.max(0, Number(channel.subscriberCount) || 0)
+    !== Math.max(0, Number(previous?.subscriberCount) || 0)
+  )
+  const reconciledSubscriberStats = subscriberCountChanged
+    ? reconcileSubscriberHistoryToTotal(
+      previous?.subscriberDailyStats,
+      channel.subscriberCount,
+    )
+    : []
   const uploadedPath = channel.avatarFile
     ? await uploadMedia(channel.avatarFile, 'avatar')
     : null
@@ -356,6 +367,22 @@ export async function saveChannel(channel, previous) {
       }),
       'Не удалось сохранить канал',
     )
+    if (reconciledSubscriberStats.length > 0) {
+      requireNoError(
+        await supabase
+          .from('subscriber_daily_stats')
+          .upsert(
+            reconciledSubscriberStats.map((item) => ({
+              channel_id: STUDIO_CHANNEL_ID,
+              date: item.date,
+              gained: item.gained,
+              lost: 0,
+            })),
+            { onConflict: 'channel_id,date' },
+          ),
+        'Не удалось синхронизировать историю подписчиков',
+      )
+    }
   } catch (error) {
     if (uploadedPath) await removeMedia(uploadedPath).catch(() => {})
     throw error

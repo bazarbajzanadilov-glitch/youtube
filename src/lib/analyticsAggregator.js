@@ -455,9 +455,36 @@ function prepareVideoContribution(video, channel, asOf, cache) {
     )
     : new Array(scaled.length).fill(0)
   const durationSec = parseDuration(video.duration)
-  const watchEachSec = scaled.map(
-    (views) => views * durationSec * (averageViewFraction(video) ?? 0),
+  const viewFraction = Math.max(0, Math.min(
+    1,
+    Number(averageViewFraction(video)) || 0,
+  ))
+  const totalWatchSeconds = Math.round(totalViews * durationSec * viewFraction)
+  const watchSeed = hashSeed(
+    channel.channelName,
+    video.id,
+    'watch-time',
+    durationSec,
+    Math.round(viewFraction * 10_000),
   )
+  const watchPhaseA = ((watchSeed & 0xffff) / 0xffff) * Math.PI * 2
+  const watchPhaseB = (((watchSeed >>> 16) & 0xffff) / 0xffff) * Math.PI * 2
+  const watchShape = scaled.map((views, index) => {
+    const longWave = Math.sin((Math.PI * 2 * index) / 19 + watchPhaseA)
+    const shortWave = Math.sin((Math.PI * 2 * index) / 7 + watchPhaseB)
+    const releaseAdjustment = index < 5 ? 0.94 + index * 0.015 : 1
+    return views
+      * durationSec
+      * releaseAdjustment
+      * Math.max(0.7, 1 + longWave * 0.14 + shortWave * 0.06)
+  })
+  const watchEachSec = totalViews > 0 && totalWatchSeconds > 0
+    ? distributeBoundedIntegerTotal(
+      watchShape,
+      totalWatchSeconds,
+      scaled.map((views) => Math.round(views * durationSec)),
+    )
+    : new Array(scaled.length).fill(0)
   const contribution = {
     publish,
     ageDays,
