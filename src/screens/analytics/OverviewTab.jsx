@@ -33,6 +33,7 @@ import {
   KPI_DESCRIPTIONS,
   kpiTrend,
   metricPerformanceComparison,
+  previousPeriodComparison,
   videoDate,
 } from './studioAnalyticsHelpers.js'
 
@@ -195,7 +196,7 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
             <MetricKpiCell
               label="Подписчики"
               value={formatSignedCompactNumber(overview.kpis.subscribers.value)}
-              note={metricPerformanceComparison(overview.kpis.subscribers, range, formatCompactNumber)}
+              note={previousPeriodComparison(overview.kpis.subscribers, range)}
               description={KPI_DESCRIPTIONS.subscribers}
               trend={kpiTrend(overview.kpis.subscribers.delta)}
               active={metric === 'subscribers'}

@@ -158,6 +158,177 @@ const analytics = build([oldVideo], channel, { kind: '28d' }, { today })
 const analytics7Days = build([oldVideo], channel, { kind: '7d' }, { today })
 const analytics365Days = build([oldVideo], channel, { kind: '365d' }, { today })
 const analyticsLifetime = build([oldVideo], channel, { kind: 'lifetime' }, { today })
+
+const persistedDates = isoDatesEndingAt('2026-05-11', 56)
+const persistedRows = persistedDates.map((date, index) => {
+  const views = index < 28 ? 100 : 120
+  return {
+    videoId: 'persisted-video',
+    date,
+    views,
+    watchSeconds: views * 180,
+    engagedViews: Math.round(views * 0.6),
+    impressions: views * 10,
+    likes: Math.round(views * 0.1),
+    comments: Math.round(views * 0.02),
+    revenue: +(views * 0.005).toFixed(2),
+  }
+})
+const persistedTotals = persistedRows.reduce((totals, row) => ({
+  views: totals.views + row.views,
+  likes: totals.likes + row.likes,
+  revenue: totals.revenue + row.revenue,
+}), { views: 0, likes: 0, revenue: 0 })
+const persistedVideo = {
+  ...oldVideo,
+  id: 'persisted-video',
+  date: '2026-03-01',
+  views: persistedTotals.views,
+  likes: persistedTotals.likes,
+  revenue: persistedTotals.revenue,
+}
+const persistedChannel = {
+  ...channel,
+  videoDailyStats: persistedRows,
+}
+const persistedAnalytics = build(
+  [persistedVideo],
+  persistedChannel,
+  { kind: '28d' },
+  { today },
+)
+
+assert.equal(
+  persistedAnalytics.overview.kpis.views.value,
+  28 * 120,
+  'current KPI must sum persisted daily views',
+)
+assert.equal(
+  persistedAnalytics.overview.kpis.views.previousValue,
+  28 * 100,
+  'previous KPI must sum the immediately preceding stored dates',
+)
+assert.equal(
+  persistedAnalytics.content.kpis.impressions.previousValue,
+  28 * 1_000,
+  'previous impressions must sum persisted daily impressions',
+)
+assert.equal(
+  Math.round(persistedAnalytics.overview.kpis.views.delta),
+  20,
+  'comparison percentage must be calculated from persisted period sums',
+)
+assert.equal(
+  persistedAnalytics.overview.kpis.views.value,
+  persistedAnalytics.content.kpis.views.value,
+  'overview and content must expose the same persisted views KPI',
+)
+assert.equal(
+  persistedAnalytics.overview.kpis.likes.value,
+  persistedAnalytics.content.kpis.likes.value,
+  'overview and content must expose the same persisted likes KPI',
+)
+assert.deepEqual(
+  persistedAnalytics.overview.series,
+  persistedAnalytics.content.series,
+  'overview and content charts must share the same persisted series',
+)
+
+const mutatedPersistedRows = persistedRows.map((row) => (
+  row.date === '2026-05-11'
+    ? {
+      ...row,
+      views: row.views + 600,
+      watchSeconds: row.watchSeconds + 108_000,
+      engagedViews: row.engagedViews + 360,
+      impressions: row.impressions + 6_000,
+      likes: row.likes + 60,
+      comments: row.comments + 12,
+      revenue: row.revenue + 3,
+    }
+    : row
+))
+const mutatedPersistedAnalytics = build(
+  [{ ...persistedVideo, views: persistedVideo.views + 600 }],
+  { ...persistedChannel, videoDailyStats: mutatedPersistedRows },
+  { kind: '28d' },
+  { today },
+)
+assert.equal(
+  mutatedPersistedAnalytics.overview.kpis.views.value,
+  persistedAnalytics.overview.kpis.views.value + 600,
+  'a stored current-period mutation must immediately change the current KPI',
+)
+assert.equal(
+  mutatedPersistedAnalytics.overview.kpis.views.previousValue,
+  persistedAnalytics.overview.kpis.views.previousValue,
+  'a stored current-period mutation must leave the previous period unchanged',
+)
+assert.notEqual(
+  mutatedPersistedAnalytics.overview.kpis.views.delta,
+  persistedAnalytics.overview.kpis.views.delta,
+  'a stored current-period mutation must recalculate the comparison percentage',
+)
+assert.equal(
+  mutatedPersistedAnalytics.content.kpis.impressions.previousValue,
+  persistedAnalytics.content.kpis.impressions.previousValue,
+  'current impression edits must not rewrite the previous period',
+)
+assert.notEqual(
+  mutatedPersistedAnalytics.content.kpis.impressions.delta,
+  persistedAnalytics.content.kpis.impressions.delta,
+  'stored impression edits must recalculate their comparison percentage',
+)
+assert.notEqual(
+  mutatedPersistedAnalytics.content.kpis.likes.delta,
+  persistedAnalytics.content.kpis.likes.delta,
+  'stored like edits must recalculate their comparison percentage',
+)
+assert.equal(
+  mutatedPersistedAnalytics.overview.kpis.watchTime.value,
+  persistedAnalytics.overview.kpis.watchTime.value + 30,
+  'stored watch seconds must drive the watch-time KPI',
+)
+
+const lifetimeOnlyMutation = build(
+  [{ ...persistedVideo, views: persistedVideo.views + 999_999 }],
+  persistedChannel,
+  { kind: '28d' },
+  { today },
+)
+assert.equal(
+  lifetimeOnlyMutation.overview.kpis.views.value,
+  persistedAnalytics.overview.kpis.views.value,
+  'persisted projects must never regenerate history from a lifetime total',
+)
+
+const persistedWeekly = build(
+  [persistedVideo],
+  persistedChannel,
+  { kind: '90d' },
+  { today },
+)
+const persistedMonthly = build(
+  [persistedVideo],
+  persistedChannel,
+  { kind: '365d' },
+  { today },
+)
+for (const result of [persistedWeekly, persistedMonthly]) {
+  assert.equal(
+    result.overview.series.reduce((sum, row) => sum + row.views, 0),
+    persistedTotals.views,
+    'weekly and monthly buckets must preserve the persisted daily total',
+  )
+  assert.equal(
+    result.content.metricSeries.reduce((sum, row) => sum + row.impressions, 0),
+    persistedRows.reduce((sum, row) => sum + row.impressions, 0),
+    'weekly and monthly buckets must sum stored impressions',
+  )
+}
+assert.equal(persistedWeekly.range.days, 90)
+assert.equal(persistedMonthly.range.days, 365)
+
 assert.equal(
   usualComparison({ value: 100, delta: -50 }, (value) => String(Math.round(value))),
   'Значение ниже обычного (на 100)',
@@ -470,6 +641,25 @@ const normalizedVideo = normalizeVideo({
   averageViewPercentage: 64.8,
 })
 assert.equal(normalizedVideo.averageViewPercentage, 64.8)
+const manuallyAdjustedInteractions = normalizeVideo({
+  ...oldVideo,
+  likes: 321,
+  dislikes: 17,
+})
+const interactionsAfterViewsChange = normalizeVideo(
+  { views: oldVideo.views + 5_000 },
+  { base: manuallyAdjustedInteractions },
+)
+assert.equal(
+  interactionsAfterViewsChange.likes,
+  321,
+  'changing views must preserve the independently stored likes total',
+)
+assert.equal(
+  interactionsAfterViewsChange.dislikes,
+  17,
+  'changing views must preserve the independently stored dislikes total',
+)
 assert.equal(
   normalizeVideo({ title: 'Updated title' }, { base: normalizedVideo }).averageViewPercentage,
   64.8,

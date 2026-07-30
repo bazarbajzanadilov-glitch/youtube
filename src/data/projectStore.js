@@ -7,18 +7,78 @@ import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
 import * as adminRepository from './adminRepository.js'
 
 const listeners = new Set()
+const REMOTE_REFRESH_INTERVAL_MS = 10_000
 
 let snapshot = {
   videos: [],
   channel: CHANNEL_DEFAULTS,
   totals: { count: 0, views: 0, likes: 0, dislikes: 0, revenue: 0 },
+  revision: null,
   loading: true,
   error: null,
 }
 
 let activeLoad = null
+let activeRevisionCheck = null
 let loadRevision = 0
 let mutationQueue = Promise.resolve()
+let refreshStarted = false
+
+function isPageVisible() {
+  return typeof document !== 'undefined' && document.visibilityState === 'visible'
+}
+
+async function readRemoteRevision() {
+  const response = await fetch('/api/site-data?revision=1', {
+    credentials: 'include',
+    cache: 'no-store',
+    headers: { accept: 'application/json' },
+  })
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null)
+    throw new Error(payload?.error || `Не удалось проверить обновления (${response.status})`)
+  }
+  const payload = await response.json()
+  return typeof payload?.revision === 'string' ? payload.revision : null
+}
+
+export async function refreshRemoteProjectIfChanged() {
+  if (!isPageVisible() || activeLoad) return false
+  if (activeRevisionCheck) return activeRevisionCheck
+
+  activeRevisionCheck = readRemoteRevision()
+    .then(async (revision) => {
+      if (!revision || revision === snapshot.revision) return false
+      await loadRemoteProject({ force: true, silent: true })
+      return true
+    })
+    .finally(() => {
+      activeRevisionCheck = null
+    })
+
+  return activeRevisionCheck
+}
+
+function startRemoteRefresh() {
+  if (
+    refreshStarted
+    || typeof window === 'undefined'
+    || typeof document === 'undefined'
+  ) return
+
+  refreshStarted = true
+  const refresh = () => {
+    refreshRemoteProjectIfChanged().catch(() => {})
+  }
+
+  window.setInterval(() => {
+    if (isPageVisible()) refresh()
+  }, REMOTE_REFRESH_INTERVAL_MS)
+  window.addEventListener('focus', refresh)
+  document.addEventListener('visibilitychange', () => {
+    if (isPageVisible()) refresh()
+  })
+}
 
 function totalsFor(videos) {
   return {
@@ -62,12 +122,13 @@ export function getProjectSnapshot() {
   return snapshot
 }
 
-export async function loadRemoteProject({ force = false } = {}) {
+export async function loadRemoteProject({ force = false, silent = false } = {}) {
+  startRemoteRefresh()
   if (activeLoad && !force) return activeLoad
 
   const revision = loadRevision + 1
   loadRevision = revision
-  updateSnapshot({ loading: true, error: null })
+  if (!silent) updateSnapshot({ loading: true, error: null })
   const request = fetch('/api/site-data', {
     credentials: 'include',
     cache: 'no-store',
@@ -82,9 +143,19 @@ export async function loadRemoteProject({ force = false } = {}) {
     })
     .then((project) => {
       if (revision === loadRevision) {
+        const channel = project.channel && typeof project.channel === 'object'
+          ? {
+            ...CHANNEL_DEFAULTS,
+            ...project.channel,
+            videoDailyStats: Array.isArray(project.channel.videoDailyStats)
+              ? project.channel.videoDailyStats
+              : (Array.isArray(project.videoDailyStats) ? project.videoDailyStats : []),
+          }
+          : CHANNEL_DEFAULTS
         updateSnapshot({
           videos: Array.isArray(project.videos) ? project.videos : [],
-          channel: project.channel || CHANNEL_DEFAULTS,
+          channel,
+          revision: typeof project.revision === 'string' ? project.revision : null,
           loading: false,
           error: null,
         })
@@ -92,7 +163,7 @@ export async function loadRemoteProject({ force = false } = {}) {
       return project
     })
     .catch((error) => {
-      if (revision === loadRevision) {
+      if (revision === loadRevision && !silent) {
         updateSnapshot({ loading: false, error: error.message || 'Не удалось загрузить данные' })
       }
       throw error

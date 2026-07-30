@@ -2,11 +2,10 @@
  * Канал-уровневый агрегатор. Принимает videos[] + channel + range,
  * возвращает структуру со всеми сериями для экранов аналитики/монетизации.
  *
- * Подход: каждое видео получает свою дневную форму (engine.generateDailyShape)
- * на интервале от publishDate до today, нормированную в video.views. Серии
- * суммируются по календарным дням → канальная серия. Это даёт «живое»
- * поведение: правка views в админке немедленно меняет график; новое видео
- * — естественный всплеск в дате публикации.
+ * Основной источник — сохранённые channel.videoDailyStats. Текущий и
+ * предыдущий периоды суммируются из одних и тех же календарных строк.
+ * Синтетическая lifetime-форма оставлена только для старых проектов,
+ * у которых дневная история ещё полностью отсутствует.
  */
 
 import {
@@ -99,6 +98,12 @@ export function resolveRange(range, videos, today = new Date(), channel = {}) {
         if (d < earliest) earliest = d
       }
     }
+    for (const row of Array.isArray(channel?.videoDailyStats) ? channel.videoDailyStats : []) {
+      if (row?.date) {
+        const d = startOfDay(row.date)
+        if (d < earliest) earliest = d
+      }
+    }
     /* Гарантируем минимум 7 дней (даже если все видео опубликованы сегодня).
        from смещаем назад от today чтобы dailyMap не уходил в будущее. */
     const ageDays = Math.max(0, daysBetween(earliest, todayD)) + 1
@@ -126,6 +131,8 @@ function buildDailyMap(from, days) {
       views: 0,
       engagedViews: 0,
       watchTime: 0,
+      impressions: 0,
+      hasPersistedImpressions: false,
       revenue: 0,
       likes: 0,
       comments: 0,
@@ -133,6 +140,96 @@ function buildDailyMap(from, days) {
     })
   }
   return { dates, map }
+}
+
+const PERSISTED_DAILY_INDEX_KEY = Symbol('persisted-video-daily-index')
+
+function normalizePersistedDailyRow(item) {
+  const videoId = item?.videoId ?? item?.video_id
+  const date = String(item?.date || '').slice(0, 10)
+  if (videoId == null || !date) return null
+  return {
+    videoId: String(videoId),
+    date,
+    views: Math.max(0, Number(item.views) || 0),
+    engagedViews: Math.max(
+      0,
+      Number(item.engagedViews ?? item.engaged_views) || 0,
+    ),
+    watchTime: Math.max(
+      0,
+      Number(item.watchSeconds ?? item.watch_seconds) || 0,
+    ),
+    impressions: Math.max(0, Number(item.impressions) || 0),
+    likes: Math.max(0, Number(item.likes) || 0),
+    comments: Math.max(0, Number(item.comments) || 0),
+    revenue: Math.max(0, Number(item.revenue) || 0),
+  }
+}
+
+function getPersistedDailyIndex(channel, cache) {
+  if (cache?.has(PERSISTED_DAILY_INDEX_KEY)) {
+    return cache.get(PERSISTED_DAILY_INDEX_KEY)
+  }
+
+  const sourceRows = Array.isArray(channel?.videoDailyStats)
+    ? channel.videoDailyStats
+    : []
+  if (sourceRows.length === 0) {
+    cache?.set(PERSISTED_DAILY_INDEX_KEY, null)
+    return null
+  }
+
+  const byVideo = new Map()
+  const rows = []
+  for (const sourceRow of sourceRows) {
+    const row = normalizePersistedDailyRow(sourceRow)
+    if (!row) continue
+    rows.push(row)
+    if (!byVideo.has(row.videoId)) byVideo.set(row.videoId, [])
+    byVideo.get(row.videoId).push(row)
+  }
+  for (const videoRows of byVideo.values()) {
+    videoRows.sort((a, b) => a.date.localeCompare(b.date))
+  }
+
+  const index = rows.length > 0 ? { byVideo, rows } : null
+  cache?.set(PERSISTED_DAILY_INDEX_KEY, index)
+  return index
+}
+
+function attachPersistedVideoContribution({
+  video,
+  channel,
+  range,
+  dayMap,
+  cache,
+}) {
+  const index = getPersistedDailyIndex(channel, cache)
+  if (!index) return false
+
+  for (const slot of dayMap.values()) {
+    slot.hasPersistedImpressions = true
+  }
+  const rows = index.byVideo.get(String(video?.id)) || []
+  const rangeFrom = isoDay(range.from)
+  const publishDate = String(video.date).slice(0, 10)
+  const from = publishDate > rangeFrom ? publishDate : rangeFrom
+  const to = isoDay(range.to)
+  for (const row of rows) {
+    if (row.date < from || row.date > to) continue
+    const slot = dayMap.get(row.date)
+    if (!slot) continue
+    slot.views += row.views
+    slot.engagedViews += row.engagedViews
+    slot.watchTime += row.watchTime
+    slot.impressions += row.impressions
+    slot.hasPersistedImpressions = true
+    slot.revenue += row.revenue
+    slot.likes += row.likes
+    slot.comments += row.comments
+  }
+  return true
 }
 
 /**
@@ -383,6 +480,15 @@ function attachVideoContribution({
   asOf = range.to,
   cache,
 }) {
+  if (!video?.date || startOfDay(video.date) > startOfDay(asOf)) return
+  if (attachPersistedVideoContribution({
+    video,
+    channel,
+    range,
+    dayMap,
+    cache,
+  })) return
+
   const contribution = prepareVideoContribution(video, channel, asOf, cache)
   if (!contribution) return
   const {
@@ -456,18 +562,35 @@ function buildPrevSeries(videos, channel, range, asOf = range.to, cache) {
   let views = 0
   let watch = 0
   let revenue = 0
+  let impressions = 0
   let likes = 0
   let comments = 0
   let engagedViews = 0
+  const channelSeed = hashSeed(
+    channel.channelName || 'channel',
+    channel.country || 'RU',
+    'analytics',
+  )
   for (const x of map.values()) {
     views += x.views
     watch += x.watchTime
     revenue += x.revenue
+    impressions += x.hasPersistedImpressions
+      ? x.impressions
+      : (x.views > 0 ? x.views / Math.max(0.04, dailyCtrForRow(x, channelSeed)) : 0)
     likes += x.likes
     comments += x.comments
     engagedViews += x.engagedViews
   }
-  return { views, watch, revenue, likes, comments, engagedViews }
+  return {
+    views,
+    watch,
+    revenue,
+    impressions,
+    likes,
+    comments,
+    engagedViews,
+  }
 }
 
 function pctDelta(curr, prev) {
@@ -571,6 +694,8 @@ function bucketSeries(series, granularity) {
         views: 0,
         engagedViews: 0,
         watchTime: 0,
+        impressions: 0,
+        hasPersistedImpressions: false,
         revenue: 0,
         likes: 0,
         comments: 0,
@@ -579,6 +704,8 @@ function bucketSeries(series, granularity) {
     const b = buckets.get(key)
     b.views += row.views
     b.watchTime += row.watchTime
+    b.impressions += Math.max(0, Number(row.impressions) || 0)
+    b.hasPersistedImpressions ||= Boolean(row.hasPersistedImpressions)
     b.revenue += row.revenue
     b.likes += row.likes
     b.comments += row.comments
@@ -630,6 +757,8 @@ function buildSeriesForVideos(
       views: +slot.views.toFixed(3),
       engagedViews: +slot.engagedViews.toFixed(3),
       watchTime: +slot.watchTime.toFixed(3),
+      impressions: +slot.impressions.toFixed(3),
+      hasPersistedImpressions: slot.hasPersistedImpressions,
       revenue: +slot.revenue.toFixed(2),
       likes: +slot.likes.toFixed(3),
       comments: +slot.comments.toFixed(3),
@@ -768,8 +897,10 @@ function buildContentMetricSeries(dailySeries, granularity, seed) {
   const daily = dailySeries.map((row) => {
     const views = Math.max(0, Number(row.views) || 0)
     const watchTime = Math.max(0, Number(row.watchTime) || 0)
-    const ctr = dailyCtrForRow(row, seed)
-    const impressions = views > 0 ? views / Math.max(0.04, ctr) : 0
+    const generatedCtr = dailyCtrForRow(row, seed)
+    const impressions = row.hasPersistedImpressions
+      ? Math.max(0, Number(row.impressions) || 0)
+      : (views > 0 ? views / Math.max(0.04, generatedCtr) : 0)
 
     return {
       ...row,
@@ -795,6 +926,7 @@ function buildContentMetricSeries(dailySeries, granularity, seed) {
         likes: 0,
         comments: 0,
         impressions: 0,
+        hasPersistedImpressions: false,
       })
     }
     const bucket = buckets.get(key)
@@ -805,6 +937,7 @@ function buildContentMetricSeries(dailySeries, granularity, seed) {
     bucket.likes += Math.max(0, Number(row.likes) || 0)
     bucket.comments += Math.max(0, Number(row.comments) || 0)
     bucket.impressions += Math.max(0, Number(row.impressions) || 0)
+    bucket.hasPersistedImpressions ||= Boolean(row.hasPersistedImpressions)
   }
 
   return Array.from(buckets.values())
@@ -820,13 +953,18 @@ function buildContentMetricSeries(dailySeries, granularity, seed) {
 function buildPeriodCtr(dailySeries, seed) {
   let views = 0
   let impressions = 0
+  let hasPersistedImpressions = false
   dailySeries.forEach((row) => {
     const dailyViews = Math.max(0, Number(row.views) || 0)
-    if (dailyViews <= 0) return
     const dailyCtr = dailyCtrForRow(row, seed)
+    const dailyImpressions = row.hasPersistedImpressions
+      ? Math.max(0, Number(row.impressions) || 0)
+      : (dailyViews > 0 ? dailyViews / Math.max(0.04, dailyCtr) : 0)
     views += dailyViews
-    impressions += dailyViews / Math.max(0.04, dailyCtr)
+    impressions += dailyImpressions
+    hasPersistedImpressions ||= Boolean(row.hasPersistedImpressions)
   })
+  if (impressions <= 0 && hasPersistedImpressions) return 0
   if (views <= 0 || impressions <= 0) {
     return 0.082 + ((seed % 1000) / 1000) * 0.06
   }
@@ -934,7 +1072,39 @@ function allocateRealtimeVideoViews(videos, totalViews) {
  * (Screen1Dashboard) — иначе видна десинхронизация. При range='lifetime'
  * период-серия равна lifetime; для других range — выводятся как hint.
  */
-function computeLifetime(videos, channel, asOf) {
+function computeLifetime(videos, channel, asOf, cache) {
+  const persisted = getPersistedDailyIndex(channel, cache)
+  if (persisted) {
+    const asOfDate = isoDay(asOf)
+    const eligibleVideos = videos.filter(
+      (video) => video?.date && startOfDay(video.date) <= asOf,
+    )
+    const videoIds = new Set(eligibleVideos.map((video) => String(video.id)))
+    const totals = persisted.rows.reduce((result, row) => {
+      if (!videoIds.has(row.videoId) || row.date > asOfDate) return result
+      result.views += row.views
+      result.likes += row.likes
+      result.revenue += row.revenue
+      result.comments += row.comments
+      result.watchSec += row.watchTime
+      return result
+    }, {
+      views: 0,
+      likes: 0,
+      revenue: 0,
+      comments: 0,
+      watchSec: 0,
+    })
+    return {
+      views: Math.round(totals.views),
+      likes: Math.round(totals.likes),
+      revenue: +totals.revenue.toFixed(2),
+      comments: Math.round(totals.comments),
+      watchHours: totals.watchSec / 3600,
+      videos: eligibleVideos.length,
+    }
+  }
+
   let views = 0
   let likes = 0
   let revenue = 0
@@ -971,8 +1141,11 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const range = resolveRange(rangeInput, videos, today, channel)
   const channelSeed = hashSeed(channel.channelName || 'channel', channel.country || 'RU', 'analytics')
   const contributionCache = new Map()
+  const usesPersistedDailyHistory = Boolean(
+    getPersistedDailyIndex(channel, contributionCache),
+  )
 
-  const lifetime = computeLifetime(videos, channel, asOf)
+  const lifetime = computeLifetime(videos, channel, asOf, contributionCache)
   const { dates, map } = buildDailyMap(range.from, range.days)
   videos.forEach((v) => attachVideoContribution({
     video: v,
@@ -998,6 +1171,8 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     views: Math.round(rawViews[i]),
     engagedViews: Math.round(map.get(date).engagedViews),
     watchTime: +rawWatch[i].toFixed(3),
+    impressions: +map.get(date).impressions.toFixed(3),
+    hasPersistedImpressions: map.get(date).hasPersistedImpressions,
     revenue: +rawRev[i].toFixed(2),
     likes: Math.round(rawLikes[i]),
     comments: Math.round(rawComm[i]),
@@ -1062,7 +1237,9 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     ),
     0,
   )
-  const avgDurationSec = allViewsForDuration > 0 ? allWatchSec / allViewsForDuration : 0
+  const avgDurationSec = usesPersistedDailyHistory
+    ? (totalViews > 0 ? totalWatchSec / totalViews : 0)
+    : (allViewsForDuration > 0 ? allWatchSec / allViewsForDuration : 0)
 
   const videosByType = {
     video: periodVideos.filter((video) => resolveVideoType(video) === 'video'),
@@ -1125,6 +1302,10 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     ]),
   )
   const prevWatchHours = prev.watch / 3600
+  const prevAverageViewDuration = prev.views > 0 ? prev.watch / prev.views : 0
+  const prevCtrPercent = prev.impressions > 0
+    ? (prev.views / prev.impressions) * 100
+    : 0
   const subscribersDaily = buildSubscriberSeries(channel, dates)
   const subscribers = aggregateSubscriberSeries(subscribersDaily, granularity)
   const subscribersGained = subscribersDaily.reduce((sum, row) => sum + row.gained, 0)
@@ -1242,7 +1423,10 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
         : 0,
     ]),
   )
-  const impressions = Math.round(totalViews / Math.max(0.04, ctr))
+  const impressions = Math.round(contentMetricSeries.reduce(
+    (sum, row) => sum + Math.max(0, Number(row.impressions) || 0),
+    0,
+  ))
 
   const retentionVideos = videos
     .filter((video) => video?.date && startOfDay(video.date) <= asOf)
@@ -1365,7 +1549,11 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
         delta: isLifetime ? null : pctDelta(totalComments, prev.comments),
         lifetime: lifetime.comments,
       },
-      avgDuration: { value: avgDurationSec, delta: 0 },
+      avgDuration: {
+        value: avgDurationSec,
+        delta: isLifetime ? null : pctDelta(avgDurationSec, prevAverageViewDuration),
+        previousValue: prevAverageViewDuration,
+      },
     },
     content: {
       views: {
@@ -1395,10 +1583,19 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       },
       impressions: {
         value: impressions,
-        delta: isLifetime ? null : pctDelta(totalViews, prev.views),
+        delta: isLifetime ? null : pctDelta(impressions, prev.impressions),
+        previousValue: prev.impressions,
       },
-      ctr: { value: ctr * 100, delta: 0 },
-      avgDuration: { value: avgDurationSec, delta: 0 },
+      ctr: {
+        value: ctr * 100,
+        delta: isLifetime ? null : pctDelta(ctr * 100, prevCtrPercent),
+        previousValue: prevCtrPercent,
+      },
+      avgDuration: {
+        value: avgDurationSec,
+        delta: isLifetime ? null : pctDelta(avgDurationSec, prevAverageViewDuration),
+        previousValue: prevAverageViewDuration,
+      },
     },
     audience: {
       subscribers: {

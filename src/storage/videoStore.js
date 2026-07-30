@@ -248,13 +248,12 @@ export function normalizeVideo(input = {}, options = {}) {
   const revenue = shouldGenerateRevenue ? generatedRevenue : (inputRevenue ?? baseRevenue ?? generatedRevenue)
 
   const metrics = computeMetrics(views, (seed % 10000) / 10000)
-  const metricsNeedRefresh = !base || views !== baseViews || input.autoViews === true
-  const likes = metricsNeedRefresh
-    ? (parseNonNegativeInteger(input.likes) ?? metrics.likes)
-    : (parseNonNegativeInteger(input.likes) ?? parseNonNegativeInteger(base?.likes) ?? metrics.likes)
-  const dislikes = metricsNeedRefresh
-    ? (parseNonNegativeInteger(input.dislikes) ?? metrics.dislikes)
-    : (parseNonNegativeInteger(input.dislikes) ?? parseNonNegativeInteger(base?.dislikes) ?? metrics.dislikes)
+  const likes = parseNonNegativeInteger(input.likes)
+    ?? parseNonNegativeInteger(base?.likes)
+    ?? metrics.likes
+  const dislikes = parseNonNegativeInteger(input.dislikes)
+    ?? parseNonNegativeInteger(base?.dislikes)
+    ?? metrics.dislikes
   const averageViewPercentage = input.averageViewPercentage !== undefined
     ? normalizeAverageViewPercentage(input.averageViewPercentage)
     : normalizeAverageViewPercentage(base?.averageViewPercentage)

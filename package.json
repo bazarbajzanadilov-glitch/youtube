@@ -10,6 +10,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "verify:analytics": "node scripts/verify-analytics-lifecycle.mjs",
+    "verify:refresh": "node scripts/verify-project-refresh.mjs",
     "verify:images": "node scripts/verify-image-policy.mjs",
     "verify:site-session": "node scripts/verify-site-session.mjs",
     "seed:supabase-media": "node scripts/seed-supabase-media.mjs",

@@ -17,7 +17,7 @@ import {
   buildPublishedVideoMarkers,
   KPI_DESCRIPTIONS,
   kpiTrend,
-  metricPerformanceComparison,
+  previousPeriodComparison,
   videoDate,
 } from './studioAnalyticsHelpers.js'
 import AnalyticsHeroCard from './AnalyticsHeroCard.jsx'
@@ -129,7 +129,7 @@ export default function AudienceTab({ data, onOpenAdmin }) {
           <MetricKpiCell
             label="Подписчики"
             value={formatSignedCompactNumber(audience.kpis.subscribers.value)}
-            note={metricPerformanceComparison(audience.kpis.subscribers, range, formatCompactNumber)}
+            note={previousPeriodComparison(audience.kpis.subscribers, range)}
             description={KPI_DESCRIPTIONS.subscribers}
             trend={kpiTrend(audience.kpis.subscribers.delta)}
             active={metric === 'subscribers'}

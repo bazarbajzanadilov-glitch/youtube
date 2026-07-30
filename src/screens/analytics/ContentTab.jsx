@@ -212,7 +212,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
           <MetricKpiCell
             label="Подписчики"
             value={formatSignedCompactNumber(selectedKpis.subscribers?.value || 0)}
-            note={metricPerformanceComparison(selectedKpis.subscribers, range, formatCompactNumber)}
+            note={previousPeriodComparison(selectedKpis.subscribers, range)}
             description={KPI_DESCRIPTIONS.subscribers}
             trend={kpiTrend(selectedKpis.subscribers?.delta)}
             active={metric === 'subscribers'}
