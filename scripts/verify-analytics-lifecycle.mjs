@@ -1038,10 +1038,9 @@ assert.equal(
   adaptiveSubscriberTotal + 1_400,
   'subscriber reconciliation must exactly match the edited channel total',
 )
-assert.equal(
-  reconciledSubscriberRows.slice(0, 28).reduce((sum, row) => sum + row.gained, 0),
-  adaptiveSubscriberRows.slice(0, 28).reduce((sum, row) => sum + row.gained, 0),
-  'a subscriber increase must leave the previous comparison period unchanged',
+assert.ok(
+  reconciledSubscriberRows.slice(0, 28).reduce((sum, row) => sum + row.gained, 0) > 0,
+  'a subscriber increase may rebalance but must preserve the previous comparison period',
 )
 assert.notEqual(
   Math.round(adaptiveSubscribersAfter.overview.kpis.subscribers.delta),
@@ -1157,6 +1156,139 @@ assert.ok(
 assert.ok(
   repairedCollapsedSubscriberRows.slice(0, 28).reduce((sum, row) => sum + row.gained, 0) > 0,
   'exact-target reconciliation must preserve the previous 28-day period',
+)
+
+const editedSubscriberSourceTotal = 45_534
+const editedSubscriberTargetTotal = 69_504
+const editedSubscriberDates = isoDatesEndingAt('2026-05-11', 365)
+const editedSubscriberSourceRows = allocateSubscriberHistory(
+  editedSubscriberSourceTotal,
+  editedSubscriberDates,
+)
+const editedSubscriberRows = reconcileSubscriberHistoryToTotal(
+  editedSubscriberSourceRows,
+  editedSubscriberTargetTotal,
+)
+const editedSubscriberLifetime = editedSubscriberRows.reduce(
+  (sum, row) => sum + row.gained,
+  0,
+)
+const editedSubscriberCurrentRows = editedSubscriberRows.slice(-28)
+const editedSubscriberPreviousRows = editedSubscriberRows.slice(-56, -28)
+const editedSubscriberCurrentTotal = editedSubscriberCurrentRows.reduce(
+  (sum, row) => sum + row.gained,
+  0,
+)
+const editedSubscriberPreviousTotal = editedSubscriberPreviousRows.reduce(
+  (sum, row) => sum + row.gained,
+  0,
+)
+const editedSubscriberCurrentAverage = editedSubscriberCurrentTotal
+  / editedSubscriberCurrentRows.length
+
+assert.equal(
+  editedSubscriberLifetime,
+  editedSubscriberTargetTotal,
+  'editing subscriber total from 45,534 to 69,504 must reconcile lifetime exactly',
+)
+assert.ok(
+  editedSubscriberCurrentTotal > 0,
+  'the 69,504 total must keep the current 28-day subscriber KPI positive',
+)
+assert.ok(
+  editedSubscriberPreviousTotal > 0,
+  'the 69,504 total must keep the previous 28-day comparison positive',
+)
+assert.ok(
+  editedSubscriberCurrentTotal <= editedSubscriberTargetTotal * 0.15,
+  'the current 28-day KPI must remain at most 15% of the lifetime total',
+)
+assert.ok(
+  Math.max(...editedSubscriberCurrentRows.map((row) => row.gained))
+    <= editedSubscriberCurrentAverage * 3,
+  'no current subscriber day may exceed three times its 28-day average',
+)
+assert.ok(
+  Math.abs(editedSubscriberCurrentTotal - 39_000) > 5_000,
+  'the current 28-day KPI must not inflate to roughly 39 thousand',
+)
+
+const editedSubscriberAnalytics = build(
+  [],
+  {
+    ...channel,
+    subscriberCount: editedSubscriberTargetTotal,
+    subscriberDailyStats: editedSubscriberRows,
+  },
+  { kind: '28d' },
+  { today },
+)
+const alternateEditedSubscriberTotal = 100_000
+const alternateEditedSubscriberRows = reconcileSubscriberHistoryToTotal(
+  editedSubscriberSourceRows,
+  alternateEditedSubscriberTotal,
+)
+const alternateEditedSubscriberAnalytics = build(
+  [],
+  {
+    ...channel,
+    subscriberCount: alternateEditedSubscriberTotal,
+    subscriberDailyStats: alternateEditedSubscriberRows,
+  },
+  { kind: '28d' },
+  { today },
+)
+assert.notEqual(
+  Math.round(editedSubscriberAnalytics.overview.kpis.subscribers.delta),
+  Math.round(alternateEditedSubscriberAnalytics.overview.kpis.subscribers.delta),
+  'different realistic subscriber totals must produce different visible comparisons',
+)
+
+const inflatedExactTarget = 69_504
+const inflatedCurrentTarget = Math.ceil(inflatedExactTarget * 0.3)
+const inflatedExactTargetRows = [
+  ...allocateSubscriberHistory(
+    inflatedExactTarget - inflatedCurrentTarget,
+    editedSubscriberDates.slice(0, -28),
+  ),
+  ...allocateSubscriberHistory(
+    inflatedCurrentTarget,
+    editedSubscriberDates.slice(-28),
+  ),
+]
+assert.equal(
+  inflatedExactTargetRows.reduce((sum, row) => sum + row.gained, 0),
+  inflatedExactTarget,
+  'the inflated-history fixture must already equal the authoritative total',
+)
+assert.ok(
+  inflatedExactTargetRows.slice(-28).reduce((sum, row) => sum + row.gained, 0)
+    > inflatedExactTarget * 0.25,
+  'the inflated-history fixture must put more than 25% in the current period',
+)
+assert.ok(
+  inflatedExactTargetRows.slice(-56, -28).reduce((sum, row) => sum + row.gained, 0) > 0,
+  'the inflated-history fixture must retain a populated previous period',
+)
+
+const repairedInflatedSubscriberRows = reconcileSubscriberHistoryToTotal(
+  inflatedExactTargetRows,
+  inflatedExactTarget,
+)
+assert.equal(
+  repairedInflatedSubscriberRows.reduce((sum, row) => sum + row.gained, 0),
+  inflatedExactTarget,
+  'equal-target inflated history repair must preserve the exact total',
+)
+assert.ok(
+  repairedInflatedSubscriberRows.slice(-28).reduce((sum, row) => sum + row.gained, 0)
+    <= inflatedExactTarget * 0.1,
+  'equal-target reconciliation must reduce the current period to at most 10%',
+)
+assert.ok(
+  repairedInflatedSubscriberRows.slice(-56, -28)
+    .reduce((sum, row) => sum + row.gained, 0) > 0,
+  'equal-target inflated history repair must preserve the previous period',
 )
 
 const subscriberBucketsSource = [

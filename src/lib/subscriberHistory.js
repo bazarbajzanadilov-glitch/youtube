@@ -43,17 +43,6 @@ function allocateByWeights(weights, total) {
   return allocated
 }
 
-function recentWeights(rows, startIndex) {
-  return rows.slice(startIndex).map((row, offset) => {
-    const sourceIndex = startIndex + offset
-    const averageStart = Math.max(0, sourceIndex - 6)
-    const source = rows.slice(averageStart, sourceIndex + 1)
-    const average = source.reduce((sum, item) => sum + item.gained, 0)
-      / Math.max(1, source.length)
-    return Math.max(1, average)
-  })
-}
-
 function dateOrdinal(date) {
   return Math.floor(Date.parse(`${date}T00:00:00Z`) / 86_400_000)
 }
@@ -119,9 +108,19 @@ function redistributeSubscriberHistory(rows, target, windowDays) {
   })
 
   const remaining = target - protectedIndices.length
+  const sourceDailyAverage = rows.reduce(
+    (sum, row) => sum + row.gained,
+    0,
+  ) / Math.max(1, rows.length)
   const allocations = allocateByWeights(
     rows.map((row) => (
-      Math.max(1, row.gained) * targetTemporalTilt(row.date, target)
+      Math.max(
+        0.75,
+        Math.min(
+          1.25,
+          row.gained / Math.max(1, sourceDailyAverage),
+        ),
+      ) * targetTemporalTilt(row.date, target)
     )),
     remaining,
   )
@@ -135,9 +134,9 @@ function redistributeSubscriberHistory(rows, target, windowDays) {
 
 /**
  * Reconciles stored positive subscriber gains to an authoritative channel
- * total. Only the newest window absorbs an increase, so changing the channel
- * total changes the current-period KPI and comparison instead of scaling both
- * adjacent periods by the same percentage.
+ * total. Any counter change is spread across the full stored history. A
+ * target-dependent temporal tilt keeps adjacent periods distinct without
+ * concentrating an entire edit in the latest 28 days.
  */
 export function reconcileSubscriberHistoryToTotal(
   stats,
@@ -149,7 +148,7 @@ export function reconcileSubscriberHistoryToTotal(
 
   const target = Math.max(0, Math.trunc(Number(targetTotal) || 0))
   const current = rows.reduce((sum, row) => sum + row.gained, 0)
-  let delta = target - current
+  const delta = target - current
   const comparisonDays = Math.max(1, windowDays)
   const currentStart = Math.max(0, rows.length - comparisonDays)
   const previousStart = Math.max(0, currentStart - comparisonDays)
@@ -164,28 +163,23 @@ export function reconcileSubscriberHistoryToTotal(
     && currentWindowTotal === 0
     && previousWindowTotal > 0
   )
-  if (delta === 0 && !needsCollapsedHistoryRepair) return rows
-
-  const recentStart = Math.max(0, rows.length - Math.max(1, windowDays))
-  const recentIndices = Array.from(
-    { length: rows.length - recentStart },
-    (_, index) => recentStart + index,
+  const needsInflatedHistoryRepair = (
+    target > 0
+    && currentWindowTotal > (target * 0.15)
   )
-
-  if (delta > 0) {
-    const additions = allocateByWeights(
-      recentWeights(rows, recentStart),
-      delta,
-    )
-    recentIndices.forEach((rowIndex, index) => {
-      rows[rowIndex].gained += additions[index]
-    })
-    return rows
-  }
+  if (
+    delta === 0
+    && !needsCollapsedHistoryRepair
+    && !needsInflatedHistoryRepair
+  ) return rows
 
   const redistributionSource = needsCollapsedHistoryRepair
     ? repairCollapsedComparisonWeights(rows, comparisonDays)
-    : rows
+    : (
+      needsInflatedHistoryRepair
+        ? rows.map((row) => ({ ...row, gained: 1 }))
+        : rows
+    )
   return redistributeSubscriberHistory(
     redistributionSource,
     target,
