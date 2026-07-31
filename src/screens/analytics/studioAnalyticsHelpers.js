@@ -172,7 +172,10 @@ export function previousPeriodComparison(kpi, range) {
   const label = previousPeriodLabel(range)
   if (Math.abs(delta) < 0.5) return `Как ${label}`
   const percent = Math.max(1, Math.round(Math.abs(delta)))
-  return `На ${percent.toLocaleString('ru-RU')} % ${delta > 0 ? 'больше' : 'меньше'}, чем ${label}`
+  const percentLabel = percent > 999
+    ? '>999'
+    : percent.toLocaleString('ru-RU')
+  return `На ${percentLabel} % ${delta > 0 ? 'больше' : 'меньше'}, чем ${label}`
 }
 
 export function metricPerformanceComparison(kpi, range, format = formatCompactNumber) {

@@ -443,6 +443,33 @@ assert.equal(
   previousPeriodComparison({ value: 126, delta: 25.6 }, { kind: 'lifetime', days: 365 }),
   '',
 )
+assert.equal(
+  previousPeriodComparison({ value: 1_099, delta: 999 }, { kind: '90d', days: 90 }),
+  'На 999 % больше, чем за предыдущие 90 дней',
+)
+assert.equal(
+  previousPeriodComparison({ value: 1_099, delta: 999.4 }, { kind: '90d', days: 90 }),
+  'На 999 % больше, чем за предыдущие 90 дней',
+)
+assert.equal(
+  previousPeriodComparison({ value: 1_100, delta: 999.5 }, { kind: '90d', days: 90 }),
+  'На >999 % больше, чем за предыдущие 90 дней',
+)
+assert.equal(
+  previousPeriodComparison({ value: 1_100, delta: 1_000 }, { kind: '90d', days: 90 }),
+  'На >999 % больше, чем за предыдущие 90 дней',
+)
+assert.equal(
+  metricPerformanceComparison(
+    { value: 3_100, previousValue: 100, delta: 3_000 },
+    { kind: '90d', days: 90 },
+  ),
+  'На >999 % больше, чем за предыдущие 90 дней',
+)
+assert.equal(
+  previousPeriodComparison({ value: 1_100, delta: Number.POSITIVE_INFINITY }, { kind: '90d', days: 90 }),
+  '',
+)
 assert.equal(formatSignedCompactNumber(0), '0')
 assert.equal(formatSignedCompactNumber(0.3), '+0,3')
 assert.equal(formatSignedCompactNumber(28.7), '+28,7')
