@@ -621,8 +621,15 @@ function buildPrevSeries(videos, channel, range, asOf = range.to, cache) {
 }
 
 function pctDelta(curr, prev) {
-  if (!prev) return curr > 0 ? null : 0
-  const raw = ((curr - prev) / prev) * 100
+  const current = Number(curr)
+  const previous = prev == null ? 0 : Number(prev)
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) return null
+  if (previous === 0) {
+    if (current > 0) return Number.POSITIVE_INFINITY
+    if (current < 0) return Number.NEGATIVE_INFINITY
+    return 0
+  }
+  const raw = ((current - previous) / previous) * 100
   return raw
 }
 
@@ -1228,7 +1235,6 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   )
   const monthlyViewers = monthlyViewersSeries[monthlyViewersSeries.length - 1]?.viewers || 0
 
-  const isLifetime = range.kind === 'lifetime'
   const totalViewsRaw = series.reduce((s, x) => s + x.views, 0)
   const totalEngagedViewsRaw = series.reduce((s, x) => s + x.engagedViews, 0)
   const totalLikesRaw = series.reduce((s, x) => s + x.likes, 0)
@@ -1343,7 +1349,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const previousSubscribers = aggregateSubscriberSeries(previousSubscribersDaily, granularity)
   const previousSubscribersValue = previousSubscribersDaily
     .reduce((sum, row) => sum + row.subscribers, 0)
-  const subscribersDelta = isLifetime ? null : pctDelta(subscribersValue, previousSubscribersValue)
+  const subscribersDelta = pctDelta(subscribersValue, previousSubscribersValue)
   const currentTypeViews = Object.fromEntries(CONTENT_TYPE_KEYS.map((key) => [
     key,
     (contentMetricSeriesByType[key] || []).reduce(
@@ -1382,26 +1388,22 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       return [key, {
         views: {
           value: Math.round(typeViews),
-          delta: isLifetime ? null : pctDelta(typeViews, previous.views),
+          delta: pctDelta(typeViews, previous.views),
           previousValue: Number(previous.views) || 0,
         },
         engagedViews: {
           value: Math.round(typeEngagedViews),
-          delta: isLifetime
-            ? null
-            : pctDelta(typeEngagedViews, previous.engagedViews),
+          delta: pctDelta(typeEngagedViews, previous.engagedViews),
           previousValue: Number(previous.engagedViews) || 0,
         },
         likes: {
           value: Math.round(typeLikes),
-          delta: isLifetime ? null : pctDelta(typeLikes, previous.likes),
+          delta: pctDelta(typeLikes, previous.likes),
           previousValue: Number(previous.likes) || 0,
         },
         subscribers: {
           value: attributedSubscribers,
-          delta: isLifetime
-            ? null
-            : pctDelta(attributedSubscribers, previousAttributedSubscribers),
+          delta: pctDelta(attributedSubscribers, previousAttributedSubscribers),
           previousValue: previousAttributedSubscribers,
         },
       }]
@@ -1541,20 +1543,19 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     totalRevenue,
     totalViews,
     prev,
-    isLifetime,
   })
 
   const kpis = {
     overview: {
       views: {
         value: totalViews,
-        delta: isLifetime ? null : pctDelta(totalViews, prev.views),
+        delta: pctDelta(totalViews, prev.views),
         previousValue: prev.views,
         lifetime: lifetime.views,
       },
       watchTime: {
         value: totalWatchHours,
-        delta: isLifetime ? null : pctDelta(totalWatchHours, prevWatchHours),
+        delta: pctDelta(totalWatchHours, prevWatchHours),
         previousValue: prevWatchHours,
         lifetime: lifetime.watchHours,
       },
@@ -1568,35 +1569,35 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       },
       likes: {
         value: totalLikes,
-        delta: isLifetime ? null : pctDelta(totalLikes, prev.likes),
+        delta: pctDelta(totalLikes, prev.likes),
         lifetime: lifetime.likes,
       },
       comments: {
         value: totalComments,
-        delta: isLifetime ? null : pctDelta(totalComments, prev.comments),
+        delta: pctDelta(totalComments, prev.comments),
         lifetime: lifetime.comments,
       },
       avgDuration: {
         value: avgDurationSec,
-        delta: isLifetime ? null : pctDelta(avgDurationSec, prevAverageViewDuration),
+        delta: pctDelta(avgDurationSec, prevAverageViewDuration),
         previousValue: prevAverageViewDuration,
       },
     },
     content: {
       views: {
         value: totalViews,
-        delta: isLifetime ? null : pctDelta(totalViews, prev.views),
+        delta: pctDelta(totalViews, prev.views),
         previousValue: prev.views,
         lifetime: lifetime.views,
       },
       engagedViews: {
         value: totalEngagedViews,
-        delta: isLifetime ? null : pctDelta(totalEngagedViews, prev.engagedViews),
+        delta: pctDelta(totalEngagedViews, prev.engagedViews),
         previousValue: prev.engagedViews,
       },
       likes: {
         value: totalLikes,
-        delta: isLifetime ? null : pctDelta(totalLikes, prev.likes),
+        delta: pctDelta(totalLikes, prev.likes),
         previousValue: prev.likes,
         lifetime: lifetime.likes,
       },
@@ -1610,17 +1611,17 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       },
       impressions: {
         value: impressions,
-        delta: isLifetime ? null : pctDelta(impressions, prev.impressions),
+        delta: pctDelta(impressions, prev.impressions),
         previousValue: prev.impressions,
       },
       ctr: {
         value: ctr * 100,
-        delta: isLifetime ? null : pctDelta(ctr * 100, prevCtrPercent),
+        delta: pctDelta(ctr * 100, prevCtrPercent),
         previousValue: prevCtrPercent,
       },
       avgDuration: {
         value: avgDurationSec,
-        delta: isLifetime ? null : pctDelta(avgDurationSec, prevAverageViewDuration),
+        delta: pctDelta(avgDurationSec, prevAverageViewDuration),
         previousValue: prevAverageViewDuration,
       },
     },
@@ -1638,12 +1639,12 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       avgViews: { value: videos.length > 0 ? Math.round(totalViews / Math.max(1, videos.length)) : 0, delta: 0 },
       likes: {
         value: totalLikes,
-        delta: isLifetime ? null : pctDelta(totalLikes, prev.likes),
+        delta: pctDelta(totalLikes, prev.likes),
         lifetime: lifetime.likes,
       },
       comments: {
         value: totalComments,
-        delta: isLifetime ? null : pctDelta(totalComments, prev.comments),
+        delta: pctDelta(totalComments, prev.comments),
         lifetime: lifetime.comments,
       },
     },
@@ -1770,7 +1771,6 @@ function buildMonetization({
   totalRevenue,
   totalViews,
   prev,
-  isLifetime,
 }) {
   const enabled = channel.monetizationEnabled !== false
   if (!enabled) {
@@ -1829,7 +1829,7 @@ function buildMonetization({
     kpis: {
       revenue: {
         value: totalRevenue,
-        delta: isLifetime ? null : pctDelta(totalRevenue, prev.revenue),
+        delta: pctDelta(totalRevenue, prev.revenue),
       },
       monetizedPlaybacks: { value: monetizedPlaybacks, delta: 0 },
       adImpressions: { value: adImpressions, delta: 0 },

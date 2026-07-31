@@ -166,8 +166,7 @@ function previousPeriodLabel(range) {
 }
 
 export function previousPeriodComparison(kpi, range) {
-  if (range?.kind === 'lifetime') return ''
-  if (kpi?.delta == null || !Number.isFinite(Number(kpi.delta))) return ''
+  if (kpi?.delta == null || Number.isNaN(Number(kpi.delta))) return ''
   const delta = Number(kpi.delta)
   const label = previousPeriodLabel(range)
   if (Math.abs(delta) < 0.5) return `Как ${label}`
@@ -179,8 +178,7 @@ export function previousPeriodComparison(kpi, range) {
 }
 
 export function metricPerformanceComparison(kpi, range, format = formatCompactNumber) {
-  if (range?.kind === 'lifetime') return ''
-  if (kpi?.delta == null || !Number.isFinite(Number(kpi.delta))) return ''
+  if (kpi?.delta == null || Number.isNaN(Number(kpi.delta))) return ''
 
   const delta = Number(kpi.delta)
   if (delta > 0.1) return previousPeriodComparison(kpi, range)

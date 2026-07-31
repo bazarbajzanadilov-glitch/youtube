@@ -157,7 +157,9 @@ const oldVideo = {
 }
 const analytics = build([oldVideo], channel, { kind: '28d' }, { today })
 const analytics7Days = build([oldVideo], channel, { kind: '7d' }, { today })
+const analytics90Days = build([oldVideo], channel, { kind: '90d' }, { today })
 const analytics365Days = build([oldVideo], channel, { kind: '365d' }, { today })
+const analyticsYear = build([oldVideo], channel, { kind: 'year-2026' }, { today })
 const analyticsLifetime = build([oldVideo], channel, { kind: 'lifetime' }, { today })
 
 assert.notEqual(
@@ -441,7 +443,7 @@ assert.equal(
 )
 assert.equal(
   previousPeriodComparison({ value: 126, delta: 25.6 }, { kind: 'lifetime', days: 365 }),
-  '',
+  'На 26 % больше, чем за предыдущие 365 дней',
 )
 assert.equal(
   previousPeriodComparison({ value: 1_099, delta: 999 }, { kind: '90d', days: 90 }),
@@ -468,7 +470,7 @@ assert.equal(
 )
 assert.equal(
   previousPeriodComparison({ value: 1_100, delta: Number.POSITIVE_INFINITY }, { kind: '90d', days: 90 }),
-  '',
+  'На >999 % больше, чем за предыдущие 90 дней',
 )
 assert.equal(formatSignedCompactNumber(0), '0')
 assert.equal(formatSignedCompactNumber(0.3), '+0,3')
@@ -520,8 +522,47 @@ assert.equal(
     { value: 100, previousValue: 90, delta: 11.1 },
     { kind: 'lifetime', days: 365 },
   ),
-  '',
+  'На 11 % больше, чем за предыдущие 365 дней',
 )
+
+const comparisonResults = [
+  analytics7Days,
+  analytics,
+  analytics90Days,
+  analytics365Days,
+  analyticsYear,
+  analyticsLifetime,
+]
+for (const result of comparisonResults) {
+  const { range } = result
+  const notes = [
+    metricPerformanceComparison(result.overview.kpis.views, range),
+    metricPerformanceComparison(result.overview.kpis.watchTime, range, formatHours),
+    previousPeriodComparison(result.overview.kpis.subscribers, range),
+    metricPerformanceComparison(result.content.kpis.views, range),
+    previousPeriodComparison(result.content.kpis.engagedViews, range),
+    previousPeriodComparison(result.content.kpis.likes, range),
+    previousPeriodComparison(result.content.kpis.subscribers, range),
+    previousPeriodComparison(result.audience.kpis.subscribers, range),
+  ]
+  assert.ok(
+    notes.every((note) => typeof note === 'string' && note.length > 0),
+    `${range.kind} must retain all analytics KPI comparison descriptions`,
+  )
+
+  for (const typeKpis of Object.values(result.content.kpisByType)) {
+    const typeNotes = [
+      metricPerformanceComparison(typeKpis.views, range),
+      previousPeriodComparison(typeKpis.engagedViews, range),
+      previousPeriodComparison(typeKpis.likes, range),
+      previousPeriodComparison(typeKpis.subscribers, range),
+    ]
+    assert.ok(
+      typeNotes.every((note) => typeof note === 'string' && note.length > 0),
+      `${range.kind} content filters must retain all KPI comparison descriptions`,
+    )
+  }
+}
 const contentMetricImpressions = analytics.content.metricSeries.reduce(
   (sum, row) => sum + row.impressions,
   0,
@@ -662,8 +703,8 @@ assert.equal(
 )
 assert.equal(
   analyticsLifetime.overview.kpis.views.delta,
-  null,
-  'lifetime KPIs must not show a fabricated previous-period comparison',
+  Number.POSITIVE_INFINITY,
+  'lifetime KPIs must expose an open-ended comparison when the previous period is empty',
 )
 assert.equal(
   analyticsLifetime.overview.series.reduce((sum, row) => sum + row.views, 0),
