@@ -33,6 +33,12 @@ function formatDuration(seconds) {
   return `${mins}:${String(secs).padStart(2, '0')}`
 }
 
+function formatPercent(value) {
+  const percent = Number(value)
+  if (!Number.isFinite(percent)) return '—'
+  return `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 }).format(percent)} %`
+}
+
 function daysSince(iso) {
   if (!iso) return ''
   const d = new Date(iso).getTime()
@@ -90,8 +96,17 @@ export default function Screen1Dashboard() {
   const avgViewDuration = lastVideo && lastVideoAverageFraction != null
     ? formatDuration(parseDurationSeconds(lastVideo.duration) * lastVideoAverageFraction)
     : '—'
+  const avgViewPercentage = lastVideoAverageFraction != null
+    ? formatPercent(lastVideoAverageFraction * 100)
+    : '—'
   const maxConcurrent = lastVideo ? Math.max(3, Math.round((Number(lastVideo.views) || 0) * 0.007)) : 0
   const performanceTitle = lastVideo?.type === 'live' ? 'Эффективность прямой трансляции' : 'Эффективность последнего видео'
+  const recentRankingPool = videos.slice(0, 10)
+  const lastVideoRank = lastVideo
+    ? [...recentRankingPool]
+        .sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0))
+        .findIndex((video) => video.id === lastVideo.id) + 1
+    : 0
 
   return (
     <div className={s.page}>
@@ -111,12 +126,18 @@ export default function Screen1Dashboard() {
         <div className={s.grid}>
           <section className={s.col}>
             {lastVideo ? (
-              <div className={s.card}>
-                <h2 className={s.cardTitle}>{performanceTitle}</h2>
-                <div className={s.perfThumb}>
-                  <img src={lastVideo.cover || PERFORMANCE_THUMB} alt="" />
+              <div className={`${s.card} ${s.performanceCard}`} data-testid="performance-card">
+                <h2 className={`${s.cardTitle} ${s.performanceTitle}`}>
+                  {performanceTitle}
+                  {lastVideo.type === 'short' ? <span>Shorts</span> : null}
+                </h2>
+                <div className={s.perfThumb} data-testid="performance-thumbnail">
+                  <img
+                    src={lastVideo.cover || PERFORMANCE_THUMB}
+                    alt={`Обложка видео «${lastVideo.title}»`}
+                  />
+                  <h3 className={s.videoHeading}>{lastVideo.title}</h3>
                 </div>
-                <h3 className={s.videoHeading}>{lastVideo.title}</h3>
                 <div className={s.statsRow}>
                   <span className={s.stat}><ChartIcon />{formatViews(lastVideo.views)}</span>
                   <span className={s.stat}><CommentIcon />{formatNumber(lastVideoComments)}</span>
@@ -131,27 +152,53 @@ export default function Screen1Dashboard() {
                 {lastVideo.type === 'live' ? (
                   <div className={s.infoLine}>Для прямых трансляций сравнение показателей доступно только за периоды после публикации.</div>
                 ) : null}
+                {lastVideo.type !== 'live' ? (
+                  <button type="button" className={s.rankBtn} onClick={() => go('analytics')}>
+                    <span>Место в рейтинге по числу просмотров</span>
+                    <strong>
+                      {Math.max(1, lastVideoRank)} из {Math.max(1, recentRankingPool.length)}
+                      <ChevronRight />
+                    </strong>
+                  </button>
+                ) : null}
                 <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
                   <span>Просмотры</span>
                   <strong>{formatViews(lastVideo.views)}</strong>
                 </button>
-                <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
-                  <span>Средняя продолжительность просмотра</span>
-                  <strong>{avgViewDuration}</strong>
-                </button>
                 {lastVideo.type === 'live' ? (
-                  <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
-                    <span>Макс. число одновременных зрителей</span>
-                    <strong>{formatViews(maxConcurrent)}</strong>
+                  <>
+                    <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
+                      <span>Средняя продолжительность просмотра</span>
+                      <strong>{avgViewDuration}</strong>
+                    </button>
+                    <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
+                      <span>Макс. число одновременных зрителей</span>
+                      <strong>{formatViews(maxConcurrent)}</strong>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
+                      <span>Средний процент просмотра</span>
+                      <strong>{avgViewPercentage}</strong>
+                    </button>
+                    <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
+                      <span>Отметки "Нравится"</span>
+                      <strong>{formatNumber(lastVideo.likes || 0)}</strong>
+                    </button>
+                  </>
+                )}
+                <div className={s.performanceActions} data-testid="performance-actions">
+                  <button type="button" className={s.catchBtn} onClick={() => showToast('Catch me up on this video')}>
+                    <SparkleIcon size={18} />
+                    Catch me up on this video
                   </button>
-                ) : null}
-                <button type="button" className={s.catchBtn} onClick={() => showToast('Catch me up on this video')}>
-                  <SparkleIcon size={18} />
-                  Catch me up on this video
-                </button>
-                <div className={s.linkStack}>
-                  <button type="button" className={s.linkBtn} onClick={() => go('analytics')}>Посмотреть статистику по видео</button>
-                  <button type="button" className={s.linkBtn} onClick={() => go('community')}>Перейти к комментариям ({formatNumber(lastVideoComments)})</button>
+                  <button type="button" className={s.performanceIconBtn} onClick={() => go('analytics')} aria-label="Посмотреть статистику по видео">
+                    <ChartIcon />
+                  </button>
+                  <button type="button" className={s.performanceIconBtn} onClick={() => go('community')} aria-label={`Перейти к комментариям (${formatNumber(lastVideoComments)})`}>
+                    <CommentIcon />
+                  </button>
                 </div>
               </div>
             ) : (

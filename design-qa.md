@@ -52,3 +52,47 @@ project's Supabase data.
 - No new browser console errors after a clean reload.
 
 final result: passed
+
+---
+
+# Design QA — latest video performance card
+
+## Scope
+
+Compared the dashboard card with the supplied YouTube Studio reference. Channel
+identity, video media, titles, dates, and metric values remain project data.
+
+## Evidence
+
+- Reference: `C:\Users\oatmeal\AppData\Local\Temp\codex-clipboard-a27de65d-086e-4aff-b317-79014c1a077f.png`
+- Implementation: `C:\Users\oatmeal\AppData\Local\Temp\codex-dashboard-card-light-after.png`
+- Reference size: 506 × 762 px
+- Implementation viewport: 1920 × 1080 px, DPR 1
+- Implementation card crop: 392 × 584 px
+- State: dashboard, light theme, latest published video
+
+## Comparison
+
+- The cover is now 16:9 and clips to a 12 px radius. After normalizing the card
+  width to the reference, the cover is 431 × 242 px with an effective 15 px
+  radius, matching the supplied screenshot.
+- The video title is overlaid inside the cover rather than placed below it.
+- The card order now matches the reference: title, cover, compact counters,
+  publication age, ranking, views, average percentage viewed, likes, actions.
+- The ranking is calculated from the ten latest videos instead of being fixed.
+- The bottom actions are one filled Catch button and two circular icon buttons;
+  the old stacked blue links are removed.
+- Shorts adds the second header line only when the latest record is actually a
+  Short. The current implementation screenshot uses the real normal-video data.
+
+## Validation
+
+- `npm run lint`
+- `npm run build`
+- `npm run verify:refresh`
+- `npm run verify:images`
+- `npm run verify:site-session`
+- Side-by-side visual inspection at original resolution
+- DOM geometry check: 16:9 ratio and 12 px computed border radius
+
+final result: passed
