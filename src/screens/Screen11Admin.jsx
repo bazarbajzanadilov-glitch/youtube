@@ -111,14 +111,11 @@ function Screen11AdminContent() {
   const {
     channel,
     update: updateChannel,
-    updateSubscriberDailyStats,
     replace: replaceProject,
   } = useChannel()
   const [form, setForm] = useState(blankForm())
   const [channelDraft, setChannelDraft] = useState(null)
-  const [subscriberStatsDraft, setSubscriberStatsDraft] = useState(null)
   const [saving, setSaving] = useState(false)
-  const [savingSubscriberStats, setSavingSubscriberStats] = useState(false)
   const [sitePassword, setSitePassword] = useState('')
   const [sitePasswordConfirm, setSitePasswordConfirm] = useState('')
   const [savingSitePassword, setSavingSitePassword] = useState(false)
@@ -129,28 +126,24 @@ function Screen11AdminContent() {
   const [confirmChecked, setConfirmChecked] = useState(false)
   const fileInputRef = useRef(null)
   const projectFileInputRef = useRef(null)
+  const videoTableScrollRef = useRef(null)
+  const videoTableTopScrollRef = useRef(null)
 
   const editableChannel = channelDraft || channel
+
+  function syncVideoTableScroll(source, target) {
+    if (!target || target.scrollLeft === source.scrollLeft) return
+    target.scrollLeft = source.scrollLeft
+  }
   const dashboardComments = Array.isArray(editableChannel.dashboardComments)
     ? editableChannel.dashboardComments
     : CHANNEL_DEFAULTS.dashboardComments
   const recentSubscribers = Array.isArray(editableChannel.recentSubscribers)
     ? editableChannel.recentSubscribers
     : CHANNEL_DEFAULTS.recentSubscribers
-  const subscriberDailyStats = useMemo(
-    () => (
-      Array.isArray(subscriberStatsDraft)
-        ? subscriberStatsDraft
-        : (Array.isArray(channel.subscriberDailyStats) ? channel.subscriberDailyStats : [])
-    ),
-    [channel.subscriberDailyStats, subscriberStatsDraft],
-  )
-  const subscriberStatsRows = useMemo(
-    () => subscriberDailyStats
-      .map((row, sourceIndex) => ({ ...row, sourceIndex }))
-      .sort((a, b) => b.date.localeCompare(a.date)),
-    [subscriberDailyStats],
-  )
+  const subscriberDailyStats = Array.isArray(channel.subscriberDailyStats)
+    ? channel.subscriberDailyStats
+    : []
 
   const isEditing = form.id !== null
   const allSelected = videos.length > 0 && selected.size === videos.length
@@ -552,28 +545,6 @@ function Screen11AdminContent() {
     }
   }
 
-  function updateSubscriberStat(sourceIndex, patch) {
-    setSubscriberStatsDraft((current) => {
-      const source = Array.isArray(current) ? current : subscriberDailyStats
-      return source.map((row, index) => (
-        index === sourceIndex ? { ...row, ...patch } : { ...row }
-      ))
-    })
-  }
-
-  async function onSaveSubscriberStats() {
-    setSavingSubscriberStats(true)
-    try {
-      await updateSubscriberDailyStats(subscriberDailyStats)
-      setSubscriberStatsDraft(null)
-      showToast('История подписчиков сохранена и аналитика обновлена')
-    } catch (error) {
-      showToast(error.message || 'Не удалось сохранить историю подписчиков')
-    } finally {
-      setSavingSubscriberStats(false)
-    }
-  }
-
   async function onAdminSignOut() {
     try {
       await signOutAdmin()
@@ -721,6 +692,7 @@ function Screen11AdminContent() {
                   <label className={s.field}>
                     <span>Дата публикации</span>
                     <input className={s.input} type="date" value={form.date} onChange={(e) => setField('date', e.target.value)} />
+                    <span className={s.fieldHint}>В этот день на графиках появится иконка опубликованного видео.</span>
                   </label>
                   <label className={s.field}>
                     <span>Длительность</span>
@@ -857,7 +829,10 @@ function Screen11AdminContent() {
 
         <section className={s.librarySection}>
           <div className={s.libraryHead}>
-            <h2>Видео ({videos.length})</h2>
+            <div>
+              <h2>Видео ({videos.length})</h2>
+              <span className={s.sectionHint}>Укажите дату в строке видео — на этот день автоматически появится значок публикации на графиках аналитики.</span>
+            </div>
             <div className={s.toolbar}>
               <button type="button" className={s.dangerGhostBtn} onClick={onDeleteSelected} disabled={selected.size === 0}>Удалить выбранные{selected.size ? ` (${selected.size})` : ''}</button>
               <input className={s.bulkInput} type="number" min="1" max="500" value={bulkCount} onChange={(e) => setBulkCount(e.target.value)} />
@@ -870,8 +845,33 @@ function Screen11AdminContent() {
           {videos.length === 0 ? (
             <div className={s.empty}>Видео пока нет.</div>
           ) : (
-            <div className={s.tableWrap}>
-              <table className={s.table}>
+            <>
+              <div
+                ref={videoTableTopScrollRef}
+                className={s.tableScrollTop}
+                aria-label="Прокрутка таблицы видео"
+                onScroll={(event) => syncVideoTableScroll(event.currentTarget, videoTableScrollRef.current)}
+              >
+                <div className={s.tableScrollTrack} />
+              </div>
+              <div
+                ref={videoTableScrollRef}
+                className={s.tableWrap}
+                onScroll={(event) => syncVideoTableScroll(event.currentTarget, videoTableTopScrollRef.current)}
+              >
+                <table className={s.table}>
+                <colgroup>
+                  <col className={s.colCheck} />
+                  <col className={s.colVideo} />
+                  <col className={s.colDate} />
+                  <col className={s.colType} />
+                  <col className={s.colDuration} />
+                  <col className={s.colAverage} />
+                  <col className={s.colViews} />
+                  <col className={s.colRevenue} />
+                  <col className={s.colLikes} />
+                  <col className={s.colActions} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th className={s.checkCol}><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Выбрать все" /></th>
@@ -890,13 +890,15 @@ function Screen11AdminContent() {
                   {videos.map((video) => (
                     <tr key={video.id}>
                       <td><input type="checkbox" checked={selected.has(video.id)} onChange={() => toggleOne(video.id)} aria-label={`Выбрать ${video.title}`} /></td>
-                      <td className={s.videoCell}>
-                        <div className={s.thumb}>
-                          {video.cover ? <img src={video.cover} alt="" /> : <div className={s.thumbBlank} />}
-                        </div>
-                        <div className={s.inlineTitle}>
-                          <input defaultValue={video.title} onBlur={(e) => updateVideoField(video, { title: e.target.value })} />
-                          <span>{video.id}</span>
+                      <td>
+                        <div className={s.videoCell}>
+                          <div className={s.thumb}>
+                            {video.cover ? <img src={video.cover} alt="" /> : <div className={s.thumbBlank} />}
+                          </div>
+                          <div className={s.inlineTitle}>
+                            <input defaultValue={video.title} onBlur={(e) => updateVideoField(video, { title: e.target.value })} />
+                            <span>{video.id}</span>
+                          </div>
                         </div>
                       </td>
                       <td><input className={s.tableInput} type="date" value={video.date} onChange={(e) => updateVideoField(video, { date: e.target.value })} /></td>
@@ -928,82 +930,22 @@ function Screen11AdminContent() {
                         <span>{formatLikePct(video.likePct)}</span>
                       </td>
                       <td className={s.actionCell}>
-                        <button type="button" className={s.tableBtn} onClick={() => onEdit(video)}>Открыть</button>
-                        <button type="button" className={s.deleteBtn} onClick={() => onDelete(video.id)}>Удалить</button>
+                        <div className={s.actionButtons}>
+                          <button type="button" className={s.tableBtn} onClick={() => onEdit(video)}>Открыть</button>
+                          <button type="button" className={s.deleteBtn} onClick={() => onDelete(video.id)}>Удалить</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        <section className={`${s.librarySection} ${s.subscriberHistorySection}`}>
-          <div className={s.libraryHead}>
-            <div>
-              <h2>История подписчиков ({subscriberDailyStats.length})</h2>
-              <span className={s.sectionHint}>
-                Завершённые дни добавляются автоматически. Можно скорректировать плавное распределение, а его сумма всегда синхронизируется с общим числом подписчиков в Supabase.
-              </span>
-            </div>
-            <div className={s.toolbar}>
-              <button
-                type="button"
-                className={s.submitBtn}
-                onClick={onSaveSubscriberStats}
-                disabled={savingSubscriberStats || subscriberStatsDraft === null}
-              >
-                {savingSubscriberStats ? 'Сохранение…' : 'Сохранить историю'}
-              </button>
-            </div>
-          </div>
-
-          {subscriberStatsRows.length === 0 ? (
-            <div className={s.empty}>История появится автоматически после сохранения числа подписчиков.</div>
-          ) : (
-            <div className={`${s.tableWrap} ${s.subscriberStatsTableWrap}`}>
-              <table className={`${s.table} ${s.subscriberStatsTable}`}>
-                <thead>
-                  <tr>
-                    <th>Дата</th>
-                    <th>Прирост</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {subscriberStatsRows.map((row) => {
-                    return (
-                      <tr key={`${row.date}-${row.sourceIndex}`}>
-                        <td>
-                          <input
-                            className={s.tableInput}
-                            type="date"
-                            value={row.date}
-                            readOnly
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className={s.tableInput}
-                            type="number"
-                            min="0"
-                            value={row.gained}
-                            onChange={(event) => updateSubscriberStat(row.sourceIndex, { gained: parseCount(event.target.value) ?? 0 })}
-                          />
-                        </td>
-                        <td></td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                </table>
+              </div>
+            </>
           )}
         </section>
 
         <details className={s.extraSection}>
-          <summary>Дополнительно: комментарии и новые подписчики</summary>
+          <summary>Комментарии и новые подписчики — открыть настройки</summary>
           <div className={s.extraGrid}>
             <section className={s.inlineEditor}>
               <div className={s.inlineEditorHead}>

@@ -46,9 +46,6 @@ const {
   markerBadgeHeight: MARKER_BADGE_HEIGHT,
   markerBadgeMinWidth: MARKER_BADGE_MIN_WIDTH,
   markerBadgeGap: MARKER_BADGE_GAP,
-  markerBadgeFontWidth: MARKER_BADGE_FONT_WIDTH,
-  markerBadgeHPadding: MARKER_BADGE_H_PADDING,
-  markerBadgeTextY: MARKER_BADGE_TEXT_Y,
   markerTooltipMaxWidth: MARKER_TOOLTIP_MAX_WIDTH,
   markerTooltipMinWidth: MARKER_TOOLTIP_MIN_WIDTH,
   markerTooltipEdgeGap: MARKER_TOOLTIP_EDGE_GAP,
@@ -204,84 +201,58 @@ function TimelineMarkersOverlay({ markers, onHover, onLeave }) {
       const rawX = finiteNumber(xScale(marker.date))
       if (rawX == null) return null
       const count = Number(marker.count) || 0
-      const label = count > 9 ? '9+' : String(count || marker.label || '')
-      if (!label) return null
-      const width = Math.max(MARKER_BADGE_MIN_WIDTH, label.length * MARKER_BADGE_FONT_WIDTH + MARKER_BADGE_H_PADDING)
+      if (count <= 0) return null
       return {
         marker,
         index,
-        label,
-        width,
         x: Math.max(minX, Math.min(maxX, rawX)),
       }
     })
     .filter(Boolean)
 
+  const minimumMarkerDistance = MARKER_BADGE_MIN_WIDTH + MARKER_BADGE_GAP
   for (let index = 1; index < items.length; index += 1) {
     const previous = items[index - 1]
     const item = items[index]
-    const minPosition = previous.x + (previous.width / 2) + (item.width / 2) + MARKER_BADGE_GAP
-    if (item.x < minPosition) item.x = minPosition
+    item.x = Math.max(item.x, previous.x + minimumMarkerDistance)
   }
 
-  const last = items[items.length - 1]
-  const overflowRight = last ? (last.x + (last.width / 2)) - (plotArea.x + plotArea.width) : 0
-  if (overflowRight > 0) {
-    items.forEach((item) => { item.x -= overflowRight })
-  }
+  const overflowRight = (items[items.length - 1]?.x || 0) - maxX
+  if (overflowRight > 0) items.forEach((item) => { item.x -= overflowRight })
 
-  const first = items[0]
-  const overflowLeft = first ? plotArea.x - (first.x - (first.width / 2)) : 0
-  if (overflowLeft > 0) {
-    items.forEach((item) => { item.x += overflowLeft })
-  }
+  const overflowLeft = minX - (items[0]?.x || minX)
+  if (overflowLeft > 0) items.forEach((item) => { item.x += overflowLeft })
 
   return (
     <g className={s.processingMarkerGroup} aria-hidden="true">
-      {items.map(({ marker, index, label, width, x }) => {
+      {items.map(({ marker, index, x }) => {
         const y = plotArea.y + plotArea.height + TIMELINE_MARKER_OFFSET
+        const showTooltip = () => setTooltip(marker, x)
 
         return (
           <g
             key={`${marker.date}-${index}`}
             transform={`translate(${x}, ${y})`}
+            className={s.publishedVideoMarker}
+            onPointerEnter={showTooltip}
+            onPointerMove={showTooltip}
             onPointerLeave={() => onLeave?.()}
             onPointerOut={() => onLeave?.()}
             onPointerCancel={() => onLeave?.()}
+            onMouseEnter={showTooltip}
+            onMouseMove={showTooltip}
             onMouseLeave={() => onLeave?.()}
+            onClick={showTooltip}
           >
             <rect
               className={s.processingMarkerBadge}
-              x={-width / 2}
+              x={-MARKER_BADGE_MIN_WIDTH / 2}
               y={0}
-              width={width}
+              width={MARKER_BADGE_MIN_WIDTH}
               height={MARKER_BADGE_HEIGHT}
               rx={3}
-              onPointerEnter={() => setTooltip(marker, x)}
-              onPointerMove={() => setTooltip(marker, x)}
-              onPointerLeave={() => onLeave?.()}
-              onPointerOut={() => onLeave?.()}
-              onMouseEnter={() => setTooltip(marker, x)}
-              onMouseMove={() => setTooltip(marker, x)}
-              onMouseLeave={() => onLeave?.()}
-              onClick={() => setTooltip(marker, x)}
             />
-            <text
-              className={s.processingMarkerText}
-              x={0}
-              y={MARKER_BADGE_TEXT_Y}
-              textAnchor="middle"
-              onPointerEnter={() => setTooltip(marker, x)}
-              onPointerMove={() => setTooltip(marker, x)}
-              onPointerLeave={() => onLeave?.()}
-              onPointerOut={() => onLeave?.()}
-              onMouseEnter={() => setTooltip(marker, x)}
-              onMouseMove={() => setTooltip(marker, x)}
-              onMouseLeave={() => onLeave?.()}
-              onClick={() => setTooltip(marker, x)}
-            >
-              {label}
-            </text>
+            <path className={s.processingMarkerPlay} d="M-2.5 4.3 4.2 8l-6.7 3.7Z" />
           </g>
         )
       })}
@@ -291,9 +262,10 @@ function TimelineMarkersOverlay({ markers, onHover, onLeave }) {
 
 function TimelineAxisOverlay({ ticks = [], formatter, fontSize = 11 }) {
   const plotArea = usePlotArea()
-  if (!plotArea || ticks.length === 0) return null
+  const xScale = useXAxisScale()
+  if (!plotArea || !xScale || ticks.length === 0) return null
 
-  const tickLayouts = buildTimelineTickLayouts(ticks, plotArea, formatter)
+  const tickLayouts = buildTimelineTickLayouts(ticks, plotArea, xScale, formatter)
   const left = alignGridCoordinate(plotArea.x)
   const right = alignGridCoordinate(plotArea.x + plotArea.width)
   const railY = alignGridCoordinate(plotArea.y + plotArea.height + TIMELINE_RAIL_OFFSET)
@@ -376,20 +348,29 @@ function formatTimelineTickLabel(tick, formatter) {
   return label.replace(/\s{2,}/g, ' ').trim()
 }
 
-function buildTimelineTickLayouts(ticks, plotArea, formatter) {
+function buildTimelineTickLayouts(ticks, plotArea, xScale, formatter) {
   if (!Array.isArray(ticks) || ticks.length === 0) return []
-  const step = ticks.length > 1 ? plotArea.width / (ticks.length - 1) : plotArea.width
-  const middleWidth = Math.max(18, step - TIMELINE_LABEL_GAP)
-  const edgeWidth = Math.max(18, Math.min(middleWidth, TIMELINE_EDGE_LABEL_WIDTH))
-
+  const positions = ticks.map((tick, index) => {
+    const scaled = finiteNumber(xScale?.(tick))
+    const fallback = ticks.length > 1
+      ? plotArea.x + ((plotArea.width * index) / (ticks.length - 1))
+      : plotArea.x + (plotArea.width / 2)
+    return scaled == null ? fallback : scaled
+  })
   return ticks
     .map((tick, index) => {
-      const rawX = ticks.length > 1
-        ? plotArea.x + ((plotArea.width * index) / (ticks.length - 1))
-        : plotArea.x + (plotArea.width / 2)
+      const rawX = positions[index]
       const x = alignGridCoordinate(rawX)
       const isFirst = index === 0
       const isLast = index === ticks.length - 1
+      const previousX = positions[index - 1] ?? plotArea.x
+      const nextX = positions[index + 1] ?? (plotArea.x + plotArea.width)
+      const availableWidth = isFirst || isLast
+        ? Math.abs(nextX - previousX)
+        : Math.min(Math.abs(rawX - previousX), Math.abs(nextX - rawX)) * 2
+      const step = Math.max(18, availableWidth)
+      const middleWidth = Math.max(18, step - TIMELINE_LABEL_GAP)
+      const edgeWidth = Math.max(18, Math.min(middleWidth, TIMELINE_EDGE_LABEL_WIDTH))
       const label = formatTimelineTickLabel(tick, formatter)
       const labelWidth = Math.min(plotArea.width, isFirst || isLast ? edgeWidth : middleWidth)
       const labelX = isFirst

@@ -107,15 +107,19 @@
   cursor: default;
 }
 
-.processingMarkerText {
+.publishedVideoMarker {
+  cursor: pointer;
+}
+
+.processingMarkerPlay {
   fill: var(--studio-chart-marker-text);
   font-family: var(--studio-font);
-  font-size: 11px;
   font-weight: 600;
-  line-height: 16px;
-  cursor: default;
-  pointer-events: auto;
   user-select: none;
+}
+
+.processingMarkerPlay {
+  pointer-events: none;
 }
 
 .markerTooltip {
