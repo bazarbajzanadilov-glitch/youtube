@@ -3,7 +3,7 @@ begin;
 -- Persisted analytics history. Lifetime counters remain on public.videos,
 -- while every chart and period comparison is built from these completed
 -- Asia/Almaty calendar days.
-create table public.video_daily_stats (
+create table if not exists public.video_daily_stats (
   id uuid primary key default gen_random_uuid(),
   video_id text not null references public.videos(id) on delete cascade,
   channel_id uuid not null references public.channels(id) on delete cascade,
@@ -20,9 +20,11 @@ create table public.video_daily_stats (
   unique (video_id, date)
 );
 
-create index video_daily_stats_channel_date_idx
+create index if not exists video_daily_stats_channel_date_idx
   on public.video_daily_stats (channel_id, date);
 
+drop trigger if exists video_daily_stats_set_updated_at
+on public.video_daily_stats;
 create trigger video_daily_stats_set_updated_at
 before update on public.video_daily_stats
 for each row execute function private.set_updated_at();
@@ -36,19 +38,27 @@ to authenticated;
 grant select, insert, update, delete on table public.video_daily_stats
 to service_role;
 
+drop policy if exists "admins read video daily stats"
+on public.video_daily_stats;
 create policy "admins read video daily stats"
 on public.video_daily_stats for select to authenticated
 using ((select private.is_studio_admin()));
 
+drop policy if exists "admins insert video daily stats"
+on public.video_daily_stats;
 create policy "admins insert video daily stats"
 on public.video_daily_stats for insert to authenticated
 with check ((select private.is_studio_admin()));
 
+drop policy if exists "admins update video daily stats"
+on public.video_daily_stats;
 create policy "admins update video daily stats"
 on public.video_daily_stats for update to authenticated
 using ((select private.is_studio_admin()))
 with check ((select private.is_studio_admin()));
 
+drop policy if exists "admins delete video daily stats"
+on public.video_daily_stats;
 create policy "admins delete video daily stats"
 on public.video_daily_stats for delete to authenticated
 using ((select private.is_studio_admin()));
@@ -537,10 +547,12 @@ from public, anon, authenticated;
 grant execute on function private.sync_video_daily_stats()
 to authenticated;
 
+drop trigger if exists videos_seed_daily_stats on public.videos;
 create trigger videos_seed_daily_stats
 after insert on public.videos
 for each row execute function private.sync_video_daily_stats();
 
+drop trigger if exists videos_reconcile_daily_stats on public.videos;
 create trigger videos_reconcile_daily_stats
 after update of
   channel_id,
@@ -578,9 +590,20 @@ update public.subscriber_daily_stats
 set lost = 0
 where lost <> 0;
 
-alter table public.subscriber_daily_stats
-add constraint subscriber_daily_stats_lost_zero
-check (lost = 0);
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_catalog.pg_constraint
+    where conname = 'subscriber_daily_stats_lost_zero'
+      and conrelid = 'public.subscriber_daily_stats'::regclass
+  ) then
+    alter table public.subscriber_daily_stats
+    add constraint subscriber_daily_stats_lost_zero
+    check (lost = 0);
+  end if;
+end
+$$;
 
 create or replace function private.subscriber_daily_growth_factor(
   p_channel_id uuid,
