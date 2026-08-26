@@ -129,6 +129,7 @@ const EXPANDED_SIDEBAR_MIN_WIDTH = 1200
 
 function normalizeHashRoute() {
   if (new URLSearchParams(window.location.search).get('adminSetup') === '1') return 'admin'
+  if (window.location.pathname.replace(/\/+$/, '') === '/admin') return 'admin'
   const raw = window.location.hash.replace(/^#\/?/, '') || 'dashboard'
   return ROUTE_ALIASES[raw] || raw
 }
@@ -184,7 +185,7 @@ export default function App() {
     const onHashChange = () => setRoute(normalizeHashRoute())
     continueDoubleHardResetIfNeeded().catch(() => false).then((isResetting) => {
       if (cancelled || isResetting) return
-      if (!window.location.hash) {
+      if (!window.location.hash && window.location.pathname.replace(/\/+$/, '') !== '/admin') {
         window.location.replace('#/dashboard')
       }
       window.addEventListener('hashchange', onHashChange)

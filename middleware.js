@@ -9,9 +9,11 @@ export const config = {
 }
 
 export default function middleware(request) {
-  if (isSiteRequestAuthorized(request)) return next()
-
   const url = new URL(request.url)
+  // Админка имеет отдельную авторизацию Supabase. Hash-маршрут #/admin
+  // сервер не видит, поэтому используем явный /admin как точку входа.
+  if (url.pathname === '/admin' || isSiteRequestAuthorized(request)) return next()
+
   const loginUrl = new URL('/api/site-login', url)
   loginUrl.searchParams.set('returnTo', `${url.pathname}${url.search}`)
   return Response.redirect(loginUrl, 307)

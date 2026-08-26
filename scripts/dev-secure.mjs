@@ -65,7 +65,9 @@ const server = createHttpServer(async (request, response) => {
   if (url.pathname === '/api/admin-login') return adminLoginHandler(request, response)
   if (url.pathname === '/api/admin-site-password') return adminSitePasswordHandler(request, response)
 
-  if (!isSiteRequestAuthorized(request)) {
+  // /admin защищён собственной формой AdminGate и не должен требовать
+  // пароль посетителя сайта до показа входа администратора.
+  if (url.pathname !== '/admin' && !isSiteRequestAuthorized(request)) {
     response.statusCode = 307
     response.setHeader(
       'Location',
