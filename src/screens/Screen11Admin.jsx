@@ -25,7 +25,10 @@ import {
 } from '../lib/studioImage.js'
 import { getAlmatyDateISO } from '../lib/almatyDate.js'
 import ChannelAvatar from '../components/ChannelAvatar.jsx'
-import { normalizeAverageViewPercentage } from '../lib/videoMetrics.js'
+import {
+  DEFAULT_AVERAGE_VIEW_PERCENTAGE,
+  normalizeAverageViewPercentage,
+} from '../lib/videoMetrics.js'
 
 const COUNTRIES = [
   { code: 'RU', label: 'Россия' },
@@ -66,7 +69,7 @@ const blankForm = () => ({
   revenue: '',
   likes: '',
   dislikes: '',
-  averageViewPercentage: '',
+  averageViewPercentage: String(DEFAULT_AVERAGE_VIEW_PERCENTAGE),
   autoViews: true,
   autoRevenue: true,
 })
@@ -351,9 +354,9 @@ function Screen11AdminContent() {
       revenue: String(video.revenue),
       likes: String(video.likes ?? 0),
       dislikes: String(video.dislikes ?? 0),
-      averageViewPercentage: video.averageViewPercentage == null
-        ? ''
-        : String(video.averageViewPercentage),
+      averageViewPercentage: String(normalizeAverageViewPercentage(
+        video.averageViewPercentage,
+      )),
       autoViews: video._autoStats?.views === true,
       autoRevenue: video._autoStats?.revenue === true,
     })
@@ -916,7 +919,9 @@ function Screen11AdminContent() {
                           min="0"
                           max="100"
                           step="0.01"
-                          defaultValue={video.averageViewPercentage ?? ''}
+                          defaultValue={normalizeAverageViewPercentage(
+                            video.averageViewPercentage,
+                          )}
                           onBlur={(e) => updateVideoField(video, {
                             averageViewPercentage: normalizeAverageViewPercentage(e.target.value),
                           })}

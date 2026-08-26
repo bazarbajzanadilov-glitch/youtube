@@ -2,9 +2,6 @@ import { createRoot } from 'react-dom/client'
 import './studio-tokens.css'
 import './index.css'
 import App from './App.jsx'
-import { loadRemoteProject } from './data/projectStore.js'
-
-loadRemoteProject().catch(() => {})
 
 function removeForeignDevGlobalStyles() {
   if (!import.meta.env.DEV || typeof document === 'undefined') return

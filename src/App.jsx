@@ -13,6 +13,7 @@ import Screen8bHomeTab from './screens/Screen8bHomeTab.jsx'
 import Screen9AudioLibrary from './screens/Screen9AudioLibrary.jsx'
 import Screen10Settings from './screens/Screen10Settings.jsx'
 import Screen11Admin from './screens/Screen11Admin.jsx'
+import { loadRemoteProject } from './data/projectStore.js'
 import { continueDoubleHardResetIfNeeded } from './lib/hardResetSite.js'
 import { useVideos } from './storage/useVideos.js'
 import {
@@ -154,6 +155,13 @@ export default function App() {
   const current = getScreenByRoute(route)
   const Current = current.Component
   const resolvedTheme = resolveTheme(themePreference, systemTheme)
+  const directAdminEntry = route === 'admin'
+    && window.location.pathname.replace(/\/+$/, '') === '/admin'
+
+  useEffect(() => {
+    if (directAdminEntry) return
+    loadRemoteProject().catch(() => {})
+  }, [directAdminEntry])
 
   const showToast = useCallback((message) => {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -253,7 +261,7 @@ export default function App() {
 
   const sidebarWidth = sidebarExpanded ? 'var(--studio-sidebar-expanded-width)' : 'var(--studio-sidebar-compact-width)'
 
-  if (projectLoading || projectError) {
+  if (!directAdminEntry && (projectLoading || projectError)) {
     return (
       <div className={styles.dataState}>
         <div className={styles.dataStateCard}>

@@ -5,7 +5,10 @@ import adminSitePasswordHandler from '../api/admin-site-password.js'
 import siteDataHandler from '../api/site-data.js'
 import siteLoginHandler from '../api/site-login.js'
 import siteLogoutHandler from '../api/site-logout.js'
-import { isSiteRequestAuthorized } from '../server/siteSession.js'
+import {
+  isSitePublicPath,
+  isSiteRequestAuthorized,
+} from '../server/siteSession.js'
 
 async function readStdinEnvironment() {
   if (!process.argv.includes('--stdin-env')) return
@@ -65,9 +68,7 @@ const server = createHttpServer(async (request, response) => {
   if (url.pathname === '/api/admin-login') return adminLoginHandler(request, response)
   if (url.pathname === '/api/admin-site-password') return adminSitePasswordHandler(request, response)
 
-  // /admin защищён собственной формой AdminGate и не должен требовать
-  // пароль посетителя сайта до показа входа администратора.
-  if (url.pathname !== '/admin' && !isSiteRequestAuthorized(request)) {
+  if (!isSitePublicPath(url.pathname) && !isSiteRequestAuthorized(request)) {
     response.statusCode = 307
     response.setHeader(
       'Location',

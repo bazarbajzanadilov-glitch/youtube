@@ -3,6 +3,24 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 export const SITE_COOKIE_NAME = 'yt_site_session'
 export const SITE_SESSION_MAX_AGE = 60 * 60 * 24 * 7
 
+const PUBLIC_SITE_PATHS = new Set([
+  '/admin',
+  '/api/admin-login',
+  '/@react-refresh',
+  '/favicon.svg',
+  '/icons.svg',
+])
+
+const PUBLIC_ASSET_PREFIXES = [
+  '/assets/',
+  '/fonts/',
+  '/@vite/',
+  '/node_modules/.vite/',
+  '/node_modules/vite/',
+  '/src/',
+  '/studio-assets/',
+]
+
 function encode(value) {
   return Buffer.from(String(value)).toString('base64url')
 }
@@ -67,4 +85,22 @@ export function siteCookie(token, { secure = true, maxAge = SITE_SESSION_MAX_AGE
 export function isSiteRequestAuthorized(request) {
   const token = readCookie(request.headers?.cookie || request.headers?.get?.('cookie'), SITE_COOKIE_NAME)
   return verifySiteSession(token, process.env.SITE_SESSION_SECRET)
+}
+
+export function isSitePublicPath(pathname) {
+  const normalized = `/${String(pathname || '').replace(/^\/+|\/+$/g, '')}`
+  if (PUBLIC_SITE_PATHS.has(normalized)) return true
+  return PUBLIC_ASSET_PREFIXES.some((prefix) => normalized.startsWith(prefix))
+}
+
+export function requestUsesHttps(request) {
+  const forwardedProto = request.headers?.get?.('x-forwarded-proto')
+    || request.headers?.['x-forwarded-proto']
+  if (String(forwardedProto || '').split(',')[0].trim().toLowerCase() === 'https') return true
+
+  try {
+    return new URL(request.url).protocol === 'https:'
+  } catch {
+    return Boolean(process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'development')
+  }
 }

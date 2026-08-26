@@ -20,6 +20,11 @@ import {
 } from '../src/lib/analyticsFormat.js'
 import { getAlmatyDateISO } from '../src/lib/almatyDate.js'
 import {
+  DEFAULT_AVERAGE_VIEW_PERCENTAGE,
+  averageViewFraction,
+  normalizeAverageViewPercentage,
+} from '../src/lib/videoMetrics.js'
+import {
   generateVideoStats,
   makeId,
   normalizeVideo,
@@ -829,9 +834,28 @@ assert.equal(
 )
 assert.equal(normalizeVideo({ ...oldVideo, averageViewPercentage: -1 }).averageViewPercentage, 0)
 assert.equal(normalizeVideo({ ...oldVideo, averageViewPercentage: 101 }).averageViewPercentage, 100)
-assert.equal(normalizeVideo({ ...oldVideo, averageViewPercentage: '' }).averageViewPercentage, null)
-assert.equal(avgWatchPercent({ ...oldVideo, averageViewPercentage: null }), '—')
-assert.equal(avgWatchPretty({ ...oldVideo, averageViewPercentage: null }), '—')
+assert.equal(normalizeAverageViewPercentage(null), DEFAULT_AVERAGE_VIEW_PERCENTAGE)
+assert.equal(normalizeAverageViewPercentage(''), DEFAULT_AVERAGE_VIEW_PERCENTAGE)
+assert.equal(normalizeAverageViewPercentage('   '), DEFAULT_AVERAGE_VIEW_PERCENTAGE)
+assert.equal(normalizeAverageViewPercentage('not-a-number'), DEFAULT_AVERAGE_VIEW_PERCENTAGE)
+assert.equal(
+  normalizeVideo({ ...oldVideo, averageViewPercentage: '' }).averageViewPercentage,
+  DEFAULT_AVERAGE_VIEW_PERCENTAGE,
+  'clearing the percentage must restore the automatic default',
+)
+assert.equal(
+  normalizeVideo({ title: 'Imported without retention' }).averageViewPercentage,
+  DEFAULT_AVERAGE_VIEW_PERCENTAGE,
+  'new, imported, and bulk videos without retention must receive the automatic default',
+)
+assert.equal(
+  averageViewFraction({ ...oldVideo, averageViewPercentage: null }),
+  DEFAULT_AVERAGE_VIEW_PERCENTAGE / 100,
+)
+assert.equal(avgWatchPercent({ ...oldVideo, averageViewPercentage: null }), '45,1%')
+assert.equal(avgWatchPretty({ ...oldVideo, averageViewPercentage: null }), '3:42')
+assert.equal(avgWatchPercent({ ...oldVideo, averageViewPercentage: 0 }), '0,0%')
+assert.equal(avgWatchPretty({ ...oldVideo, averageViewPercentage: 0 }), '0:00')
 
 const noPercentageAnalytics = build(
   [{ ...oldVideo, averageViewPercentage: null }],
@@ -839,10 +863,31 @@ const noPercentageAnalytics = build(
   { kind: '28d' },
   { today },
 )
+const defaultPercentageAnalytics = build(
+  [{ ...oldVideo, averageViewPercentage: DEFAULT_AVERAGE_VIEW_PERCENTAGE }],
+  channel,
+  { kind: '28d' },
+  { today },
+)
+assert.ok(
+  noPercentageAnalytics.overview.kpis.watchTime.value > 0,
+  'missing percentage must use the automatic default and produce watch time',
+)
 assert.equal(
   noPercentageAnalytics.overview.kpis.watchTime.value,
+  defaultPercentageAnalytics.overview.kpis.watchTime.value,
+  'missing percentage must produce the same watch time as an explicit 45.1 percent',
+)
+const zeroPercentageAnalytics = build(
+  [{ ...oldVideo, averageViewPercentage: 0 }],
+  channel,
+  { kind: '28d' },
+  { today },
+)
+assert.equal(
+  zeroPercentageAnalytics.overview.kpis.watchTime.value,
   0,
-  'missing percentage must not fall back to a fabricated watch-time ratio',
+  'an explicit zero percentage must remain zero',
 )
 const mixedRetentionAnalytics = build(
   [
@@ -858,10 +903,24 @@ const mixedRetentionAnalytics = build(
   { kind: '28d' },
   { today },
 )
+const explicitMixedRetentionAnalytics = build(
+  [
+    oldVideo,
+    {
+      ...oldVideo,
+      id: 'unknown-retention-video',
+      views: oldVideo.views * 10,
+      averageViewPercentage: DEFAULT_AVERAGE_VIEW_PERCENTAGE,
+    },
+  ],
+  channel,
+  { kind: '28d' },
+  { today },
+)
 assert.equal(
-  Math.round(mixedRetentionAnalytics.content.kpis.avgDuration.value),
-  258,
-  'videos with unknown retention must not dilute the known average duration',
+  mixedRetentionAnalytics.content.kpis.avgDuration.value,
+  explicitMixedRetentionAnalytics.content.kpis.avgDuration.value,
+  'missing retention must participate in average duration with the 45.1 percent default',
 )
 
 const futureVideo = {

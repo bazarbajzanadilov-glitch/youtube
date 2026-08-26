@@ -64,13 +64,19 @@ function isMissingRelation(error) {
     || /relation .* does not exist/i.test(error?.message || '')
 }
 
-async function fetchOptionalPages(buildQuery, label) {
-  try {
-    return await fetchAllPages(buildQuery, label)
-  } catch (error) {
-    if (isMissingRelation(error)) return []
-    throw error
+function isMissingVideoDailyStats(error) {
+  return isMissingRelation(error)
+    && /video_daily_stats/i.test(error?.message || '')
+}
+
+export function siteDataErrorDetails(error) {
+  if (isMissingVideoDailyStats(error)) {
+    return {
+      status: 503,
+      message: 'Схема аналитики не готова: отсутствует таблица video_daily_stats. Примените миграции Supabase.',
+    }
   }
+  return { status: 500, message: 'Не удалось загрузить данные сайта' }
 }
 
 function buildRevision(sources) {
@@ -93,25 +99,19 @@ async function latestRows(
   supabase,
   table,
   filterColumn = 'channel_id',
-  { optional = false } = {},
 ) {
-  try {
-    let query = supabase
-      .from(table)
-      .select('updated_at', { count: 'exact' })
-      .order('updated_at', { ascending: false })
-      .limit(1)
+  let query = supabase
+    .from(table)
+    .select('updated_at', { count: 'exact' })
+    .order('updated_at', { ascending: false })
+    .limit(1)
 
-    query = query.eq(filterColumn, STUDIO_CHANNEL_ID)
-    const result = await query
-    const rows = requireData(result, table)
-    return {
-      rows,
-      count: Number.isInteger(result.count) ? result.count : rows.length,
-    }
-  } catch (error) {
-    if (optional && isMissingRelation(error)) return { rows: [], count: 0 }
-    throw error
+  query = query.eq(filterColumn, STUDIO_CHANNEL_ID)
+  const result = await query
+  const rows = requireData(result, table)
+  return {
+    rows,
+    count: Number.isInteger(result.count) ? result.count : rows.length,
   }
 }
 
@@ -122,7 +122,7 @@ async function loadRevision(supabase) {
     latestRows(supabase, 'dashboard_comments'),
     latestRows(supabase, 'recent_subscribers'),
     latestRows(supabase, 'subscriber_daily_stats'),
-    latestRows(supabase, 'video_daily_stats', 'channel_id', { optional: true }),
+    latestRows(supabase, 'video_daily_stats'),
   ])
   const names = [
     'channel',
@@ -205,7 +205,7 @@ export default async function handler(request, response) {
           .order('date', { ascending: true }),
         'subscriber_daily_stats',
       ),
-      fetchOptionalPages(
+      fetchAllPages(
         () => supabase
           .from('video_daily_stats')
           .select('video_id, date, views, watch_seconds, engaged_views, impressions, likes, comments, revenue, updated_at')
@@ -312,6 +312,7 @@ export default async function handler(request, response) {
     })
   } catch (error) {
     console.error('site-data', error?.message || error)
-    return response.status(500).json({ error: 'Не удалось загрузить данные сайта' })
+    const details = siteDataErrorDetails(error)
+    return response.status(details.status).json({ error: details.message })
   }
 }

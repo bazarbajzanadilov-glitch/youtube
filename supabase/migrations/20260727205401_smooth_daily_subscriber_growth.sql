@@ -376,7 +376,17 @@ $$;
 
 -- Supabase Cron runs in UTC. 19:10 UTC is 00:10 in Asia/Almaty, so the new
 -- completed local day is available shortly after midnight.
-create extension if not exists pg_cron with schema pg_catalog;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_catalog.pg_extension
+    where extname = 'pg_cron'
+  ) then
+    execute 'create extension pg_cron';
+  end if;
+end
+$$;
 grant usage on schema cron to postgres;
 grant all privileges on all tables in schema cron to postgres;
 

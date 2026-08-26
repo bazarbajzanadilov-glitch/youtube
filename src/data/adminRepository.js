@@ -176,17 +176,6 @@ export async function signInAdmin(password) {
   })
   const result = await response.json().catch(() => ({}))
 
-  if (
-    import.meta.env.DEV
-    && (!response.ok || !result.accessToken || !result.refreshToken)
-  ) {
-    const supabase = getSupabaseClient()
-    const email = globalThis.atob('YmF6YXJiYWp6YW5hZGlsb3ZAZ21haWwuY29t')
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw new Error('Неверный пароль')
-    return data.session
-  }
-
   if (!response.ok) {
     throw new Error(result.error || 'Неверный пароль')
   }
@@ -201,6 +190,21 @@ export async function signInAdmin(password) {
   })
   if (error) throw error
   return data.session
+}
+
+export async function restoreAdminSiteSession(session) {
+  const accessToken = typeof session === 'string' ? session : session?.access_token
+  if (!accessToken) throw new Error('Сессия админки истекла')
+
+  const response = await fetch('/api/admin-login', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(result.error || 'Не удалось восстановить доступ к сайту')
+  }
 }
 
 export async function signOutAdmin() {

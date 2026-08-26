@@ -1263,7 +1263,17 @@ $$;
 revoke all on function private.roll_daily_analytics()
 from public, anon, authenticated;
 
-create extension if not exists pg_cron with schema pg_catalog;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_catalog.pg_extension
+    where extname = 'pg_cron'
+  ) then
+    execute 'create extension pg_cron';
+  end if;
+end
+$$;
 
 select cron.schedule(
   'refresh-subscriber-daily-growth',
