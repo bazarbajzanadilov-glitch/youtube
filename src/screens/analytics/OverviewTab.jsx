@@ -169,6 +169,7 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
               xTickFormatter={formatDateLong}
               formatTooltipValue={chart.formatTooltipValue}
               eventMarkers={publishedMarkers}
+              processingWindow={metric === 'subscribers' ? null : overview.processingWindow}
             />
           )}
         >

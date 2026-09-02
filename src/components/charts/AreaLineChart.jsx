@@ -418,7 +418,7 @@ export default function AreaLineChart({
   yDomain,
   yAxisOrientation = 'left',
   eventMarkers = [],
-  curve = 'linear',
+  curve = 'monotoneX',
   showAreaFill = true,
   margin,
   yAxisWidth = ANALYTICS_AREA_CHART_DEFAULT_PROPS.yAxisWidth,

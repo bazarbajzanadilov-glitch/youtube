@@ -282,7 +282,7 @@ function buildRevenueSourceRows(seriesByType = {}, activeTab, sourceShares = {})
 }
 
 export default function RevenueTab({ data }) {
-  const { content, monetization, range } = data
+  const { content, monetization, overview, range } = data
   const [activeFilter, setActiveFilter] = useState('all')
   const [activePerformanceTab, setActivePerformanceTab] = useState('video')
   const [activeSourceTab, setActiveSourceTab] = useState('all')
@@ -332,12 +332,12 @@ export default function RevenueTab({ data }) {
     buildRevenueSourceRows(content?.seriesByType, activeSourceTab, sourceShares)
   ), [activeSourceTab, content?.seriesByType, sourceShares])
   const processingWindow = useMemo(() => (
-    buildRevenueProcessingWindow({
+    overview?.processingWindow || buildRevenueProcessingWindow({
       videos: content?.allVideos || [],
       range,
       series: filteredSeries,
     })
-  ), [content?.allVideos, filteredSeries, range])
+  ), [content?.allVideos, filteredSeries, overview?.processingWindow, range])
   const markerVideos = activeFilter === 'shorts-ads'
     ? (content?.allVideos || []).filter((video) => video.type === 'short')
     : activeFilter === 'watch-ads'

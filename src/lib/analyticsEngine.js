@@ -78,55 +78,13 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n))
 }
 
-function profileParams(profile, rand) {
-  switch (profile) {
-    case 'viralSpike':
-      return {
-        peakAt: 1.8 + rand() * 3.4,
-        rampPower: 1.75 + rand() * 0.45,
-        decay: 0.045 + rand() * 0.025,
-        floor: 0.045 + rand() * 0.035,
-        plateau: 1 + Math.floor(rand() * 2),
-        spikeChance: 0.065,
-      }
-    case 'decayAfterPeak':
-      return {
-        peakAt: 1.5 + rand() * 3.5,
-        rampPower: 1.55 + rand() * 0.35,
-        decay: 0.018 + rand() * 0.014,
-        floor: 0.075 + rand() * 0.055,
-        plateau: 1 + Math.floor(rand() * 3),
-        spikeChance: 0.035,
-      }
-    case 'steady':
-      return {
-        peakAt: 1.5 + rand() * 5,
-        rampPower: 1.25 + rand() * 0.3,
-        decay: 0.006 + rand() * 0.006,
-        floor: 0.18 + rand() * 0.12,
-        plateau: 4 + Math.floor(rand() * 7),
-        spikeChance: 0.045,
-      }
-    case 'seasonal':
-      return {
-        peakAt: 2 + rand() * 7,
-        rampPower: 1.35 + rand() * 0.35,
-        decay: 0.008 + rand() * 0.012,
-        floor: 0.13 + rand() * 0.09,
-        plateau: 3 + Math.floor(rand() * 8),
-        spikeChance: 0.06,
-      }
-    case 'gradualGrowth':
-    default:
-      return {
-        peakAt: 2 + rand() * 6,
-        rampPower: 1.35 + rand() * 0.4,
-        decay: 0.011 + rand() * 0.014,
-        floor: 0.1 + rand() * 0.08,
-        plateau: 2 + Math.floor(rand() * 6),
-        spikeChance: 0.05,
-      }
-  }
+export function pickAnalyticsProfile(seed, ageDays = 0) {
+  const profiles = ageDays <= 7
+    ? ['viralSpike', 'gradualGrowth', 'steady', 'seasonal', 'viralSpike']
+    : ageDays >= 180
+      ? ['decayAfterPeak', 'steady', 'seasonal', 'decayAfterPeak', 'gradualGrowth']
+      : ['gradualGrowth', 'viralSpike', 'steady', 'seasonal', 'decayAfterPeak']
+  return profiles[Math.abs(Math.floor(Number(seed) || 0)) % profiles.length]
 }
 
 export function getVideoAgeDays(date, today = new Date()) {
@@ -140,36 +98,63 @@ export function getVideoAgeDays(date, today = new Date()) {
 export function generateLifecycleShape({ seed, days, profile = 'gradualGrowth', startWeekday = 0 }) {
   if (days <= 0) return []
   const rand = seededRng(seed)
-  const params = profileParams(profile, rand)
   const out = new Array(days).fill(0)
-  const peakIdx = clamp(Math.round(params.peakAt), 0, days - 1)
-  let drift = 1
+  const phase = rand() * Math.PI * 2
+  const secondWaveAt = 10 + Math.floor(rand() * 13)
+  const releasePeakAt = 2 + rand() * 2.5
+  let regime = 0.96 + rand() * 0.08
+  let regimeDaysLeft = 3 + Math.floor(rand() * 5)
 
   for (let i = 0; i < days; i += 1) {
-    const weekend = ((startWeekday + i) % 7 >= 5) ? 1.1 : 1
-    const wave = 1 + Math.sin((i + startWeekday) / 7 * Math.PI * 2) * 0.055
-    let phase
+    const weekend = ((startWeekday + i) % 7 >= 5) ? 1.055 : 1
+    const weekly = 1 + Math.sin((i + startWeekday) / 7 * Math.PI * 2 + phase) * 0.045
+    let base
 
-    if (i <= peakIdx) {
-      const t = peakIdx === 0 ? 1 : i / peakIdx
-      phase = 0.035 + Math.pow(t, params.rampPower)
-    } else if (i <= peakIdx + params.plateau) {
-      const t = (i - peakIdx) / Math.max(1, params.plateau)
-      phase = 1 - t * (0.08 + rand() * 0.05)
-    } else {
-      const t = i - peakIdx - params.plateau
-      phase = params.floor + (1 - params.floor) * Math.exp(-t * params.decay)
+    switch (profile) {
+      case 'viralSpike':
+        base = 0.14
+          + 4.8 * Math.exp(-Math.pow((i - releasePeakAt) / 2.6, 2))
+          + 0.52 * Math.exp(-Math.pow((i - secondWaveAt) / 3.8, 2))
+          + 0.42 * Math.exp(-i / 46)
+        break
+      case 'decayAfterPeak':
+        base = 0.2
+          + 2.8 * Math.exp(-i / 24)
+          + 0.38 * Math.exp(-Math.pow((i - secondWaveAt) / 3.2, 2))
+        break
+      case 'steady':
+        base = 0.92
+          + Math.sin(i / 15 * Math.PI * 2 + phase) * 0.07
+          + Math.sin(i / 37 * Math.PI * 2 + phase * 0.4) * 0.04
+        break
+      case 'seasonal':
+        base = 0.88
+          + Math.sin(i / 14 * Math.PI * 2 + phase) * 0.28
+          + Math.sin(i / 31 * Math.PI * 2 + phase * 0.55) * 0.16
+        break
+      case 'gradualGrowth':
+      default: {
+        const discovery = 1 - Math.exp(-i / 8.5)
+        const matureDecay = Math.exp(-Math.max(0, i - 22) / 95)
+        base = 0.28
+          + 1.36 * discovery * matureDecay
+          + 0.34 * Math.exp(-Math.pow((i - secondWaveAt) / 4.2, 2))
+        break
+      }
     }
 
-    drift = clamp(drift + (rand() - 0.5) * 0.08, 0.78, 1.22)
-    let value = phase * weekend * wave * drift * (0.88 + rand() * 0.24)
-    if (rand() < params.spikeChance) value *= 1.18 + rand() * 0.28
-    if (rand() < 0.035) value *= 0.74 + rand() * 0.12
-    out[i] = Math.max(0.015, value)
+    if (regimeDaysLeft <= 0) {
+      regime = clamp(regime + (rand() - 0.5) * 0.12, 0.86, 1.14)
+      regimeDaysLeft = 3 + Math.floor(rand() * 6)
+    }
+    regimeDaysLeft -= 1
+    const ordinaryNoise = 0.94 + rand() * 0.12
+    let value = base * weekend * weekly * regime * ordinaryNoise
+    const spikeChance = profile === 'viralSpike' ? 0.075 : 0.025
+    if (rand() < spikeChance) value *= 1.14 + rand() * 0.18
+    if (rand() < 0.025) value *= 0.82 + rand() * 0.08
+    out[i] = Math.max(0.04, value)
   }
-
-  if (days > 1 && peakIdx > 1) out[0] = Math.min(out[0], out[peakIdx] * (0.28 + rand() * 0.16))
-  if (days > 2 && peakIdx > 2) out[1] = Math.min(out[1], out[peakIdx] * (0.52 + rand() * 0.18))
   return out
 }
 

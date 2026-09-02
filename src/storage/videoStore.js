@@ -4,7 +4,7 @@ import {
   getVideoAgeDays,
   hashSeed,
   inferProfile,
-  seededRng,
+  pickAnalyticsProfile,
 } from '../lib/analyticsEngine.js'
 import { getAlmatyDateISO } from '../lib/almatyDate.js'
 import { normalizeAverageViewPercentage } from '../lib/videoMetrics.js'
@@ -63,13 +63,7 @@ function normalizeType(type, duration) {
 }
 
 function pickProfileFromSeed(seed, ageDays) {
-  const random = seededRng(seed)
-  if (ageDays < 4) return random() > 0.8 ? 'viralSpike' : 'gradualGrowth'
-  if (ageDays > 180) return random() > 0.72 ? 'steady' : 'decayAfterPeak'
-  if (random() > 0.88) return 'viralSpike'
-  if (random() > 0.72) return 'seasonal'
-  if (random() > 0.56) return 'steady'
-  return 'gradualGrowth'
+  return pickAnalyticsProfile(seed, ageDays)
 }
 
 export function transliterate(value) {

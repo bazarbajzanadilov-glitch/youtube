@@ -12,6 +12,7 @@ import {
   generateLifecycleShape,
   hashSeed,
   normalizeToTotal,
+  pickAnalyticsProfile,
 } from '../src/lib/analyticsEngine.js'
 import { reconcileSubscriberHistoryToTotal } from '../src/lib/subscriberHistory.js'
 import {
@@ -144,8 +145,58 @@ const lifecycle = generateLifecycleShape({
   startWeekday: 3,
 })
 assert.equal(lifecycle.length, 181)
-assert.ok(lifecycle[0] < Math.max(...lifecycle) * 0.12, 'video should start near zero')
+assert.ok(
+  lifecycle.slice(0, 7).reduce((sum, value) => sum + value, 0)
+    > lifecycle.slice(-7).reduce((sum, value) => sum + value, 0),
+  'decay-after-peak should retain a visibly declining phase',
+)
 assert.ok(lifecycle[lifecycle.length - 1] > 0, 'long-tail should stay above zero')
+
+const analyticsProfiles = [
+  'viralSpike',
+  'gradualGrowth',
+  'steady',
+  'seasonal',
+  'decayAfterPeak',
+]
+const profileShapes = Object.fromEntries(analyticsProfiles.map((profile) => [
+  profile,
+  generateLifecycleShape({
+    seed: hashSeed('profile-verification', profile),
+    days: 60,
+    profile,
+    startWeekday: 1,
+  }),
+]))
+const normalizedProfileSignatures = new Set(Object.values(profileShapes).map((shape) => (
+  normalizeToTotal(shape, 100_000)
+    .map((value) => Math.round(value))
+    .join(',')
+)))
+assert.equal(
+  normalizedProfileSignatures.size,
+  analyticsProfiles.length,
+  'all analytics profiles must generate distinct deterministic histories',
+)
+assert.ok(
+  Math.max(...profileShapes.viralSpike.slice(0, 10))
+    > Math.max(...profileShapes.viralSpike.slice(-10)) * 2,
+  'viral profile must have a clear release spike and a smaller long tail',
+)
+assert.ok(
+  profileShapes.gradualGrowth.slice(8, 18).reduce((sum, value) => sum + value, 0)
+    > profileShapes.gradualGrowth.slice(0, 5).reduce((sum, value) => sum + value, 0) * 2,
+  'gradual-growth profile must build toward discovery instead of forming an immediate hump',
+)
+assert.ok(
+  Math.max(...profileShapes.seasonal) - Math.min(...profileShapes.seasonal) > 0.35,
+  'seasonal profile must retain visible recurring waves',
+)
+assert.equal(
+  new Set(Array.from({ length: 25 }, (_, index) => pickAnalyticsProfile(index, 30))).size,
+  analyticsProfiles.length,
+  'automatic profile selection must use every supported profile',
+)
 
 const oldVideo = {
   id: 'old-video',
@@ -220,6 +271,12 @@ const persistedAnalytics = build(
 )
 
 assert.equal(
+  persistedAnalytics.overview.processingWindow,
+  null,
+  'a fully populated latest day must not be marked as processing',
+)
+
+assert.equal(
   persistedAnalytics.overview.kpis.views.value,
   28 * 120,
   'current KPI must sum persisted daily views',
@@ -269,6 +326,38 @@ assert.deepEqual(
   persistedAnalytics.overview.series,
   persistedAnalytics.content.series,
   'overview and content charts must share the same persisted series',
+)
+
+const incompleteLatestRows = persistedRows.map((row) => (
+  row.date === '2026-05-11'
+    ? {
+      ...row,
+      views: 0,
+      watchSeconds: 0,
+      engagedViews: 0,
+      impressions: 0,
+      likes: 0,
+      comments: 0,
+      revenue: 0,
+    }
+    : row
+))
+const incompleteLatestAnalytics = build(
+  [persistedVideo],
+  { ...persistedChannel, videoDailyStats: incompleteLatestRows },
+  { kind: '28d' },
+  { today },
+)
+assert.deepEqual(
+  incompleteLatestAnalytics.overview.processingWindow,
+  {
+    startDate: '2026-05-10',
+    endDate: '2026-05-11',
+    label: '11 мая 2026 г.',
+    statusText: 'Выполняется обработка данных...',
+    markers: [],
+  },
+  'a structural zero on the latest day must be rendered as processing, not a real collapse',
 )
 
 const viewsOnlyRows = persistedRows.map((row) => (

@@ -46,6 +46,7 @@ const CONTENT_TYPES = [
 ]
 
 const ANALYTICS_PROFILES = [
+  { value: 'auto', label: 'Автоматически' },
   { value: 'gradualGrowth', label: 'Плавный рост' },
   { value: 'viralSpike', label: 'Вирусный всплеск' },
   { value: 'steady', label: 'Стабильный' },
@@ -64,7 +65,7 @@ const blankForm = () => ({
   date: todayISO(),
   duration: '',
   type: 'video',
-  profile: 'gradualGrowth',
+  profile: 'auto',
   views: '',
   revenue: '',
   likes: '',
@@ -311,7 +312,7 @@ function Screen11AdminContent() {
       date: form.date || todayISO(),
       duration: form.duration || randomDuration(),
       type: form.type || 'video',
-      profile: form.profile || 'gradualGrowth',
+      profile: form.profile === 'auto' ? undefined : (form.profile || undefined),
       views: form.autoViews ? undefined : parseCount(form.views),
       revenue: form.autoRevenue ? undefined : parseRevenue(form.revenue),
       likes: parseCount(form.likes),

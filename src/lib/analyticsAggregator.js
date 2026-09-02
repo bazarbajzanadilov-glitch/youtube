@@ -181,6 +181,7 @@ function getPersistedDailyIndex(channel, cache) {
   }
 
   const byVideo = new Map()
+  const byVideoDate = new Map()
   const rows = []
   for (const sourceRow of sourceRows) {
     const row = normalizePersistedDailyRow(sourceRow)
@@ -188,14 +189,70 @@ function getPersistedDailyIndex(channel, cache) {
     rows.push(row)
     if (!byVideo.has(row.videoId)) byVideo.set(row.videoId, [])
     byVideo.get(row.videoId).push(row)
+    byVideoDate.set(`${row.videoId}|${row.date}`, row)
   }
   for (const videoRows of byVideo.values()) {
     videoRows.sort((a, b) => a.date.localeCompare(b.date))
   }
 
-  const index = rows.length > 0 ? { byVideo, rows } : null
+  const index = rows.length > 0 ? { byVideo, byVideoDate, rows } : null
   cache?.set(PERSISTED_DAILY_INDEX_KEY, index)
   return index
+}
+
+function persistedRowHasSignal(row) {
+  return Boolean(row) && (
+    row.views > 0
+    || row.watchTime > 0
+    || row.revenue > 0
+    || row.likes > 0
+    || row.comments > 0
+  )
+}
+
+function processingDateLabel(dateIso) {
+  const date = toCalendarDate(dateIso)
+  if (Number.isNaN(date.getTime())) return dateIso
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
+function buildVideoProcessingWindow(videos, channel, range, asOf, cache) {
+  const index = getPersistedDailyIndex(channel, cache)
+  if (!index || isoDay(range.to) !== isoDay(asOf)) return null
+
+  const endDate = isoDay(asOf)
+  const coverageForDate = (dateIso) => {
+    const eligible = videos.filter((video) => (
+      video?.date
+      && String(video.date).slice(0, 10) <= dateIso
+      && Math.max(0, Number(video.views) || 0) > 0
+    ))
+    if (eligible.length === 0) return 1
+    const complete = eligible.filter((video) => persistedRowHasSignal(
+      index.byVideoDate.get(`${String(video.id)}|${dateIso}`),
+    )).length
+    return complete / eligible.length
+  }
+
+  if (coverageForDate(endDate) >= 0.75) return null
+
+  for (let offset = 1; offset <= 7; offset += 1) {
+    const lastCompleteDate = isoDay(addDays(asOf, -offset))
+    if (coverageForDate(lastCompleteDate) < 0.75) continue
+    return {
+      startDate: lastCompleteDate,
+      endDate,
+      label: processingDateLabel(endDate),
+      statusText: 'Выполняется обработка данных...',
+      markers: [],
+    }
+  }
+
+  return null
 }
 
 function attachPersistedVideoContribution({
@@ -1662,6 +1719,13 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     .slice(0, 10)
   const newest = recentVideos[0] || null
   const formatShares = buildFormatShares(publishedPeriodVideos)
+  const processingWindow = buildVideoProcessingWindow(
+    publishedPeriodVideos,
+    channel,
+    range,
+    asOf,
+    contributionCache,
+  )
 
   return {
     range,
@@ -1673,6 +1737,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
       recentVideos,
       topVideos: topByViews,
       newest,
+      processingWindow,
     },
     content: {
       allVideos: publishedPeriodVideos,
