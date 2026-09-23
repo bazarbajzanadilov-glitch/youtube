@@ -30,7 +30,7 @@ as $$
     select
       greatest(0, p_date - p_published_at)::double precision as age,
       (pg_catalog.get_byte(video_seed, 0)::double precision / 255.0) * 2 * pi() as phase,
-      0.9 + (pg_catalog.get_byte(video_seed, 1)::double precision / 255.0) * 1.1 as early_decay,
+      1.0 + (pg_catalog.get_byte(video_seed, 1)::double precision / 255.0) * 1.2 as early_decay,
       10.0 + (pg_catalog.get_byte(video_seed, 2)::double precision / 255.0) * 30.0 as second_wave,
       0.45 + (pg_catalog.get_byte(video_seed, 3)::double precision / 255.0) * 0.75 as wave_height,
       -- В первую неделю заметные, но небольшие рывки; дальше — спокойный хвост.
@@ -49,29 +49,29 @@ as $$
       case when inputs.age = 0 then 0.62 else 1.0 end as upload_day,
       case coalesce(p_profile, 'gradualGrowth')
         when 'viralSpike' then
-          0.002
-          + 4.0 * exp(-greatest(0, inputs.age - 1) / inputs.early_decay)
-          + 0.10 * exp(-inputs.age / 9.0)
+          0.012
+          + 2.8 * exp(-greatest(0, inputs.age - 1) / inputs.early_decay)
+          + 0.30 * exp(-inputs.age / 30.0)
           + inputs.wave_height * 0.5 * exp(-power((inputs.age - inputs.second_wave) / 3.0, 2))
         when 'decayAfterPeak' then
-          0.002
-          + 2.6 * exp(-greatest(0, inputs.age - 1) / inputs.early_decay)
-          + 0.12 * exp(-inputs.age / 10.0)
+          0.012
+          + 1.9 * exp(-greatest(0, inputs.age - 1) / inputs.early_decay)
+          + 0.25 * exp(-inputs.age / 32.0)
           + inputs.wave_height * 0.3 * exp(-power((inputs.age - inputs.second_wave) / 4.0, 2))
         when 'steady' then
-          0.004
-          + 1.8 * exp(-greatest(0, inputs.age - 1) / inputs.early_decay)
-          + 0.15 * exp(-inputs.age / 12.0)
+          0.02
+          + 1.4 * exp(-greatest(0, inputs.age - 1) / inputs.early_decay)
+          + 0.28 * exp(-inputs.age / 36.0)
           + 0.03 * sin(2 * pi() * inputs.age / 17.0 + inputs.phase) * exp(-inputs.age / 40.0)
         when 'seasonal' then
-          0.003
-          + 2.2 * exp(-greatest(0, inputs.age - 1) / inputs.early_decay)
-          + 0.12 * exp(-inputs.age / 10.0)
+          0.015
+          + 1.6 * exp(-greatest(0, inputs.age - 1) / inputs.early_decay)
+          + 0.25 * exp(-inputs.age / 32.0)
           + 0.06 * (1 + sin(2 * pi() * inputs.age / 14.0 + inputs.phase)) * exp(-inputs.age / 40.0)
         else
-          0.003
-          + 2.0 * (1 - exp(-(inputs.age + 1) / 1.5)) * exp(-inputs.age / (inputs.early_decay * 1.3))
-          + 0.14 * exp(-inputs.age / 11.0)
+          0.015
+          + 1.5 * (1 - exp(-(inputs.age + 1) / 1.5)) * exp(-inputs.age / (inputs.early_decay * 1.3))
+          + 0.25 * exp(-inputs.age / 32.0)
           + inputs.wave_height * 0.35 * exp(-power((inputs.age - inputs.second_wave) / 4.0, 2))
       end as base
     from inputs

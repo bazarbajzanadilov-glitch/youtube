@@ -1,4 +1,5 @@
-import { useContext, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import pageStyles from './Screen3Analytics.module.css'
 import tabStyles from './analytics/AnalyticsTabs.module.css'
 import pickerStyles from '../components/ui/DateRangePicker.module.css'
@@ -31,6 +32,8 @@ import {
 import { formatChartDateLabel } from '../lib/chartDateFormat.js'
 import {
   buildPerformanceSectionView,
+  buildSincePublicationXAxis,
+  buildSincePublicationYTicks,
   buildVideoPerformanceView,
   videoIdFromAnalyticsRoute,
 } from '../lib/videoPerformanceSection.js'
@@ -45,6 +48,50 @@ const TABS = ['Обзор', 'Охват', 'Взаимодействие', 'Ау�
 const COMPARISON_COLOR = '#909090'
 const VIDEO_SERIES_LABEL = 'Показатели этого видео'
 const CHANNEL_SERIES_LABEL = 'Обычные показатели на канале'
+
+const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+const MONTHS_PREPOSITIONAL = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре']
+
+const pad2 = (value) => String(value).padStart(2, '0')
+
+/**
+ * Меню периода как на странице видео в YouTube Studio: первые N дней после
+ * публикации, годы и последние месяцы жизни ролика, другой диапазон дат.
+ */
+function buildPeriodGroups(publishedAt, lastDate) {
+  const first = [
+    { key: 'first-1', kind: 'first', days: 1, label: 'Первые 24 часа', headline: 'За первые 24 часа' },
+    { key: 'first-7', kind: 'first', days: 7, label: 'Первые 7 дней', headline: 'За первые 7 дней' },
+    { key: 'first-28', kind: 'first', days: 28, label: 'Первые 28 дней', headline: 'За первые 28 дней' },
+    { key: 'first-90', kind: 'first', days: 90, label: 'Первые 90 дней', headline: 'За первые 90 дней' },
+    { key: 'first-365', kind: 'first', days: 365, label: 'Первые 365 дней', headline: 'За первые 365 дней' },
+    { key: 'all', kind: 'all', label: 'С момента публикации', headline: 'С момента публикации' },
+  ]
+  const [year, month] = String(lastDate).split('-').map(Number)
+  const years = []
+  for (let y = year; y > year - 2; y -= 1) {
+    years.push({ key: `year-${y}`, kind: 'range', from: `${y}-01-01`, to: `${y}-12-31`, label: String(y), headline: `В ${y} году` })
+  }
+  const months = []
+  for (let offset = 0; offset < 3; offset += 1) {
+    const date = new Date(year, month - 1 - offset, 1)
+    const y = date.getFullYear()
+    const m = date.getMonth() + 1
+    months.push({
+      key: `month-${y}-${m}`,
+      kind: 'range',
+      from: `${y}-${pad2(m)}-01`,
+      to: `${y}-${pad2(m)}-${pad2(new Date(y, m, 0).getDate())}`,
+      label: y === year ? MONTHS[m - 1] : `${MONTHS[m - 1]} ${y}`,
+      headline: `В ${MONTHS_PREPOSITIONAL[m - 1]}${y === year ? '' : ` ${y} г.`}`,
+    })
+  }
+  return [first, years, months].filter((group) => group.length > 0)
+}
+
+function zeroRow(row) {
+  return Object.fromEntries(Object.entries(row).map(([key, value]) => [key, key === 'day' || key === 'date' ? value : 0]))
+}
 
 function variantFromRoute(route) {
   return String(route || '').endsWith('/shorts') ? 'shorts' : 'video'
@@ -80,6 +127,27 @@ export default function Screen12VideoAnalytics() {
   const variant = video ? (video.type === 'short' ? 'shorts' : 'video') : variantFromRoute(route)
   const [activeTab, setActiveTab] = useState(0)
   const [requestedMetric, setRequestedMetric] = useState('views')
+  const [periodKey, setPeriodKey] = useState('all')
+  const [customRange, setCustomRange] = useState(null)
+  const [periodOpen, setPeriodOpen] = useState(false)
+  const [showCustom, setShowCustom] = useState(false)
+  const [customDraft, setCustomDraft] = useState({ from: '', to: '' })
+  const periodRef = useRef(null)
+  useEffect(() => {
+    if (!periodOpen) return undefined
+    const close = () => {
+      setPeriodOpen(false)
+      setShowCustom(false)
+    }
+    const onDocClick = (event) => { if (!periodRef.current?.contains(event.target)) close() }
+    const onEsc = (event) => { if (event.key === 'Escape') close() }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onEsc)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onEsc)
+    }
+  }, [periodOpen])
   const section = channel?.performanceSections?.[variant]
   const view = useMemo(
     () => (video
@@ -87,30 +155,102 @@ export default function Screen12VideoAnalytics() {
       : buildPerformanceSectionView({ ...(section || {}), variant })),
     [video, videos, channel, section, variant],
   )
-  const { kpis, chartData, xAxis, days, realtime } = view
+  const { chartData, days: totalDays, realtime } = view
+  const publishedAt = view.section.publishedAt
+  const lastDate = chartData[totalDays]?.date || publishedAt
+  const periodGroups = buildPeriodGroups(publishedAt, lastDate)
+  const periodOptions = periodGroups.flat()
+  const period = periodKey === 'custom' && customRange
+    ? { key: 'custom', kind: 'range', ...customRange, label: 'Другой диапазон дат', headline: 'За выбранный период' }
+    : periodOptions.find((item) => item.key === periodKey) || periodOptions.find((item) => item.kind === 'all')
+
+  // Окно в индексах дней: значения окна = накопленное на end минус накопленное на base.
+  let base = 0
+  let end = totalDays
+  if (period.kind === 'first') end = Math.min(period.days, totalDays)
+  if (period.kind === 'range') {
+    const inside = chartData.filter((row) => row.day >= 1 && row.day <= totalDays && row.date >= period.from && row.date <= period.to)
+    base = inside.length ? inside[0].day - 1 : 0
+    end = inside.length ? inside[inside.length - 1].day : 0
+  }
+  const days = end - base
+  const valueAt = (index, key) => (index === 0 && video ? 0 : Number(chartData[index]?.[key]) || 0)
+  const windowValue = (key) => valueAt(end, key) - (base > 0 ? valueAt(base, key) : 0)
+  const endRow = chartData[end] || {}
+  const kpis = period.kind === 'all'
+    ? view.kpis
+    : {
+      views: windowValue('views'),
+      typicalViews: period.kind === 'first' ? (endRow.viewsTypical ?? null) : null,
+      watchHours: windowValue('watch'),
+      typicalWatchHours: period.kind === 'first' ? (endRow.watchTypical ?? null) : null,
+      subscribers: windowValue('subscribers'),
+      revenueTenge: windowValue('revenue'),
+    }
+  const byDate = period.kind === 'range'
+  const xAxis = period.kind === 'all' ? view.xAxis : buildSincePublicationXAxis(Math.max(1, days))
   const isShorts = variant === 'shorts'
-  const headline = `С момента публикации это видео${isShorts ? ' Shorts' : ''} посмотрели ${formatNumberRu(kpis.views)} ${declineTimes(kpis.views)}`
-  const lastTick = xAxis.lastTick
+  // У каждого реального ролика (и Shorts тоже) есть время просмотра — 4 карточки.
+  // Раздел Shorts из админки — 3 карточки, как на скриншоте клиента.
+  const showWatch = Boolean(video) || !isShorts
+  const headline = `${period.headline} это видео${isShorts ? ' Shorts' : ''} посмотрели ${formatNumberRu(kpis.views)} ${declineTimes(kpis.views)}`
+  // У конкретного видео ось заканчивается на последнем полном дне — линия
+  // доходит до правого края. Разделы из админки держат ось 6 × шаг.
+  const lastTick = video || byDate ? Math.max(1, days) : xAxis.lastTick
+  const periodSub = period.kind === 'all'
+    ? `С ${formatDateLong(publishedAt)} по сегодняшний день`
+    : period.kind === 'range' && days === 0
+      ? `${formatDateLong(period.from)} – ${formatDateLong(period.to)}`
+      : period.kind === 'range'
+      ? `${formatDateLong(period.from > publishedAt ? period.from : publishedAt)} – ${formatDateLong(period.to < lastDate ? period.to : lastDate)}`
+      : `${formatDateLong(publishedAt)} – ${formatDateLong(endRow.date || lastDate)}`
   // Ось X — дни с публикации (0 … N дней), как в YouTube Studio; линия
-  // начинается с нуля в день публикации и идёт до последнего полного дня.
-  const plotData = video
-    ? chartData.map((row) => (row.day === 0
-      ? Object.fromEntries(Object.entries(row).map(([key, value]) => [key, typeof value === 'number' && key !== 'day' ? 0 : value]))
-      : row))
-    : chartData
+  // начинается с нуля и идёт до последнего полного дня окна.
+  const plotData = Array.from({ length: lastTick + 1 }, (_, day) => {
+    const index = base + day
+    const row = { ...(chartData[index] || {}), day }
+    if (day > days) {
+      return Object.fromEntries(Object.entries(row).map(([key, value]) => [key, key === 'day' || key === 'date' ? value : null]))
+    }
+    if (day === 0 && (video || base > 0)) return zeroRow(row)
+    if (base === 0) return row
+    const shifted = { ...row }
+    for (const key of ['views', 'watch', 'subscribers', 'revenue']) {
+      shifted[key] = valueAt(index, key) - valueAt(base, key)
+      shifted[`${key}Typical`] = null
+    }
+    return shifted
+  })
 
   const xTickFormatter = (value) => {
-    const day = Number(value) || 0
-    return day === lastTick ? declineDaysLabel(day) : String(day)
+    // Всегда дни с момента публикации, как в YouTube Studio.
+    const day = (Number(value) || 0) + base
+    return day === lastTick + base ? declineDaysLabel(day) : String(day)
   }
   const tooltipLabel = (label) => {
     const day = Number(label) || 0
-    const row = chartData[day]
+    const row = chartData[base + day]
     return row?.date ? formatChartDateLabel(row.date) : `День ${day}`
   }
-  const metric = isShorts && requestedMetric === 'watch' ? 'views' : requestedMetric
+  const metric = !showWatch && requestedMetric === 'watch' ? 'views' : requestedMetric
   const metricChart = METRIC_CHARTS[metric]
-  const metricTicks = view.yTicksByMetric[metric]
+  const metricTicks = period.kind === 'all'
+    ? view.yTicksByMetric[metric]
+    : buildSincePublicationYTicks(Math.max(0, ...plotData.map((row) => Number(row[metric]) || 0)))
+  const pickPeriod = (item) => {
+    setPeriodKey(item.key)
+    setPeriodOpen(false)
+    setShowCustom(false)
+  }
+  const applyCustom = () => {
+    if (!customDraft.from || !customDraft.to) return
+    const to = customDraft.to > lastDate ? lastDate : customDraft.to
+    const from = customDraft.from > to ? to : customDraft.from
+    setCustomRange({ from, to })
+    setPeriodKey('custom')
+    setPeriodOpen(false)
+    setShowCustom(false)
+  }
   const tooltipRows = (payload) => {
     const typicalValue = payload?.[`${metric}Typical`]
     return [
@@ -217,7 +357,7 @@ export default function Screen12VideoAnalytics() {
           />
         )}
       >
-        <div className={`${tabStyles.ytKpiStrip} ${isShorts ? tabStyles.ytKpiStripThree : ''}`}>
+        <div className={`${tabStyles.ytKpiStrip} ${showWatch ? '' : tabStyles.ytKpiStripThree}`}>
           <MetricKpiCell
             label="Просмотры"
             value={formatCompactOneDecimal(kpis.views)}
@@ -228,7 +368,7 @@ export default function Screen12VideoAnalytics() {
             accentColor={ANALYTICS_BLUE}
             onClick={() => setRequestedMetric('views')}
           />
-          {!isShorts ? (
+          {showWatch ? (
             <MetricKpiCell
               label="Время просмотра (часы)"
               value={formatWatchHours(kpis.watchHours)}
@@ -269,7 +409,7 @@ export default function Screen12VideoAnalytics() {
           </span>
         </div>
       </AnalyticsHeroCard>
-      <p className={s.footNote}>Интерес к контенту · С момента публикации · {declineDaysLabel(days)}</p>
+      <p className={s.footNote}>Интерес к контенту · {period.label} · {declineDaysLabel(Math.max(0, days))}</p>
     </div>
     <aside className={s.overviewSide}>{renderRealtimeCard()}</aside>
     </div>
@@ -304,11 +444,90 @@ export default function Screen12VideoAnalytics() {
         <div className={pageStyles.controlRow}>
           <TabRow tabs={TABS} active={activeTab} onChange={setActiveTab} layoutId="video-analytics-tab" />
           <div className={pageStyles.dateWrap}>
-            <div className={`${pickerStyles.trigger} ${s.periodPill}`} aria-label="Период: с момента публикации">
-              <span className={pickerStyles.sub}>С {formatDateLong(view.section.publishedAt)} по сегодняшний день</span>
-              <span className={pickerStyles.main}>
-                С момента публикации <ChevronDown size={16} />
-              </span>
+            <div className={pickerStyles.wrap} ref={periodRef}>
+              <button
+                type="button"
+                className={`${pickerStyles.trigger} ${s.periodPill}`}
+                aria-label={`Период: ${period.label}`}
+                aria-expanded={periodOpen}
+                onClick={() => setPeriodOpen((open) => !open)}
+              >
+                <span className={pickerStyles.sub}>{periodSub}</span>
+                <span className={pickerStyles.main}>
+                  {period.label} <ChevronDown size={16} />
+                </span>
+              </button>
+              <AnimatePresence>
+                {periodOpen ? (
+                  <motion.div
+                    className={pickerStyles.menu}
+                    initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                  >
+                    {!showCustom ? (
+                      <div className={pickerStyles.list}>
+                        {periodGroups.map((group) => (
+                          <div className={pickerStyles.group} key={group[0].key}>
+                            {group.map((item) => (
+                              <button
+                                key={item.key}
+                                type="button"
+                                className={`${pickerStyles.item} ${item.key === period.key ? pickerStyles.itemActive : ''}`}
+                                onClick={() => pickPeriod(item)}
+                              >
+                                <span>{item.label}</span>
+                              </button>
+                            ))}
+                            <span className={pickerStyles.separator} aria-hidden="true" />
+                          </div>
+                        ))}
+                        <div className={pickerStyles.group}>
+                          <button
+                            type="button"
+                            className={`${pickerStyles.item} ${period.key === 'custom' ? pickerStyles.itemActive : ''}`}
+                            onClick={() => {
+                              setCustomDraft(customRange || { from: publishedAt, to: lastDate })
+                              setShowCustom(true)
+                            }}
+                          >
+                            <span>Другой диапазон дат</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={pickerStyles.custom}>
+                        <div className={pickerStyles.customTitle}>Другой диапазон дат</div>
+                        <label className={pickerStyles.customField}>
+                          <span>С</span>
+                          <input
+                            type="date"
+                            min={publishedAt}
+                            max={lastDate}
+                            value={customDraft.from}
+                            onChange={(event) => setCustomDraft((draft) => ({ ...draft, from: event.target.value }))}
+                          />
+                        </label>
+                        <label className={pickerStyles.customField}>
+                          <span>По</span>
+                          <input
+                            type="date"
+                            min={publishedAt}
+                            max={lastDate}
+                            value={customDraft.to}
+                            onChange={(event) => setCustomDraft((draft) => ({ ...draft, to: event.target.value }))}
+                          />
+                        </label>
+                        <div className={pickerStyles.customActions}>
+                          <button type="button" className={pickerStyles.cancelBtn} onClick={() => setShowCustom(false)}>Назад</button>
+                          <button type="button" className={pickerStyles.applyBtn} onClick={applyCustom}>Применить</button>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
             </div>
           </div>
         </div>

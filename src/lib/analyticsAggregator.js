@@ -2004,7 +2004,10 @@ export function buildVideoLifetimeAnalytics(video, videosInput, channelInput, op
   const cache = new Map()
   const channelSeed = hashSeed(channel.channelName || 'channel', channel.country || 'RU', 'analytics')
   const sameType = (item) => resolveVideoType(item) === resolveVideoType(video)
-  const peers = videos.filter((item) => item && item.id !== video?.id && sameType(item))
+  const others = videos.filter((item) => item && item.id !== video?.id)
+  // Сравнение с роликами того же формата; если их нет — со всеми остальными.
+  const sameTypePeers = others.filter(sameType)
+  const peers = sameTypePeers.length > 0 ? sameTypePeers : others
 
   const earliest = [video, ...peers].reduce((min, item) => {
     const from = startOfDay(item?.date || asOf)
@@ -2032,10 +2035,9 @@ export function buildVideoLifetimeAnalytics(video, videosInput, channelInput, op
     const line = new Array(age + 1).fill(null)
     line[0] = 0
     for (let day = 1; day <= age; day += 1) {
-      // Медиана накопленных значений роликов, которым уже исполнилось day дней.
-      const values = peerCurves
-        .filter((curves) => curves[key].length > day)
-        .map((curves) => curves[key][day])
+      // Медиана накопленных значений других роликов на тот же день после
+      // публикации; ролик моложе day берётся с его текущим итогом.
+      const values = peerCurves.map((curves) => curves[key][Math.min(day, curves[key].length - 1)])
       if (values.length === 0) break
       line[day] = Math.max(line[day - 1] ?? 0, medianOf(values))
     }
@@ -2063,8 +2065,7 @@ export function buildVideoLifetimeAnalytics(video, videosInput, channelInput, op
     realtimeCore.last48.map((_, index) => hashSeed(video?.id, index, 'realtime-bar')),
   )
 
-  // Сравнивать можно только с роликами того же возраста; если таких нет,
-  // «обычного значения» нет — как в YouTube, подпись не показывается.
+  // Если на канале нет других роликов, «обычного значения» нет — подпись не показывается.
   const lastTypical = (key) => typical[key][age] ?? null
   if (channel.monetizationEnabled === false) {
     own.curves.revenue = own.curves.revenue.map(() => 0)

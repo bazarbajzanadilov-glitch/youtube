@@ -187,7 +187,7 @@ assert.ok(va.realtime.sources.length > 0 && va.realtime.sources.every((x) => x.p
 assert.equal(va.chartData[va.days].watch, va.kpis.watchHours, 'график времени просмотра заканчивается на KPI')
 assert.equal(va.chartData[va.days].subscribers, va.kpis.subscribers)
 assert.equal(Math.round(va.chartData[va.days].revenue), Math.round(va.kpis.revenueTenge))
-assert.equal(vb.chartData[va.days + 1].viewsTypical, null, 'обычная линия обрывается, когда нет роликов такого возраста')
+assert.equal(vb.chartData[va.days + 1].viewsTypical, va.kpis.views, 'ролик моложе берётся с его текущим итогом')
 assert.ok(vb.chartData[va.days].viewsTypical > 0)
 for (const key of ['views', 'watch', 'subscribers', 'revenue']) {
   assert.equal(vb.yTicksByMetric[key].length, 4)
@@ -195,8 +195,8 @@ for (const key of ['views', 'watch', 'subscribers', 'revenue']) {
 }
 console.log('per-video analytics verification passed')
 
-// Сравнение только с роликами того же возраста; первые сутки — «обрабатывается»; без монетизации — 0 ₸.
-assert.equal(vb.kpis.typicalViews, null, 'у самого старого ролика нет ровесников — нет «обычного» значения')
+// Самый старый ролик сравнивается с текущими итогами остальных; первые сутки — «обрабатывается»; без монетизации — 0 ₸.
+assert.equal(vb.kpis.typicalViews, va.kpis.views, 'у самого старого ролика «обычное» — итог более молодых роликов')
 const fresh = buildVideoPerformanceView({ id: 'new', date: '2026-09-22', views: 50, type: 'video' }, vids, ch, today)
 assert.equal(fresh.pending, true)
 const noMoney = buildVideoPerformanceView(vids[0], vids, { ...ch, monetizationEnabled: false }, today)
