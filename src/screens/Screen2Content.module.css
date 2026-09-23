@@ -184,3 +184,7 @@
 .pageNav { display: flex; align-items: center; gap: 4px; }
 .pageBtn { width: 32px; height: 32px; border: none; background: transparent; color: var(--studio-text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; }
 .pageBtn:hover { background: var(--studio-hover); }
+
+.rowLink {
+  cursor: pointer;
+}

@@ -14,6 +14,7 @@ import Screen9AudioLibrary from './screens/Screen9AudioLibrary.jsx'
 import Screen10Settings from './screens/Screen10Settings.jsx'
 import Screen11Admin from './screens/Screen11Admin.jsx'
 import Screen12VideoAnalytics from './screens/Screen12VideoAnalytics.jsx'
+import { VIDEO_ANALYTICS_ITEM_PREFIX } from './lib/videoPerformanceSection.js'
 import { loadRemoteProject } from './data/projectStore.js'
 import { continueDoubleHardResetIfNeeded } from './lib/hardResetSite.js'
 import { useVideos } from './storage/useVideos.js'
@@ -151,6 +152,9 @@ function normalizeHashRoute() {
 }
 
 function getScreenByRoute(route) {
+  if (String(route).startsWith(VIDEO_ANALYTICS_ITEM_PREFIX)) {
+    return SCREENS.find((screen) => screen.key === 'video-analytics-video')
+  }
   return SCREENS.find((screen) => screen.route === route) || SCREENS[0]
 }
 
@@ -195,6 +199,7 @@ export default function App() {
   const go = useCallback((keyOrRoute) => {
     const target = SCREENS.find((screen) => screen.key === keyOrRoute || screen.route === keyOrRoute)
     const nextRoute = target?.route || ROUTE_ALIASES[keyOrRoute]
+      || (String(keyOrRoute).startsWith(VIDEO_ANALYTICS_ITEM_PREFIX) ? keyOrRoute : null)
     if (!nextRoute) return
     if (window.location.hash !== `#/${nextRoute}`) {
       window.location.hash = `#/${nextRoute}`

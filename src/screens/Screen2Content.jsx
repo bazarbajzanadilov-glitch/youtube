@@ -5,8 +5,10 @@ import Sidebar from './Sidebar.jsx'
 import { NavContext } from './NavContext.js'
 import { FilterIcon, ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast, BellIcon, InfoIcon } from './icons.jsx'
 import { useVideos } from '../storage/useVideos.js'
+import { useChannel } from '../storage/useChannel.js'
 import { formatDate, formatNumber } from '../storage/videoStore.js'
 import { effectiveComments } from '../lib/analyticsAggregator.js'
+import { videoAnalyticsRoute } from '../lib/videoPerformanceSection.js'
 
 const GlobeIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -34,6 +36,7 @@ function matchesTab(video, tabIndex) {
 export default function Screen2Content() {
   const { showToast, go } = useContext(NavContext)
   const { videos } = useVideos()
+  const { channel } = useChannel()
   const [activeTab, setActiveTab] = useState(0)
   const [page, setPage] = useState(0)
   const filteredVideos = useMemo(
@@ -88,6 +91,11 @@ export default function Screen2Content() {
           <div className={s.empty}>
             В разделе «{activeLabel}» пока нет материалов.{' '}
             <button type="button" className={s.emptyLink} onClick={() => go('admin')}>Откройте админку и добавьте нужный тип →</button>
+            {activeLabel === 'Shorts' ? (
+              <div>
+                <button type="button" className={s.emptyLink} onClick={() => go('video-analytics/shorts')}>Открыть аналитику Shorts →</button>
+              </div>
+            ) : null}
           </div>
         ) : (
           <table className={s.table}>
@@ -105,7 +113,12 @@ export default function Screen2Content() {
             </thead>
             <tbody>
               {pageVideos.map((v) => (
-                <tr key={v.id} className={s.row}>
+                <tr
+                  key={v.id}
+                  className={`${s.row} ${s.rowLink}`}
+                  onClick={() => go(videoAnalyticsRoute(v))}
+                  title="Открыть аналитику видео"
+                >
                   <td className={s.checkCol}><div className={s.checkbox}/></td>
                   <td>
                     <div className={s.videoCell}>
@@ -139,7 +152,7 @@ export default function Screen2Content() {
                   </td>
                   <td className={s.numCell}>{formatNumber(v.views)}</td>
                   <td className={s.numCell}>{formatRevenue(v.revenue)}</td>
-                  <td className={s.numCell}>{formatNumber(effectiveComments(v))}</td>
+                  <td className={s.numCell}>{formatNumber(effectiveComments(v, channel))}</td>
                 </tr>
               ))}
             </tbody>

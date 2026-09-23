@@ -6,6 +6,10 @@ import Sidebar from './Sidebar.jsx'
 import { NavContext } from './NavContext.js'
 import TabRow from '../components/ui/TabRow.jsx'
 import OverviewTab from './monetization/OverviewTab.jsx'
+import SectionTab from './monetization/SectionTab.jsx'
+import { useAnalytics } from '../hooks/useAnalytics.js'
+
+const REVENUE_RANGE = { kind: '28d' }
 import { useChannel } from '../storage/useChannel.js'
 
 const TABS = [
@@ -22,6 +26,7 @@ export default function Screen7Monetization() {
   const { go } = useContext(NavContext)
   const { channel } = useChannel()
   const [activeTab, setActiveTab] = useState(0)
+  const analytics = useAnalytics(REVENUE_RANGE, { enabled: activeTab > 0 })
 
   return (
     <div className={s.page}>
@@ -50,11 +55,21 @@ export default function Screen7Monetization() {
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
           >
-            <OverviewTab
-              activeSection={TABS[activeTab]}
-              enabled={channel.monetizationEnabled !== false}
-              onOpenAdmin={() => go('admin')}
-            />
+            {activeTab === 0 ? (
+              <OverviewTab
+                activeSection={TABS[activeTab]}
+                enabled={channel.monetizationEnabled !== false}
+                onOpenAdmin={() => go('admin')}
+              />
+            ) : (
+              <SectionTab
+                section={TABS[activeTab]}
+                analytics={analytics}
+                enabled={channel.monetizationEnabled !== false}
+                onOpenAnalytics={() => go('analytics')}
+                onOpenAdmin={() => go('admin')}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>

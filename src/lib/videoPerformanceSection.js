@@ -8,6 +8,9 @@
 
 import { addDays, daysBetween, hashSeed, isoDay, seededRng } from './analyticsEngine.js'
 import { getAlmatyDateISO } from './almatyDate.js'
+import { buildVideoLifetimeAnalytics } from './analyticsAggregator.js'
+
+const TENGE_PER_DOLLAR = 512
 
 export const PERFORMANCE_VARIANTS = ['shorts', 'video']
 
@@ -119,8 +122,23 @@ export function normalizePerformanceSections(raw = {}) {
   )
 }
 
+export const VIDEO_ANALYTICS_ITEM_PREFIX = 'video-analytics/v/'
+
 export function videoAnalyticsRoute(video) {
+  if (video?.id != null && String(video.id) !== '') {
+    return `${VIDEO_ANALYTICS_ITEM_PREFIX}${encodeURIComponent(String(video.id))}`
+  }
   return video?.type === 'short' ? 'video-analytics/shorts' : 'video-analytics/video'
+}
+
+export function videoIdFromAnalyticsRoute(route) {
+  const text = String(route || '')
+  if (!text.startsWith(VIDEO_ANALYTICS_ITEM_PREFIX)) return null
+  try {
+    return decodeURIComponent(text.slice(VIDEO_ANALYTICS_ITEM_PREFIX.length)) || null
+  } catch {
+    return null
+  }
 }
 
 export function daysSincePublication(publishedAt, now = new Date()) {
@@ -240,34 +258,74 @@ export function buildSourceSparkline(percent, seed = 1) {
   return Array.from({ length: 8 }, () => Math.min(1, level * (0.55 + rand() * 0.45)))
 }
 
-export function buildPerformanceSectionView(sectionInput, now = new Date()) {
+export const SINCE_PUBLICATION_METRICS = ['views', 'watch', 'subscribers', 'revenue']
+
+function scaledTypicalTotal(ownTotal, section) {
+  if (section.totalViews <= 0) return 0
+  return ownTotal * (section.typicalViews / section.totalViews)
+}
+
+function generatedMetricCurves(section, days, seedBase) {
+  const curve = (total, shape, salt, scale = 1) => buildCumulativeCurve({
+    days,
+    total: Math.round(total * scale),
+    shape,
+    seed: hashSeed(seedBase, salt, Math.round(total * scale)),
+  }).map((value) => value / scale)
+  return {
+    views: {
+      own: curve(section.totalViews, section.curveShape, 'views'),
+      typical: curve(section.typicalViews, 'gradual', 'typical'),
+    },
+    watch: {
+      own: curve(section.watchHours, section.curveShape, 'watch', 10),
+      typical: curve(section.typicalWatchHours, 'gradual', 'watch-typical', 10),
+    },
+    subscribers: {
+      own: curve(section.subscribersGained, section.curveShape, 'subscribers'),
+      typical: curve(scaledTypicalTotal(section.subscribersGained, section), 'gradual', 'subscribers-typical'),
+    },
+    revenue: {
+      own: curve(section.revenueTenge, section.curveShape, 'revenue', 100),
+      typical: curve(scaledTypicalTotal(section.revenueTenge, section), 'gradual', 'revenue-typical', 100),
+    },
+  }
+}
+
+function lastValue(line) {
+  for (let index = line.length - 1; index >= 0; index -= 1) if (line[index] != null) return line[index]
+  return 0
+}
+
+export function buildPerformanceSectionView(sectionInput, now = new Date(), curves = {}) {
   const section = normalizePerformanceSection(sectionInput?.variant, sectionInput)
-  const days = daysSincePublication(section.publishedAt, now)
+  const metrics = curves.metrics
+  const days = metrics
+    ? Math.max(1, metrics.views.own.length - 1)
+    : daysSincePublication(section.publishedAt, now)
   const xAxis = buildSincePublicationXAxis(days)
   const seedBase = hashSeed('since-publication', section.variant, section.publishedAt, section.curveShape)
-  const views = buildCumulativeCurve({
-    days,
-    total: section.totalViews,
-    shape: section.curveShape,
-    seed: hashSeed(seedBase, section.totalViews),
-  })
-  const typical = buildCumulativeCurve({
-    days,
-    total: section.typicalViews,
-    shape: 'gradual',
-    seed: hashSeed(seedBase, 'typical', section.typicalViews),
-  })
+  const series = metrics || generatedMetricCurves(section, days, seedBase)
+
   const chartData = []
   for (let day = 0; day <= xAxis.lastTick; day += 1) {
-    const isReal = day <= days
-    chartData.push({
-      day,
-      date: isoDay(addDays(section.publishedAt, day)),
-      views: isReal ? views[day] : null,
-      typical: isReal ? typical[day] : null,
-    })
+    // Точка day — итог за первые day суток: последний учтённый день — publishedAt + day − 1.
+    const row = { day, date: isoDay(addDays(section.publishedAt, Math.max(0, day - 1))) }
+    for (const key of SINCE_PUBLICATION_METRICS) {
+      row[key] = day <= days ? (series[key].own[day] ?? null) : null
+      row[`${key}Typical`] = day <= days ? (series[key].typical[day] ?? null) : null
+    }
+    chartData.push(row)
   }
-  const yTicks = buildSincePublicationYTicks(Math.max(section.totalViews, section.typicalViews))
+  const yTicksByMetric = Object.fromEntries(SINCE_PUBLICATION_METRICS.map((key) => {
+    const max = Math.max(
+      ...series[key].own.filter((value) => value != null),
+      ...series[key].typical.filter((value) => value != null),
+      0,
+    )
+    return [key, buildSincePublicationYTicks(max)]
+  }))
+  const yTicks = yTicksByMetric.views
   return {
     variant: section.variant,
     section,
@@ -275,10 +333,11 @@ export function buildPerformanceSectionView(sectionInput, now = new Date()) {
     xAxis,
     yTicks,
     yDomain: [0, yTicks[yTicks.length - 1]],
+    yTicksByMetric,
     chartData,
     realtime: {
       total: section.realtimeViews48h,
-      bars: buildRealtimeBars(section.realtimeViews48h, hashSeed(seedBase, 'realtime', section.realtimeViews48h)),
+      bars: curves.realtimeBars || buildRealtimeBars(section.realtimeViews48h, hashSeed(seedBase, 'realtime', section.realtimeViews48h)),
       sources: section.trafficSources.map((item, index) => ({
         ...item,
         spark: buildSourceSparkline(item.percent, hashSeed(seedBase, 'source', index, item.label)),
@@ -286,11 +345,62 @@ export function buildPerformanceSectionView(sectionInput, now = new Date()) {
     },
     kpis: {
       views: section.totalViews,
-      typicalViews: section.typicalViews,
+      typicalViews: metrics ? (series.views.typical[days] ?? null) : section.typicalViews,
       watchHours: section.watchHours,
-      typicalWatchHours: section.typicalWatchHours,
+      typicalWatchHours: metrics ? (series.watch.typical[days] ?? null) : section.typicalWatchHours,
       subscribers: section.subscribersGained,
+      typicalSubscribers: metrics ? (series.subscribers.typical[days] ?? null) : lastValue(series.subscribers.typical),
       revenueTenge: section.revenueTenge,
+      typicalRevenueTenge: metrics ? (series.revenue.typical[days] ?? null) : lastValue(series.revenue.typical),
     },
   }
+}
+
+/**
+ * Аналитика «С момента публикации» конкретного видео. Все числа берутся из
+ * движка аналитики канала (buildVideoLifetimeAnalytics), поэтому совпадают
+ * с остальными экранами студии.
+ */
+export function buildVideoPerformanceView(video, videos = [], channel = {}, now = new Date()) {
+  const analytics = buildVideoLifetimeAnalytics(video, videos, channel, { today: now })
+  if (analytics.days < 1) {
+    // Первые сутки ещё не закончились — в YouTube статистика ещё обрабатывается.
+    const empty = buildPerformanceSectionView({
+      variant: video?.type === 'short' ? 'shorts' : 'video',
+      publishedAt: analytics.publishedAt,
+      totalViews: 0,
+      typicalViews: 0,
+      watchHours: 0,
+      typicalWatchHours: 0,
+      subscribersGained: 0,
+      revenueTenge: 0,
+      realtimeViews48h: analytics.realtime.total,
+      trafficSources: [],
+    }, now)
+    return { ...empty, pending: true }
+  }
+  const toTenge = (line) => line.map((value) => (value == null ? null : Math.round(value * TENGE_PER_DOLLAR * 100) / 100))
+  return buildPerformanceSectionView({
+    variant: video?.type === 'short' ? 'shorts' : 'video',
+    publishedAt: analytics.publishedAt,
+    totalViews: analytics.kpis.views,
+    typicalViews: analytics.kpis.typicalViews ?? 0,
+    watchHours: analytics.kpis.watchHours,
+    typicalWatchHours: analytics.kpis.typicalWatchHours ?? 0,
+    subscribersGained: analytics.kpis.subscribers,
+    revenueTenge: analytics.kpis.revenue * TENGE_PER_DOLLAR,
+    realtimeViews48h: analytics.realtime.total,
+    trafficSources: analytics.traffic.slice(0, MAX_TRAFFIC_SOURCES).map((item) => ({
+      label: item.label,
+      percent: Math.round(item.share * 1000) / 10,
+    })),
+  }, now, {
+    metrics: {
+      views: { own: analytics.curves.views, typical: analytics.typical.views },
+      watch: { own: analytics.curves.watch, typical: analytics.typical.watch },
+      subscribers: { own: analytics.curves.subscribers, typical: analytics.typical.subscribers },
+      revenue: { own: toTenge(analytics.curves.revenue), typical: toTenge(analytics.typical.revenue) },
+    },
+    realtimeBars: analytics.realtime.bars,
+  })
 }

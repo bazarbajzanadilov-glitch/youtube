@@ -1872,3 +1872,11 @@ button.ytKpiCell {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.videoRowLink {
+  cursor: pointer;
+}
+
+.videoRowLink:hover td {
+  background: var(--studio-hover-soft);
+}

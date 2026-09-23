@@ -105,12 +105,19 @@ export function computeMetrics(views, seed = Math.random()) {
   }
 }
 
+/** Как в YouTube: 1,2 тыс. / 45 тыс. / 169 тыс. / 2,2 млн / 45 млн. */
 export function formatViews(value) {
   if (value == null) return '—'
-  const nbsp = '\u00a0'
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.', ',')}${nbsp}млн`
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace('.', ',')}${nbsp}тыс.`
-  return String(value)
+  const nbsp = ' '
+  const number = Math.max(0, Math.round(Number(value) || 0))
+  const compact = (scaled) => {
+    const digits = scaled < 10 ? 1 : 0
+    const rounded = Math.round(scaled * 10 ** digits) / 10 ** digits
+    return rounded.toLocaleString('ru-RU', { maximumFractionDigits: digits })
+  }
+  if (number >= 999_500) return `${compact(number / 1_000_000)}${nbsp}млн`
+  if (number >= 1_000) return `${compact(number / 1_000)}${nbsp}тыс.`
+  return String(number)
 }
 
 export function formatNumber(value) {
@@ -128,7 +135,8 @@ export function formatMoney(value) {
 
 export function formatDate(iso) {
   if (!iso) return ''
-  const date = new Date(iso)
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso))
+  const date = match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : new Date(iso)
   const months = [
     'янв.', 'февр.', 'мар.', 'апр.', 'мая', 'июн.',
     'июл.', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.',
@@ -210,7 +218,9 @@ export function normalizeVideo(input = {}, options = {}) {
   const base = options.base || null
   const id = input.id || base?.id || makeId(input.title || base?.title || 'video')
   const title = input.title || base?.title || 'Без названия'
-  const date = input.date || base?.date || todayISO()
+  const requestedDate = input.date || base?.date || todayISO()
+  // Будущая дата публикации невозможна для уже опубликованного ролика.
+  const date = requestedDate > todayISO() ? todayISO() : requestedDate
   const duration = input.duration || base?.duration || randomDuration()
   const type = normalizeType(input.type ?? base?.type, duration)
   const seed = seedForVideo({ id, title, date, duration })
@@ -218,12 +228,19 @@ export function normalizeVideo(input = {}, options = {}) {
 
   const inputViews = parseNonNegativeInteger(input.views)
   const baseViews = parseNonNegativeInteger(base?.views)
-  const dateLikeChanged = input.date !== undefined || input.title !== undefined || input.duration !== undefined
+  // Пересчитываем авто-значения только при реальной смене даты или длительности:
+  // сохранение формы без изменений или правка названия не должны сбрасывать
+  // просмотры, накопленные ежедневным обновлением.
+  const dateLikeChanged = Boolean(base) && (
+    (input.date !== undefined && date !== base.date)
+    || (input.duration !== undefined && duration !== base.duration)
+  )
   const forceAutoViews = input.autoViews === true
   const baseAutoViews = base?._autoStats?.views === true
-  const shouldGenerateViews = forceAutoViews || (
-    inputViews === null && (!base || baseViews === null || (baseAutoViews && dateLikeChanged))
-  )
+  const shouldGenerateViews = base
+    ? (forceAutoViews && (!baseAutoViews || dateLikeChanged))
+      || (inputViews === null && (baseViews === null || (baseAutoViews && dateLikeChanged)))
+    : (forceAutoViews || inputViews === null)
   const views = shouldGenerateViews ? generated.views : (inputViews ?? baseViews ?? generated.views)
 
   const inputRevenue = parseNonNegativeMoney(input.revenue)
@@ -235,19 +252,21 @@ export function normalizeVideo(input = {}, options = {}) {
     seed: hashSeed(seed, 'revenue'),
     ageDays: getVideoAgeDays(date),
   })
-  const shouldGenerateRevenue = forceAutoRevenue || (
-    inputRevenue === null
-    && (!base || baseRevenue === null || (baseAutoRevenue && (dateLikeChanged || views !== baseViews)))
-  )
+  const shouldGenerateRevenue = base
+    ? (forceAutoRevenue && (!baseAutoRevenue || dateLikeChanged || views !== baseViews))
+      || (inputRevenue === null
+        && (baseRevenue === null || (baseAutoRevenue && (dateLikeChanged || views !== baseViews))))
+    : (forceAutoRevenue || inputRevenue === null)
   const revenue = shouldGenerateRevenue ? generatedRevenue : (inputRevenue ?? baseRevenue ?? generatedRevenue)
 
   const metrics = computeMetrics(views, (seed % 10000) / 10000)
-  const likes = parseNonNegativeInteger(input.likes)
+  // Оценок не может быть больше, чем просмотров.
+  const likes = Math.min(views, parseNonNegativeInteger(input.likes)
     ?? parseNonNegativeInteger(base?.likes)
-    ?? metrics.likes
-  const dislikes = parseNonNegativeInteger(input.dislikes)
+    ?? metrics.likes)
+  const dislikes = Math.min(Math.max(0, views - likes), parseNonNegativeInteger(input.dislikes)
     ?? parseNonNegativeInteger(base?.dislikes)
-    ?? metrics.dislikes
+    ?? metrics.dislikes)
   const averageViewPercentage = input.averageViewPercentage !== undefined
     ? normalizeAverageViewPercentage(input.averageViewPercentage)
     : normalizeAverageViewPercentage(base?.averageViewPercentage)

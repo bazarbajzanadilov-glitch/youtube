@@ -8,7 +8,7 @@ const NBSP = '\u00a0'
 
 export function formatCompactNumber(n) {
   const v = Number(n) || 0
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1).replace('.', ',')}${NBSP}млн`
+  if (v >= 999_500) return `${(v / 1_000_000).toFixed(1).replace('.', ',')}${NBSP}млн`
   if (v >= 10_000) return `${(v / 1_000).toFixed(0)}${NBSP}тыс.`
   if (v >= 1_000) return `${(v / 1_000).toFixed(1).replace('.', ',')}${NBSP}тыс.`
   return Math.round(v).toLocaleString('ru-RU')
@@ -46,11 +46,11 @@ export function formatSignedCompactNumber(n) {
 /** «81,0 млн», «5,9 млн», «254,1 тыс.» — всегда один знак после запятой от 1000. */
 export function formatCompactOneDecimal(n) {
   const value = Math.abs(Number(n) || 0)
-  const oneDecimal = (v) => (Math.trunc(v * 10) / 10).toLocaleString('ru-RU', {
+  const oneDecimal = (v) => (Math.round(v * 10) / 10).toLocaleString('ru-RU', {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   })
-  if (value >= 1_000_000) return `${oneDecimal(value / 1_000_000)}${NBSP}млн`
+  if (value >= 999_950) return `${oneDecimal(value / 1_000_000)}${NBSP}млн`
   if (value >= 1_000) return `${oneDecimal(value / 1_000)}${NBSP}тыс.`
   return Math.round(value).toLocaleString('ru-RU')
 }

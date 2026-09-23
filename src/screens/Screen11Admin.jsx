@@ -100,7 +100,7 @@ function PerformanceSectionEditor({ variant, section, onSave, onOpen }) {
       <div className={s.performanceFields}>
         <label className={s.field}>
           <span>Дата публикации</span>
-          <input className={s.input} type="date" value={draft.publishedAt} onChange={(e) => setField('publishedAt', e.target.value)} />
+          <input className={s.input} type="date" max={getAlmatyDateISO()} value={draft.publishedAt} onChange={(e) => setField('publishedAt', e.target.value)} />
           <span className={s.fieldHint}>Дней с публикации: {days}. Подписи оси считаются от этого числа.</span>
         </label>
         <label className={s.field}>
@@ -857,7 +857,7 @@ function Screen11AdminContent() {
                 <div className={s.fieldRow}>
                   <label className={s.field}>
                     <span>Дата публикации</span>
-                    <input className={s.input} type="date" value={form.date} onChange={(e) => setField('date', e.target.value)} />
+                    <input className={s.input} type="date" max={todayISO()} value={form.date} onChange={(e) => setField('date', e.target.value)} />
                     <span className={s.fieldHint}>В этот день на графиках появится иконка опубликованного видео.</span>
                   </label>
                   <label className={s.field}>
@@ -981,7 +981,7 @@ function Screen11AdminContent() {
               </label>
               <label className={s.field}>
                 <span>Дата создания</span>
-                <input className={s.input} type="date" value={editableChannel.joinDate} onChange={(e) => updateChannelDraft({ joinDate: e.target.value })} />
+                <input className={s.input} type="date" max={todayISO()} value={editableChannel.joinDate} onChange={(e) => updateChannelDraft({ joinDate: e.target.value })} />
               </label>
               <label className={s.toggleRow}>
                 <input type="checkbox" checked={!!editableChannel.monetizationEnabled} onChange={(e) => updateChannelDraft({ monetizationEnabled: e.target.checked })} />
@@ -1062,18 +1062,18 @@ function Screen11AdminContent() {
                             {video.cover ? <img src={video.cover} alt="" /> : <div className={s.thumbBlank} />}
                           </div>
                           <div className={s.inlineTitle}>
-                            <input defaultValue={video.title} onBlur={(e) => updateVideoField(video, { title: e.target.value })} />
+                            <input key={String(video.title)} defaultValue={video.title} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { title: e.target.value })} />
                             <span>{video.id}</span>
                           </div>
                         </div>
                       </td>
-                      <td><input className={s.tableInput} type="date" value={video.date} onChange={(e) => updateVideoField(video, { date: e.target.value })} /></td>
+                      <td><input className={s.tableInput} type="date" max={todayISO()} value={video.date} onChange={(e) => updateVideoField(video, { date: e.target.value })} /></td>
                       <td>
                         <select className={s.tableInput} value={video.type || 'video'} onChange={(e) => updateVideoField(video, { type: e.target.value })}>
                           {CONTENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
                         </select>
                       </td>
-                      <td><input className={s.tableInput} defaultValue={video.duration} onBlur={(e) => updateVideoField(video, { duration: e.target.value })} /></td>
+                      <td><input className={s.tableInput} key={String(video.duration)} defaultValue={video.duration} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { duration: e.target.value })} /></td>
                       <td>
                         <input
                           className={s.tableInput}
@@ -1082,19 +1082,20 @@ function Screen11AdminContent() {
                           min="0"
                           max="100"
                           step="0.01"
+                          key={String(video.averageViewPercentage)}
                           defaultValue={normalizeAverageViewPercentage(
                             video.averageViewPercentage,
                           )}
-                          onBlur={(e) => updateVideoField(video, {
+                          onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, {
                             averageViewPercentage: normalizeAverageViewPercentage(e.target.value),
                           })}
                         />
                       </td>
-                      <td><input className={s.tableInput} type="number" min="0" defaultValue={video.views} onBlur={(e) => updateVideoField(video, { views: parseCount(e.target.value) ?? 0 })} /></td>
-                      <td><input className={s.tableInput} type="number" min="0" step="0.01" defaultValue={video.revenue} onBlur={(e) => updateVideoField(video, { revenue: parseRevenue(e.target.value) ?? 0 })} /></td>
+                      <td><input className={s.tableInput} type="number" min="0" key={String(video.views)} defaultValue={video.views} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { views: parseCount(e.target.value) ?? 0 })} /></td>
+                      <td><input className={s.tableInput} type="number" min="0" step="0.01" key={String(video.revenue)} defaultValue={video.revenue} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { revenue: parseRevenue(e.target.value) ?? 0 })} /></td>
                       <td className={s.metricInputs}>
-                        <input className={s.tableInput} aria-label="Лайки" type="number" min="0" defaultValue={video.likes} onBlur={(e) => updateVideoField(video, { likes: parseCount(e.target.value) ?? 0 })} />
-                        <input className={s.tableInput} aria-label="Дизлайки" type="number" min="0" defaultValue={video.dislikes} onBlur={(e) => updateVideoField(video, { dislikes: parseCount(e.target.value) ?? 0 })} />
+                        <input className={s.tableInput} aria-label="Лайки" type="number" min="0" key={String(video.likes)} defaultValue={video.likes} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { likes: parseCount(e.target.value) ?? 0 })} />
+                        <input className={s.tableInput} aria-label="Дизлайки" type="number" min="0" key={String(video.dislikes)} defaultValue={video.dislikes} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { dislikes: parseCount(e.target.value) ?? 0 })} />
                         <span>{formatLikePct(video.likePct)}</span>
                       </td>
                       <td className={s.actionCell}>

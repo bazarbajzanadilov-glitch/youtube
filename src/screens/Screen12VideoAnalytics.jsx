@@ -18,6 +18,7 @@ import MetricKpiCell from './analytics/MetricKpiCell.jsx'
 import AreaLineChart from '../components/charts/AreaLineChart.jsx'
 import { analyticsHeroChartProps } from '../components/charts/analyticsChartDefaults.js'
 import { useChannel } from '../storage/useChannel.js'
+import { useVideos } from '../storage/useVideos.js'
 import {
   declineDaysLabel,
   declineTimes,
@@ -28,7 +29,11 @@ import {
   formatSignedCompactNumber,
 } from '../lib/analyticsFormat.js'
 import { formatChartDateLabel } from '../lib/chartDateFormat.js'
-import { buildPerformanceSectionView } from '../lib/videoPerformanceSection.js'
+import {
+  buildPerformanceSectionView,
+  buildVideoPerformanceView,
+  videoIdFromAnalyticsRoute,
+} from '../lib/videoPerformanceSection.js'
 import {
   ANALYTICS_BLUE,
   KPI_DESCRIPTIONS,
@@ -49,17 +54,40 @@ function formatWatchHours(value) {
   return formatCompactOneDecimal(value)
 }
 
+function compareTrend(value, typical) {
+  if (typical == null) return 'neutral'
+  if (value > typical) return 'up'
+  if (value < typical) return 'down'
+  return 'usual'
+}
+
+const METRIC_CHARTS = {
+  views: { formatAxis: formatAxisCompact, formatTooltip: formatNumberRu },
+  watch: {
+    formatAxis: formatAxisCompact,
+    formatTooltip: (value) => (Number(value) || 0).toLocaleString('ru-RU', { maximumFractionDigits: 1 }),
+  },
+  subscribers: { formatAxis: formatAxisCompact, formatTooltip: formatNumberRu },
+  revenue: { formatAxis: (value) => `${formatAxisCompact(value)}\u00a0₸`, formatTooltip: formatTengeAmount },
+}
+
 export default function Screen12VideoAnalytics() {
   const { go, showToast, route } = useContext(NavContext)
   const { channel } = useChannel()
-  const variant = variantFromRoute(route)
+  const { videos } = useVideos()
+  const videoId = videoIdFromAnalyticsRoute(route)
+  const video = videoId ? videos.find((item) => String(item.id) === videoId) : null
+  const variant = video ? (video.type === 'short' ? 'shorts' : 'video') : variantFromRoute(route)
   const [activeTab, setActiveTab] = useState(0)
+  const [requestedMetric, setRequestedMetric] = useState('views')
   const section = channel?.performanceSections?.[variant]
   const view = useMemo(
-    () => buildPerformanceSectionView({ ...(section || {}), variant }),
-    [section, variant],
+    () => (video
+      ? buildVideoPerformanceView(video, videos, channel)
+      : buildPerformanceSectionView({ ...(section || {}), variant })),
+    [video, videos, channel, section, variant],
   )
-  const { kpis, chartData, xAxis, yTicks, yDomain, days, realtime } = view
+  const { kpis, chartData, xAxis, days, realtime } = view
   const isShorts = variant === 'shorts'
   const headline = `С момента публикации это видео${isShorts ? ' Shorts' : ''} посмотрели ${formatNumberRu(kpis.views)} ${declineTimes(kpis.views)}`
   const lastTick = xAxis.lastTick
@@ -73,10 +101,16 @@ export default function Screen12VideoAnalytics() {
     const row = chartData[day]
     return row?.date ? formatChartDateLabel(row.date) : `День ${day}`
   }
-  const tooltipRows = (payload) => [
-    { label: VIDEO_SERIES_LABEL, value: formatNumberRu(payload?.views ?? 0), emphasis: true },
-    { label: CHANNEL_SERIES_LABEL, value: formatNumberRu(payload?.typical ?? 0) },
-  ]
+  const metric = isShorts && requestedMetric === 'watch' ? 'views' : requestedMetric
+  const metricChart = METRIC_CHARTS[metric]
+  const metricTicks = view.yTicksByMetric[metric]
+  const tooltipRows = (payload) => {
+    const typicalValue = payload?.[`${metric}Typical`]
+    return [
+      { label: VIDEO_SERIES_LABEL, value: metricChart.formatTooltip(payload?.[metric] ?? 0), emphasis: true },
+      ...(typicalValue == null ? [] : [{ label: CHANNEL_SERIES_LABEL, value: metricChart.formatTooltip(typicalValue) }]),
+    ]
+  }
 
   const renderRealtimeCard = () => (
     <Card padding="lg" depth="md" className={`${tabStyles.sideCard} ${tabStyles.overviewSideCard}`} data-testid="since-publication-realtime">
@@ -115,9 +149,47 @@ export default function Screen12VideoAnalytics() {
     </Card>
   )
 
-  const renderOverview = () => (
+  const renderPending = () => (
+    <div className={s.emptyWrap}>
+      <EmptyState
+        title="Статистика обрабатывается"
+        description="Данные за первые сутки после публикации появятся завтра."
+      />
+    </div>
+  )
+
+  const renderOverview = () => view.pending ? renderPending() : (
     <div className={s.overviewLayout}>
     <div className={s.overviewStack}>
+      {video ? (
+        <div className={s.videoHeader} data-testid="video-analytics-header">
+          <div className={s.videoHeaderThumb}>
+            {video.cover ? <img src={video.cover} alt="" /> : null}
+          </div>
+          <div className={s.videoHeaderTitle} title={video.title}>{video.title}</div>
+        </div>
+      ) : (
+      <div className={s.variantSwitch} role="tablist" aria-label="Тип контента">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!isShorts}
+          className={`${s.variantChip} ${!isShorts ? s.variantChipActive : ''}`}
+          onClick={() => go('video-analytics/video')}
+        >
+          Видео
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={isShorts}
+          className={`${s.variantChip} ${isShorts ? s.variantChipActive : ''}`}
+          onClick={() => go('video-analytics/shorts')}
+        >
+          Shorts
+        </button>
+      </div>
+      )}
       <h2 className={s.sinceTitle} data-testid="since-publication-title">{headline}</h2>
       <AnalyticsHeroCard
         className={`${tabStyles.overviewHeroCard} ${tabStyles.overviewInset}`}
@@ -130,16 +202,16 @@ export default function Screen12VideoAnalytics() {
               height: 214,
             })}
             data={chartData}
-            dataKey="views"
-            comparisonDataKey="typical"
+            dataKey={metric}
+            comparisonDataKey={`${metric}Typical`}
             comparisonColor={COMPARISON_COLOR}
             comparisonName={CHANNEL_SERIES_LABEL}
             xKey="day"
             color={ANALYTICS_BLUE}
             name={VIDEO_SERIES_LABEL}
-            yTicks={yTicks}
-            yDomain={yDomain}
-            formatY={formatAxisCompact}
+            yTicks={metricTicks}
+            yDomain={[0, metricTicks[metricTicks.length - 1]]}
+            formatY={metricChart.formatAxis}
             xTickFormatter={xTickFormatter}
             formatTooltipLabel={tooltipLabel}
             tooltipRows={tooltipRows}
@@ -150,29 +222,41 @@ export default function Screen12VideoAnalytics() {
           <MetricKpiCell
             label="Просмотры"
             value={formatCompactOneDecimal(kpis.views)}
-            note={absoluteUsualComparison(kpis.views - kpis.typicalViews, formatCompactOneDecimal)}
+            note={kpis.typicalViews == null ? '' : absoluteUsualComparison(kpis.views - kpis.typicalViews, formatCompactOneDecimal)}
             description={KPI_DESCRIPTIONS.views}
-            trend="up"
+            trend={compareTrend(kpis.views, kpis.typicalViews)}
+            active={metric === 'views'}
+            accentColor={ANALYTICS_BLUE}
+            onClick={() => setRequestedMetric('views')}
           />
           {!isShorts ? (
             <MetricKpiCell
               label="Время просмотра (часы)"
               value={formatWatchHours(kpis.watchHours)}
-              note={absoluteUsualComparison(kpis.watchHours - kpis.typicalWatchHours, formatWatchHours)}
+              note={kpis.typicalWatchHours == null ? '' : absoluteUsualComparison(kpis.watchHours - kpis.typicalWatchHours, formatWatchHours)}
               description={KPI_DESCRIPTIONS.watchTime}
-              trend="up"
+              trend={compareTrend(kpis.watchHours, kpis.typicalWatchHours)}
+              active={metric === 'watch'}
+              accentColor={ANALYTICS_BLUE}
+              onClick={() => setRequestedMetric('watch')}
             />
           ) : null}
           <MetricKpiCell
             label="Подписчики"
             value={formatSignedCompactNumber(kpis.subscribers)}
             description={KPI_DESCRIPTIONS.subscribers}
+            active={metric === 'subscribers'}
+            accentColor={ANALYTICS_BLUE}
+            onClick={() => setRequestedMetric('subscribers')}
           />
           <MetricKpiCell
             label="Расчетный доход"
             value={formatTengeAmount(kpis.revenueTenge)}
             description={KPI_DESCRIPTIONS.revenue}
             clock
+            active={metric === 'revenue'}
+            accentColor={ANALYTICS_BLUE}
+            onClick={() => setRequestedMetric('revenue')}
           />
         </div>
         <div className={s.chartLegend} data-testid="since-publication-legend">

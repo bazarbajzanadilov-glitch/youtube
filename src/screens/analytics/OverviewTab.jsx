@@ -12,6 +12,7 @@ import {
   formatHours,
   formatDateLong,
   formatNumberRu,
+  formatCompactOneDecimal,
   formatSignedCompactNumber,
 } from '../../lib/analyticsFormat.js'
 import {
@@ -35,6 +36,7 @@ import {
   metricPerformanceComparison,
   previousPeriodComparison,
   videoDate,
+  declineViews,
 } from './studioAnalyticsHelpers.js'
 
 function StudioAiSparkle({ size = 22 }) {
@@ -58,6 +60,16 @@ function StudioAiSparkle({ size = 22 }) {
       />
     </svg>
   )
+}
+
+function declineHours(value) {
+  const hours = Math.round((Number(value) || 0) * 10) / 10
+  if (!Number.isInteger(hours)) return 'часа'
+  const n = Math.abs(hours)
+  if (n % 100 >= 11 && n % 100 <= 14) return 'часов'
+  if (n % 10 === 1) return 'час'
+  if (n % 10 >= 2 && n % 10 <= 4) return 'часа'
+  return 'часов'
 }
 
 export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics }) {
@@ -131,7 +143,7 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
     (
       <>
         <strong>Показатели канала остаются стабильными, а удержание аудитории — ровным.</strong>{' '}
-        За период «{range?.label || 'Последние 28 дней'}» канал {channel?.channelName || 'TRADING INSIDER'} получил {formatNumberRu(overview.kpis.views.value)} просмотров и {formatHours(overview.kpis.watchTime.value)} часов просмотра. Уникальных зрителей было около {formatCompactNumber(uniqueViewers)}, а доля вернувшихся зрителей составила примерно {returningShare}%.
+        За период «{range?.label || 'Последние 28 дней'}» канал {channel?.channelName || 'TRADING INSIDER'} получил {formatNumberRu(overview.kpis.views.value)} {declineViews(overview.kpis.views.value)} и {formatHours(overview.kpis.watchTime.value)} {declineHours(overview.kpis.watchTime.value)} просмотра. Уникальных зрителей было около {formatCompactNumber(uniqueViewers)}, а доля вернувшихся зрителей составила примерно {returningShare}%.
       </>
     ),
     (
@@ -176,7 +188,7 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
           <div className={s.ytKpiStrip}>
             <MetricKpiCell
               label="Просмотры"
-              value={formatSignedCompactNumber(overview.kpis.views.value)}
+              value={formatCompactOneDecimal(overview.kpis.views.value)}
               note={metricPerformanceComparison(overview.kpis.views, range, formatCompactNumber)}
               description={KPI_DESCRIPTIONS.views}
               trend={kpiTrend(overview.kpis.views.delta)}
@@ -186,7 +198,7 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
             />
             <MetricKpiCell
               label="Время просмотра (часы)"
-              value={formatSignedCompactNumber(overview.kpis.watchTime.value)}
+              value={formatCompactOneDecimal(overview.kpis.watchTime.value)}
               note={metricPerformanceComparison(overview.kpis.watchTime, range, formatHours)}
               description={KPI_DESCRIPTIONS.watchTime}
               trend={kpiTrend(overview.kpis.watchTime.delta)}
@@ -256,7 +268,12 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
             </thead>
             <tbody>
               {overview.topVideos.slice(0, 10).map((video, index) => (
-                <tr key={video.id}>
+                <tr
+                  key={video.id}
+                  className={s.videoRowLink}
+                  onClick={() => onOpenVideoAnalytics?.(video)}
+                  title="Открыть аналитику видео"
+                >
                   <td>
                     <div className={s.videoCell}>
                       <span className={s.rank}>{index + 1}</span>

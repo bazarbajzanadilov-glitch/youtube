@@ -104,9 +104,11 @@ export function avgWatchPercent(video) {
   return formatPercent(fraction * 100, 1)
 }
 
+/** CTR значков видео за период: просмотры ÷ показы (данные дневной истории). */
 export function ctrPretty(video) {
-  const seed = (Number(video?.views) || 0) % 100
-  return formatPercent(8 + (seed % 8), 1)
+  const impressions = Number(video?.periodImpressions) || 0
+  if (impressions <= 0) return '—'
+  return formatPercent(((Number(video?.periodViews) || 0) / impressions) * 100, 1)
 }
 
 export function daysSinceLong(iso, now = new Date()) {
@@ -145,7 +147,7 @@ function diffFromDelta(value, delta) {
 }
 
 export function usualComparison(kpi, format = formatCompactNumber) {
-  if (kpi?.delta == null || !Number.isFinite(Number(kpi.delta))) return ''
+  if (kpi?.delta == null || Number.isNaN(Number(kpi.delta))) return ''
   const delta = Number(kpi.delta)
   if (Math.abs(delta) <= USUAL_DELTA_THRESHOLD) return 'Обычное значение'
   const diff = diffFromDelta(kpi?.value, delta) || Math.abs(Number(kpi?.value) || 0)

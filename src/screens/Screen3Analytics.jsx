@@ -13,6 +13,7 @@ import AudienceTab from './analytics/AudienceTab.jsx'
 import RevenueTab from './analytics/RevenueTab.jsx'
 import TrendsTab from './analytics/TrendsTab.jsx'
 import { videoAnalyticsRoute } from '../lib/videoPerformanceSection.js'
+import { formatHours } from '../lib/analyticsFormat.js'
 
 const TABS = ['Обзор', 'Контент', 'Аудитория', 'Доход', 'Тренды']
 const TRENDS_RANGE = { kind: '28d' }
@@ -40,7 +41,7 @@ export default function Screen3Analytics() {
   const isOverviewTab = activeTab === 0
   const advancedRows = [
     ['Просмотры', formatAdvancedNumber(screenData?.overview?.kpis?.views?.value)],
-    ['Время просмотра (часы)', formatAdvancedNumber(screenData?.overview?.kpis?.watchTime?.value)],
+    ['Время просмотра (часы)', formatHours(screenData?.overview?.kpis?.watchTime?.value)],
     ['Подписчики', formatAdvancedNumber(screenData?.overview?.kpis?.subscribers?.value)],
     ['Расчетный доход', formatAdvancedMoney(screenData?.monetization?.kpis?.revenue?.value)],
   ]
@@ -64,7 +65,11 @@ export default function Screen3Analytics() {
         />
       )
     }
-    if (activeTab === 1) return <ContentTab data={data} onOpenAdmin={() => go('admin')} />
+    if (activeTab === 1) return <ContentTab
+        data={data}
+        onOpenAdmin={() => go('admin')}
+        onOpenVideoAnalytics={(video) => go(videoAnalyticsRoute(video))}
+      />
     if (activeTab === 2) return <AudienceTab data={data} onOpenAdmin={() => go('admin')} />
     if (activeTab === 3) return <RevenueTab data={data} />
     return <TrendsTab data={trendsData} />

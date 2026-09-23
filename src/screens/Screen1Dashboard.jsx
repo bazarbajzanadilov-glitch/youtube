@@ -16,6 +16,8 @@ import { averageViewFraction } from '../lib/videoMetrics.js'
 import VideoRow from '../components/ui/VideoRow.jsx'
 import { formatTenge } from './analytics/studioAnalyticsHelpers.js'
 import { videoAnalyticsRoute } from '../lib/videoPerformanceSection.js'
+import { addDays, daysBetween, isoDay } from '../lib/analyticsEngine.js'
+import { getAlmatyDateISO } from '../lib/almatyDate.js'
 
 const PERFORMANCE_THUMB = '/studio-assets/dashboard-performance-reference.jpg'
 const SHOPPING_ART = '/studio-assets/dashboard-shopping-idea.png'
@@ -40,23 +42,32 @@ function formatPercent(value) {
   return `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 }).format(percent)} %`
 }
 
-function daysSince(iso) {
-  if (!iso) return ''
-  const d = new Date(iso).getTime()
-  const days = Math.max(0, Math.floor((Date.now() - d) / (1000 * 60 * 60 * 24)))
-  if (days === 0) return 'сегодня'
-  if (days === 1) return '1 день назад'
-  if (days < 5) return `${days} дня назад`
-  return `${days} дней назад`
+function plural(value, one, few, many) {
+  const n = Math.abs(Math.round(Number(value) || 0))
+  const lastTwo = n % 100
+  const last = n % 10
+  if (lastTwo >= 11 && lastTwo <= 14) return many
+  if (last === 1) return one
+  if (last >= 2 && last <= 4) return few
+  return many
+}
+
+/* Дата публикации хранится без времени, поэтому считаем полные дни по Алматы. */
+function publicationAgeDays(iso) {
+  if (!iso) return 0
+  return Math.max(0, daysBetween(iso, getAlmatyDateISO()))
+}
+
+function firstDaysLabel(iso) {
+  const days = publicationAgeDays(iso)
+  if (days === 0) return 'Первые часы после публикации'
+  return `Первые ${days} ${plural(days, 'день', 'дня', 'дней')} после публикации`
 }
 
 function elapsedSince(iso) {
-  if (!iso) return 'недавно'
-  const diffHours = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60)))
-  const days = Math.floor(diffHours / 24)
-  const hours = diffHours % 24
-  if (days === 0) return `${hours || 1} часов назад`
-  return `${days} дней ${hours} часов назад`
+  const days = publicationAgeDays(iso)
+  if (days === 0) return 'сегодня'
+  return `${days} ${plural(days, 'день', 'дня', 'дней')} назад`
 }
 
 function formatDelta(n) {
@@ -92,7 +103,7 @@ export default function Screen1Dashboard() {
   const subscriberDelta = analytics.overview.kpis.subscribers.value
   const topVideos = (analytics.realtime.topVideos || []).slice(0, 2)
   const publishedVideos = videos.slice(0, 4)
-  const lastVideoComments = lastVideo ? effectiveComments(lastVideo) : 0
+  const lastVideoComments = lastVideo ? effectiveComments(lastVideo, channel) : 0
   const lastVideoAverageFraction = averageViewFraction(lastVideo)
   const avgViewDuration = lastVideo && lastVideoAverageFraction != null
     ? formatDuration(parseDurationSeconds(lastVideo.duration) * lastVideoAverageFraction)
@@ -102,10 +113,22 @@ export default function Screen1Dashboard() {
     : '—'
   const maxConcurrent = lastVideo ? Math.max(3, Math.round((Number(lastVideo.views) || 0) * 0.007)) : 0
   const performanceTitle = lastVideo?.type === 'live' ? 'Эффективность прямой трансляции' : 'Эффективность последнего видео'
-  const recentRankingPool = videos.slice(0, 10)
+  // Как в YouTube: последние 10 роликов того же формата сравниваются по
+  // просмотрам за одинаковый срок после публикации, а не за всё время.
+  const recentRankingPool = lastVideo
+    ? videos.filter((video) => video.type === lastVideo.type).slice(0, 10)
+    : []
+  const rankingAge = publicationAgeDays(lastVideo?.date)
+  const viewsAtAge = (video) => {
+    const rows = (channel.videoDailyStats || []).filter((row) => String(row.videoId) === String(video.id))
+    if (rows.length === 0) return Number(video.views) || 0
+    const until = isoDay(addDays(video.date, Math.max(0, rankingAge - 1)))
+    return rows.reduce((sum, row) => (row.date <= until ? sum + (Number(row.views) || 0) : sum), 0)
+  }
   const lastVideoRank = lastVideo
     ? [...recentRankingPool]
-        .sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0))
+        .map((video) => ({ id: video.id, views: rankingAge > 0 ? viewsAtAge(video) : Number(video.views) || 0 }))
+        .sort((a, b) => b.views - a.views)
         .findIndex((video) => video.id === lastVideo.id) + 1
     : 0
 
@@ -148,7 +171,7 @@ export default function Screen1Dashboard() {
                 <div className={s.publishLine}>
                   {lastVideo.type === 'live'
                     ? `Во время прямого эфира (он закончился ${elapsedSince(lastVideo.date)})`
-                    : `${daysSince(lastVideo.date)} после публикации`}
+                    : firstDaysLabel(lastVideo.date)}
                 </div>
                 {lastVideo.type === 'live' ? (
                   <div className={s.infoLine}>Для прямых трансляций сравнение показателей доступно только за периоды после публикации.</div>
@@ -228,11 +251,11 @@ export default function Screen1Dashboard() {
                       key={video.id}
                       cover={video.cover}
                       title={video.title}
-                      onClick={() => go('content')}
+                      onClick={() => go(videoAnalyticsRoute(video))}
                       meta={(
                         <>
                           <span>{formatViews(video.views)}</span>
-                          <span>{formatNumber(effectiveComments(video))}</span>
+                          <span>{formatNumber(effectiveComments(video, channel))}</span>
                           <span>{formatNumber(video.likes || 0)}</span>
                         </>
                       )}
@@ -281,7 +304,7 @@ export default function Screen1Dashboard() {
               <div className={s.popularHead}>Самый популярный контент</div>
               <div className={s.popularSub}>Последние 48 часов · Просмотры</div>
               {topVideos.map((v) => (
-                <button type="button" className={s.popularRow} key={v.id} onClick={() => go('analytics')}>
+                <button type="button" className={s.popularRow} key={v.id} onClick={() => go(videoAnalyticsRoute(v))}>
                   <span className={s.popularTitleEllipsis}>{v.title}</span>
                   <span className={s.views}>{formatNumber(v.realtimeViews || 0)}</span>
                 </button>

@@ -12,6 +12,7 @@ import {
 } from 'react-icons/md'
 import styles from './ProfileMenu.module.css'
 import ChannelAvatar from '../components/ChannelAvatar.jsx'
+import { buildChannelHandle } from '../lib/channelHandle.js'
 
 const THEME_LABELS = {
   system: 'как на устройстве',
@@ -49,15 +50,6 @@ function MenuRow({ icon: Icon, label, trailing = null, onClick, href }) {
   )
 }
 
-function buildChannelHandle(channel) {
-  const storedHandle = channel.handle || channel.channelHandle || channel.customUrl
-  if (storedHandle) return storedHandle.startsWith('@') ? storedHandle : `@${storedHandle}`
-
-  const compactName = String(channel.channelName || 'YouTube')
-    .trim()
-    .replace(/\s+/g, '_')
-  return `@${compactName}`
-}
 
 export default function ProfileMenu({
   avatarUrl,

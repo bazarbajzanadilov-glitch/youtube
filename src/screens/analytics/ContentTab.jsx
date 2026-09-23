@@ -7,9 +7,11 @@ import {
   formatCompactNumber,
   formatNumberRu,
   formatPercent,
+  formatCompactOneDecimal,
   formatSignedCompactNumber,
 } from '../../lib/analyticsFormat.js'
 import s from './AnalyticsTabs.module.css'
+import { resolveVideoType } from '../../lib/analyticsAggregator.js'
 import {
   avgWatchPretty,
   buildPublishedVideoMarkers,
@@ -35,19 +37,8 @@ const TRAFFIC_KEYS_BY_TAB = [
 ]
 const CONTENT_CHART_COLOR = '#8e8cff'
 
-function normalizeVideoType(video) {
-  if (['video', 'short', 'live'].includes(video?.type)) return video.type
-  const title = String(video?.title || '').toLowerCase()
-  if (title.includes('прямой эфир') || title.includes('live stream')) return 'live'
-  const parts = String(video?.duration || '0:00').split(':').map((part) => parseInt(part, 10) || 0)
-  const seconds = parts.length === 3
-    ? parts[0] * 3600 + parts[1] * 60 + parts[2]
-    : (parts[0] || 0) * 60 + (parts[1] || 0)
-  if (seconds <= 60) return 'short'
-  return 'video'
-}
 
-export default function ContentTab({ data, onOpenAdmin }) {
+export default function ContentTab({ data, onOpenAdmin, onOpenVideoAnalytics }) {
   const { content, range } = data
   const [trafficTab, setTrafficTab] = useState(0)
   const [activeType, setActiveType] = useState(null)
@@ -57,7 +48,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
   const typeKey = TYPE_KEYS[selectedType]
   const filteredVideos = useMemo(() => (
     (content.allVideos || []).filter((video) => (
-      typeKey === 'all' || normalizeVideoType(video) === typeKey
+      typeKey === 'all' || resolveVideoType(video) === typeKey
     ))
   ), [content.allVideos, typeKey])
   const filteredTopVideos = useMemo(() => (
@@ -181,7 +172,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
         <div className={s.ytKpiStrip}>
           <MetricKpiCell
             label="Просмотры"
-            value={formatSignedCompactNumber(selectedKpis.views?.value || 0)}
+            value={formatCompactOneDecimal(selectedKpis.views?.value || 0)}
             note={metricPerformanceComparison(selectedKpis.views, range, formatCompactNumber)}
             description={KPI_DESCRIPTIONS.views}
             trend={kpiTrend(selectedKpis.views?.delta)}
@@ -191,7 +182,7 @@ export default function ContentTab({ data, onOpenAdmin }) {
           />
           <MetricKpiCell
             label="Заинтересованные просмотры"
-            value={formatSignedCompactNumber(selectedKpis.engagedViews?.value || 0)}
+            value={formatCompactOneDecimal(selectedKpis.engagedViews?.value || 0)}
             note={previousPeriodComparison(selectedKpis.engagedViews, range)}
             description={KPI_DESCRIPTIONS.engagedViews}
             trend={kpiTrend(selectedKpis.engagedViews?.delta)}
@@ -304,7 +295,12 @@ export default function ContentTab({ data, onOpenAdmin }) {
           </thead>
           <tbody>
             {filteredTopVideos.map((video, index) => (
-              <tr key={video.id}>
+              <tr
+                key={video.id}
+                className={s.videoRowLink}
+                onClick={() => onOpenVideoAnalytics?.(video)}
+                title="Открыть аналитику видео"
+              >
                 <td>
                   <div className={s.videoCell}>
                     <span className={s.rank}>{index + 1}</span>
