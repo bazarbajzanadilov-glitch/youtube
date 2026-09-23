@@ -185,6 +185,22 @@ function cleanNumber(value) {
   return Math.round(value * 1e6) / 1e6
 }
 
+const BURST_KNOTS = [
+  [0, 0], [0.005, 0.14], [0.02, 0.43], [0.032, 0.5], [0.07, 0.64],
+  [0.09, 0.72], [0.14, 0.77], [0.2, 0.87], [0.3, 0.955], [0.45, 0.985], [1, 1],
+]
+
+function interpolateKnots(knots, x) {
+  for (let index = 1; index < knots.length; index += 1) {
+    const [x1, y1] = knots[index]
+    if (x <= x1) {
+      const [x0, y0] = knots[index - 1]
+      return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0)
+    }
+  }
+  return 1
+}
+
 function shapeFraction(shape, t) {
   const x = Math.max(0, Math.min(1, t))
   switch (shape) {
@@ -197,10 +213,9 @@ function shapeFraction(shape, t) {
       return 0.86 * x + 0.14 * (1 - Math.exp(-x / 0.3)) / (1 - Math.exp(-1 / 0.3))
     case 'burst':
     default: {
-      // Как в YouTube: скачок в первые дни, выпуклый рост и плато к ~30 % срока.
-      const launch = (1 - Math.exp(-x / 0.008)) / (1 - Math.exp(-1 / 0.008))
-      const growth = (1 - Math.exp(-x / 0.08)) / (1 - Math.exp(-1 / 0.08))
-      return 0.45 * launch + 0.53 * growth + 0.02 * x
+      // Как в YouTube: скачок на старте, излом, ещё одна волна рекомендаций,
+      // медленный добор и плато к ~35 % срока. Отрезки прямые — видны изломы.
+      return interpolateKnots(BURST_KNOTS, x)
     }
   }
 }
@@ -215,9 +230,20 @@ export function buildCumulativeCurve({ days, total, shape = 'burst', seed = 1 })
   const rand = seededRng(Number(seed) || 1)
   const increments = new Array(safeDays)
   let previous = 0
+  // Периоды разной активности (рекомендации то включаются, то затихают) и
+  // редкие всплески дают на накопленном графике изломы, как в YouTube.
+  let regime = 1
+  let regimeLeft = 0
   for (let day = 1; day <= safeDays; day += 1) {
+    if (regimeLeft <= 0) {
+      regime = 0.6 + rand() * 0.8
+      regimeLeft = Math.max(2, Math.round(safeDays * (0.008 + rand() * 0.03)))
+    }
+    regimeLeft -= 1
     const fraction = shapeFraction(shape, day / safeDays)
-    const jitter = 0.78 + rand() * 0.44
+    const spike = rand() < 0.05 ? 1.6 + rand() * 1.2 : 1
+    const launch = day <= Math.max(1, safeDays * 0.02)
+    const jitter = launch ? 0.85 + rand() * 0.3 : regime * spike * (0.7 + rand() * 0.6)
     increments[day - 1] = Math.max(0, fraction - previous) * jitter
     previous = fraction
   }

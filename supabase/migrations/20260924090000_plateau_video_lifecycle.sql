@@ -20,7 +20,11 @@ as $$
   with seed as (
     select
       pg_catalog.decode(pg_catalog.md5(p_video_id), 'hex') as video_seed,
-      pg_catalog.decode(pg_catalog.md5(p_video_id || ':' || p_date::text), 'hex') as day_seed
+      pg_catalog.decode(pg_catalog.md5(p_video_id || ':' || p_date::text), 'hex') as day_seed,
+      -- Периоды по 3 дня: рекомендации то разгоняют ролик, то затихают.
+      pg_catalog.decode(pg_catalog.md5(
+        p_video_id || ':block:' || floor(greatest(0, p_date - p_published_at) / 3.0)::text
+      ), 'hex') as block_seed
   ),
   inputs as (
     select
@@ -29,7 +33,8 @@ as $$
       1.6 + (pg_catalog.get_byte(video_seed, 1)::double precision / 255.0) * 2.4 as early_decay,
       10.0 + (pg_catalog.get_byte(video_seed, 2)::double precision / 255.0) * 30.0 as second_wave,
       0.45 + (pg_catalog.get_byte(video_seed, 3)::double precision / 255.0) * 0.75 as wave_height,
-      0.84 + (pg_catalog.get_byte(day_seed, 0)::double precision / 255.0) * 0.32 as ordinary_noise,
+      0.70 + (pg_catalog.get_byte(day_seed, 0)::double precision / 255.0) * 0.60 as ordinary_noise,
+      0.35 + (pg_catalog.get_byte(block_seed, 0)::double precision / 255.0) * 1.50 as regime,
       pg_catalog.get_byte(day_seed, 1)::double precision / 255.0 as shock,
       case when extract(isodow from p_date) >= 6 then 1.09 else 1.0 end as weekend
     from seed
@@ -73,8 +78,9 @@ as $$
       * shaped.upload_day
       * shaped.weekend
       * shaped.ordinary_noise
+      * case when shaped.age < 2 then 1.0 else shaped.regime end
       * case
-          when shaped.shock > 0.96 then 1.25 + ((shaped.shock - 0.96) / 0.04) * 0.45
+          when shaped.shock > 0.93 then 1.8 + ((shaped.shock - 0.93) / 0.07) * 1.7
           when shaped.shock < 0.04 then 0.72
           else 1.0
         end
