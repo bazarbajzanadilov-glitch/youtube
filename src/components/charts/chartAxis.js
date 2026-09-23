@@ -1,4 +1,7 @@
 const NICE_STEPS = [1, 2, 2.5, 3, 4, 5, 10]
+// Как в YouTube Studio: верх оси прижат к пику (0 / 125 тыс. / 250 тыс. / 375 тыс.),
+// чтобы график не сплющивался.
+const TIGHT_STEPS = [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10]
 const NICE_AXIS_MAX_MULTIPLIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 const STEP_EPSILON = 1e-8
 
@@ -7,13 +10,13 @@ function cleanTick(value) {
   return Number(value.toFixed(8))
 }
 
-function stepCandidates(maxDisplayValue) {
+function stepCandidates(maxDisplayValue, steps = NICE_STEPS) {
   const safeMax = Math.max(0, Number(maxDisplayValue) || 0)
   if (safeMax === 0) return [1]
   const magnitude = 10 ** Math.floor(Math.log10(safeMax))
   const candidates = []
   for (let power = magnitude / 100; power <= magnitude * 10; power *= 10) {
-    NICE_STEPS.forEach((step) => candidates.push(step * power))
+    steps.forEach((step) => candidates.push(step * power))
   }
   return candidates
     .filter((step) => Number.isFinite(step) && step > 0)
@@ -82,7 +85,7 @@ export function buildNiceAxisTicks(maxValue, { scale = 1, targetTickCount = 5 } 
   }
 
   const intervalCount = safeTickCount - 1
-  const step = stepCandidates(displayMax)
+  const step = stepCandidates(displayMax, TIGHT_STEPS)
     .find((candidate) => (candidate * intervalCount) >= displayMax - STEP_EPSILON)
     || niceStep(displayMax, safeTickCount)
 
