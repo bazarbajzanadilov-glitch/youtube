@@ -14,6 +14,7 @@
     "verify:images": "node scripts/verify-image-policy.mjs",
     "verify:site-data": "node scripts/verify-site-data.mjs",
     "verify:site-session": "node scripts/verify-site-session.mjs",
+    "verify:performance": "node scripts/verify-video-performance.mjs",
     "seed:supabase-media": "node scripts/seed-supabase-media.mjs",
     "preview": "vite preview"
   },

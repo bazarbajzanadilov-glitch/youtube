@@ -43,6 +43,53 @@ export function formatSignedCompactNumber(n) {
   return `${sign}${compactValue}`
 }
 
+/** «81,0 млн», «5,9 млн», «254,1 тыс.» — всегда один знак после запятой от 1000. */
+export function formatCompactOneDecimal(n) {
+  const value = Math.abs(Number(n) || 0)
+  const oneDecimal = (v) => (Math.trunc(v * 10) / 10).toLocaleString('ru-RU', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+  if (value >= 1_000_000) return `${oneDecimal(value / 1_000_000)}${NBSP}млн`
+  if (value >= 1_000) return `${oneDecimal(value / 1_000)}${NBSP}тыс.`
+  return Math.round(value).toLocaleString('ru-RU')
+}
+
+/** Подписи оси: «0», «750 тыс.», «1,5 млн», «2,3 млн», «6 млн» (без «,0»). */
+export function formatAxisCompact(n) {
+  const value = Math.max(0, Number(n) || 0)
+  const short = (v) => (Math.round(v * 10) / 10).toLocaleString('ru-RU', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  })
+  if (value >= 1_000_000) return `${short(value / 1_000_000)}${NBSP}млн`
+  if (value >= 1_000) return `${short(value / 1_000)}${NBSP}тыс.`
+  return Math.round(value).toLocaleString('ru-RU')
+}
+
+/** «раз» / «раза»: 1 раз, 2 раза, 5 раз, 5 942 494 раза, 81 022 050 раз. */
+export function declineTimes(n) {
+  const value = Math.abs(Math.round(Number(n) || 0))
+  const lastTwo = value % 100
+  const last = value % 10
+  if (lastTwo >= 11 && lastTwo <= 14) return 'раз'
+  if (last >= 2 && last <= 4) return 'раза'
+  return 'раз'
+}
+
+/** «1386 дней», «21 день», «3 дня». */
+export function declineDaysLabel(n) {
+  const value = Math.abs(Math.round(Number(n) || 0))
+  const lastTwo = value % 100
+  const last = value % 10
+  let word = 'дней'
+  if (!(lastTwo >= 11 && lastTwo <= 14)) {
+    if (last === 1) word = 'день'
+    else if (last >= 2 && last <= 4) word = 'дня'
+  }
+  return `${value} ${word}`
+}
+
 export function formatHours(hours) {
   const v = Number(hours) || 0
   if (v >= 1000) return v.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')

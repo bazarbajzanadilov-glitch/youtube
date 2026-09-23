@@ -29,6 +29,110 @@ import {
   DEFAULT_AVERAGE_VIEW_PERCENTAGE,
   normalizeAverageViewPercentage,
 } from '../lib/videoMetrics.js'
+import {
+  CURVE_SHAPES,
+  PERFORMANCE_VARIANTS,
+  daysSincePublication,
+  normalizePerformanceSection,
+} from '../lib/videoPerformanceSection.js'
+
+const PERFORMANCE_VARIANT_LABELS = {
+  shorts: 'Shorts (со словом «Shorts» в заголовке)',
+  video: 'Видео (без слова «Shorts»)',
+}
+
+function performanceDraftFrom(variant, section) {
+  const normalized = normalizePerformanceSection(variant, section)
+  return {
+    publishedAt: normalized.publishedAt,
+    totalViews: String(normalized.totalViews),
+    typicalViews: String(normalized.typicalViews),
+    watchHours: String(normalized.watchHours),
+    typicalWatchHours: String(normalized.typicalWatchHours),
+    subscribersGained: String(normalized.subscribersGained),
+    revenueTenge: String(normalized.revenueTenge),
+    curveShape: normalized.curveShape,
+  }
+}
+
+function PerformanceSectionEditor({ variant, section, onSave, onOpen }) {
+  const [draft, setDraft] = useState(() => performanceDraftFrom(variant, section))
+  const [savedFrom, setSavedFrom] = useState(section)
+  const [saving, setSaving] = useState(false)
+  const isShorts = variant === 'shorts'
+
+  if (savedFrom !== section) {
+    setSavedFrom(section)
+    setDraft(performanceDraftFrom(variant, section))
+  }
+
+  const setField = (key, value) => setDraft((current) => ({ ...current, [key]: value }))
+  const days = daysSincePublication(draft.publishedAt)
+
+  async function onSubmit(event) {
+    event.preventDefault()
+    setSaving(true)
+    try {
+      await onSave(variant, draft)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form className={s.performanceCard} onSubmit={onSubmit} data-testid={`performance-editor-${variant}`}>
+      <div className={s.performanceCardHead}>
+        <h3>{PERFORMANCE_VARIANT_LABELS[variant]}</h3>
+        <button type="button" className={s.linkBtn} onClick={() => onOpen(variant)}>Открыть раздел →</button>
+      </div>
+      <div className={s.performanceFields}>
+        <label className={s.field}>
+          <span>Дата публикации</span>
+          <input className={s.input} type="date" value={draft.publishedAt} onChange={(e) => setField('publishedAt', e.target.value)} />
+          <span className={s.fieldHint}>Дней с публикации: {days}. Подписи оси считаются от этого числа.</span>
+        </label>
+        <label className={s.field}>
+          <span>Просмотры</span>
+          <input className={s.input} type="number" min="0" step="1" value={draft.totalViews} onChange={(e) => setField('totalViews', e.target.value)} />
+        </label>
+        <label className={s.field}>
+          <span>Обычные просмотры на канале</span>
+          <input className={s.input} type="number" min="0" step="1" value={draft.typicalViews} onChange={(e) => setField('typicalViews', e.target.value)} />
+          <span className={s.fieldHint}>Серая линия и подпись «На … больше, чем обычно».</span>
+        </label>
+        {!isShorts ? (
+          <>
+            <label className={s.field}>
+              <span>Время просмотра (часы)</span>
+              <input className={s.input} type="number" min="0" step="0.1" value={draft.watchHours} onChange={(e) => setField('watchHours', e.target.value)} />
+            </label>
+            <label className={s.field}>
+              <span>Обычное время просмотра (часы)</span>
+              <input className={s.input} type="number" min="0" step="0.1" value={draft.typicalWatchHours} onChange={(e) => setField('typicalWatchHours', e.target.value)} />
+            </label>
+          </>
+        ) : null}
+        <label className={s.field}>
+          <span>Подписчики</span>
+          <input className={s.input} type="number" min="0" step="1" value={draft.subscribersGained} onChange={(e) => setField('subscribersGained', e.target.value)} />
+        </label>
+        <label className={s.field}>
+          <span>Расчетный доход (₸)</span>
+          <input className={s.input} type="number" min="0" step="0.01" value={draft.revenueTenge} onChange={(e) => setField('revenueTenge', e.target.value)} />
+        </label>
+        <label className={s.field}>
+          <span>Форма графика</span>
+          <select className={s.input} value={draft.curveShape} onChange={(e) => setField('curveShape', e.target.value)}>
+            {CURVE_SHAPES.map((shape) => <option key={shape.value} value={shape.value}>{shape.label}</option>)}
+          </select>
+        </label>
+      </div>
+      <button type="submit" className={s.submitBtn} disabled={saving}>
+        {saving ? 'Сохранение…' : 'Сохранить раздел'}
+      </button>
+    </form>
+  )
+}
 
 const COUNTRIES = [
   { code: 'RU', label: 'Россия' },
@@ -107,7 +211,7 @@ function revokeBlobUrl(value) {
 }
 
 function Screen11AdminContent() {
-  const { showToast } = useContext(NavContext)
+  const { showToast, go } = useContext(NavContext)
   const {
     videos, totals, add, update, remove, clear,
     removeMany, bulkAddRandom, importVideos, exportToFile,
@@ -116,6 +220,7 @@ function Screen11AdminContent() {
     channel,
     update: updateChannel,
     replace: replaceProject,
+    updatePerformanceSection,
   } = useChannel()
   const [form, setForm] = useState(blankForm())
   const [channelDraft, setChannelDraft] = useState(null)
@@ -558,6 +663,15 @@ function Screen11AdminContent() {
     }
   }
 
+  async function onSavePerformanceSection(variant, draft) {
+    try {
+      await updatePerformanceSection(variant, draft)
+      showToast(variant === 'shorts' ? 'Раздел Shorts сохранён' : 'Раздел видео сохранён')
+    } catch (error) {
+      showToast(error.message || 'Не удалось сохранить раздел')
+    }
+  }
+
   async function onSitePasswordChange(event) {
     event.preventDefault()
     if (sitePassword.length < 4) {
@@ -643,6 +757,26 @@ function Screen11AdminContent() {
               {savingSitePassword ? 'Сохранение…' : 'Сменить пароль сайта'}
             </button>
           </form>
+        </section>
+
+        <section className={s.securityPanel} data-testid="performance-sections-panel">
+          <div className={s.panelHead}>
+            <div>
+              <h2>Разделы «С момента публикации»</h2>
+              <span>Страница аналитики одного видео. Числа не зависят от периода 28/90 дней в аналитике канала; кривая графика строится из них.</span>
+            </div>
+          </div>
+          <div className={s.performanceGrid}>
+            {PERFORMANCE_VARIANTS.map((variant) => (
+              <PerformanceSectionEditor
+                key={variant}
+                variant={variant}
+                section={channel?.performanceSections?.[variant]}
+                onSave={onSavePerformanceSection}
+                onOpen={(target) => go(`video-analytics/${target}`)}
+              />
+            ))}
+          </div>
         </section>
 
         <div className={s.editorGrid}>

@@ -4,6 +4,7 @@ import {
   loadRemoteProject,
   replaceRemoteProject,
   saveRemoteChannel,
+  saveRemotePerformanceSection,
   saveRemoteSubscriberDailyStats,
   subscribeProject,
 } from '../data/projectStore.js'
@@ -17,6 +18,7 @@ export function useChannel() {
     refetch: () => loadRemoteProject({ force: true }),
     update: saveRemoteChannel,
     updateSubscriberDailyStats: saveRemoteSubscriberDailyStats,
+    updatePerformanceSection: saveRemotePerformanceSection,
     replace: replaceRemoteProject,
   }
 }

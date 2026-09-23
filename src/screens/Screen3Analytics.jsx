@@ -12,6 +12,7 @@ import ContentTab from './analytics/ContentTab.jsx'
 import AudienceTab from './analytics/AudienceTab.jsx'
 import RevenueTab from './analytics/RevenueTab.jsx'
 import TrendsTab from './analytics/TrendsTab.jsx'
+import { videoAnalyticsRoute } from '../lib/videoPerformanceSection.js'
 
 const TABS = ['Обзор', 'Контент', 'Аудитория', 'Доход', 'Тренды']
 const TRENDS_RANGE = { kind: '28d' }
@@ -59,7 +60,7 @@ export default function Screen3Analytics() {
         <OverviewTab
           data={data}
           onOpenAdmin={() => go('admin')}
-          onOpenVideoAnalytics={() => setActiveTab(1)}
+          onOpenVideoAnalytics={(video) => go(videoAnalyticsRoute(video))}
         />
       )
     }

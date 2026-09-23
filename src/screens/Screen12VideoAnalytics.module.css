@@ -1,0 +1,94 @@
+.headerLead {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 6px 8px 0 -8px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--studio-text);
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.backBtn:hover { background: var(--studio-hover-soft); }
+.backBtn svg { width: 24px; height: 24px; }
+
+.periodPill {
+  cursor: default;
+}
+.periodPill:hover { background: transparent; }
+
+.overviewStack {
+  width: min(1264px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 8px 0 32px;
+  box-sizing: border-box;
+}
+
+.sinceTitle {
+  margin: 12px 0 24px;
+  color: var(--studio-text);
+  font-family: var(--studio-font);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+  text-align: center;
+}
+
+.chartLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  padding: 18px 24px 0;
+  color: var(--studio-text-muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.legendDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--legend-color, var(--studio-text-muted));
+}
+
+.footNote {
+  margin: 20px 0 0;
+  color: var(--studio-text-muted);
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.emptyWrap {
+  width: min(1264px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 48px 0;
+}
+
+@media (max-width: 720px) {
+  .sinceTitle {
+    font-size: 18px;
+    line-height: 26px;
+  }
+  .chartLegend {
+    padding: 14px 16px 0;
+  }
+}

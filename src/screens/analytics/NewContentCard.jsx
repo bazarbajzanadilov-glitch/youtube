@@ -61,7 +61,7 @@ export default function NewContentCard({ videos, onOpenVideoAnalytics }) {
             </div>
           ))}
         </div>
-        <button type="button" className={s.ytWideBtn} onClick={onOpenVideoAnalytics}>
+        <button type="button" className={s.ytWideBtn} onClick={() => onOpenVideoAnalytics?.(video)}>
           Посмотреть аналитику для видео
         </button>
       </div>

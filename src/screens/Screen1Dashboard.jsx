@@ -15,6 +15,7 @@ import { effectiveComments, build as buildAnalytics } from '../lib/analyticsAggr
 import { averageViewFraction } from '../lib/videoMetrics.js'
 import VideoRow from '../components/ui/VideoRow.jsx'
 import { formatTenge } from './analytics/studioAnalyticsHelpers.js'
+import { videoAnalyticsRoute } from '../lib/videoPerformanceSection.js'
 
 const PERFORMANCE_THUMB = '/studio-assets/dashboard-performance-reference.jpg'
 const SHOPPING_ART = '/studio-assets/dashboard-shopping-idea.png'
@@ -153,7 +154,7 @@ export default function Screen1Dashboard() {
                   <div className={s.infoLine}>Для прямых трансляций сравнение показателей доступно только за периоды после публикации.</div>
                 ) : null}
                 {lastVideo.type !== 'live' ? (
-                  <button type="button" className={s.rankBtn} onClick={() => go('analytics')}>
+                  <button type="button" className={s.rankBtn} onClick={() => go(videoAnalyticsRoute(lastVideo))}>
                     <span>Место в рейтинге по числу просмотров</span>
                     <strong>
                       {Math.max(1, lastVideoRank)} из {Math.max(1, recentRankingPool.length)}
@@ -161,28 +162,28 @@ export default function Screen1Dashboard() {
                     </strong>
                   </button>
                 ) : null}
-                <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
+                <button type="button" className={s.metricBtn} onClick={() => go(videoAnalyticsRoute(lastVideo))}>
                   <span>Просмотры</span>
                   <strong>{formatViews(lastVideo.views)}</strong>
                 </button>
                 {lastVideo.type === 'live' ? (
                   <>
-                    <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
+                    <button type="button" className={s.metricBtn} onClick={() => go(videoAnalyticsRoute(lastVideo))}>
                       <span>Средняя продолжительность просмотра</span>
                       <strong>{avgViewDuration}</strong>
                     </button>
-                    <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
+                    <button type="button" className={s.metricBtn} onClick={() => go(videoAnalyticsRoute(lastVideo))}>
                       <span>Макс. число одновременных зрителей</span>
                       <strong>{formatViews(maxConcurrent)}</strong>
                     </button>
                   </>
                 ) : (
                   <>
-                    <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
+                    <button type="button" className={s.metricBtn} onClick={() => go(videoAnalyticsRoute(lastVideo))}>
                       <span>Средний процент просмотра</span>
                       <strong>{avgViewPercentage}</strong>
                     </button>
-                    <button type="button" className={s.metricBtn} onClick={() => go('analytics')}>
+                    <button type="button" className={s.metricBtn} onClick={() => go(videoAnalyticsRoute(lastVideo))}>
                       <span>Отметки "Нравится"</span>
                       <strong>{formatNumber(lastVideo.likes || 0)}</strong>
                     </button>
@@ -193,7 +194,7 @@ export default function Screen1Dashboard() {
                     <SparkleIcon size={18} />
                     Catch me up on this video
                   </button>
-                  <button type="button" className={s.performanceIconBtn} onClick={() => go('analytics')} aria-label="Посмотреть статистику по видео">
+                  <button type="button" className={s.performanceIconBtn} onClick={() => go(videoAnalyticsRoute(lastVideo))} aria-label="Посмотреть статистику по видео">
                     <ChartIcon />
                   </button>
                   <button type="button" className={s.performanceIconBtn} onClick={() => go('community')} aria-label={`Перейти к комментариям (${formatNumber(lastVideoComments)})`}>

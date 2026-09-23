@@ -45,6 +45,14 @@ export function formatTenge(amount) {
   return formatTengeFull(amount)
 }
 
+/** Сумма уже в тенге (без пересчёта ×512): «1 253 155,42 ₸». */
+export function formatTengeAmount(value) {
+  return `${(Number(value) || 0).toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}${NBSP}₸`
+}
+
 export function formatTengeChart(amount) {
   return formatTengeFull(amount)
 }

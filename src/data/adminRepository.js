@@ -332,6 +332,27 @@ export async function replaceVideos(videos) {
   await removeUnreferencedMediaPaths(existing.map((item) => item.cover_path)).catch(() => {})
 }
 
+export async function savePerformanceSection(section) {
+  const supabase = getSupabaseClient()
+  requireNoError(
+    await supabase
+      .from('video_performance_sections')
+      .upsert({
+        variant: section.variant,
+        channel_id: STUDIO_CHANNEL_ID,
+        published_at: section.publishedAt,
+        total_views: section.totalViews,
+        typical_views: section.typicalViews,
+        watch_hours: section.watchHours,
+        typical_watch_hours: section.typicalWatchHours,
+        subscribers_gained: section.subscribersGained,
+        revenue_tenge: section.revenueTenge,
+        curve_shape: section.curveShape,
+      }, { onConflict: 'variant' }),
+    'Не удалось сохранить раздел «С момента публикации»',
+  )
+}
+
 export async function replaceSubscriberDailyStats(stats) {
   const supabase = getSupabaseClient()
   requireNoError(

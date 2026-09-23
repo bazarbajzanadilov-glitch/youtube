@@ -390,6 +390,15 @@ function buildTimelineTickLayouts(ticks, plotArea, xScale, formatter) {
     .filter(Boolean)
 }
 
+function findLastRowWithValue(data, key) {
+  if (!Array.isArray(data) || data.length === 0) return null
+  for (let index = data.length - 1; index >= 0; index -= 1) {
+    const row = data[index]
+    if (row && row[key] != null) return row
+  }
+  return data[data.length - 1]
+}
+
 function buildEvenTicks(data, key, maxTicks = TIMELINE_TICK_COUNT) {
   if (!Array.isArray(data) || data.length === 0) return undefined
   if (data.length <= maxTicks) return data.map((row) => row[key])
@@ -440,6 +449,9 @@ export default function AreaLineChart({
   processingWindow,
   allowNegative = false,
   tooltipRows,
+  comparisonDataKey,
+  comparisonColor = '#909090',
+  comparisonName = 'Сравнение',
 }) {
   const [processingTooltip, setProcessingTooltip] = useState(null)
   const [markerTooltip, setMarkerTooltip] = useState(null)
@@ -451,7 +463,7 @@ export default function AreaLineChart({
   const gradientId = `${chartId}-gradient`
   const chartFillColor = fillColor || color
   const hasUniformFill = Math.abs((Number(fillTopOpacity) || 0) - (Number(fillBottomOpacity) || 0)) < 0.0001
-  const last = data.length > 0 ? data[data.length - 1] : null
+  const last = findLastRowWithValue(data, dataKey)
   const tooltipFormatValue = formatTooltipValue || ((val) => formatY(val))
   const hasMarkers = eventMarkers.length > 0 && data.length > 0
   const markerIndexes = hasMarkers
@@ -487,8 +499,12 @@ export default function AreaLineChart({
     strokeOpacity: 0.32,
     strokeWidth: 1,
   }
-  const minDataValue = minByDataKey(data, dataKey)
-  const maxDataValue = maxByDataKey(data, dataKey)
+  const minDataValue = comparisonDataKey
+    ? Math.min(minByDataKey(data, dataKey), minByDataKey(data, comparisonDataKey))
+    : minByDataKey(data, dataKey)
+  const maxDataValue = comparisonDataKey
+    ? Math.max(maxByDataKey(data, dataKey), maxByDataKey(data, comparisonDataKey))
+    : maxByDataKey(data, dataKey)
   const autoYTicks = allowNegative && minDataValue < 0
     ? buildSignedAxisTicks(minDataValue, maxDataValue, { targetTickCount: yTickCount })
     : buildNiceAxisTicks(maxDataValue, {
@@ -500,10 +516,19 @@ export default function AreaLineChart({
     : [0, 1]
   const useProjectedYAxis = !yTicks && !yDomain
   const projectedDataKey = useProjectedYAxis ? `${dataKey}__axisPosition` : dataKey
+  const projectedComparisonKey = comparisonDataKey && useProjectedYAxis
+    ? `${comparisonDataKey}__axisPosition`
+    : comparisonDataKey
+  const projectNullable = (value) => (
+    value == null ? null : projectValueToPeakAxis(value, resolvedAutoYTicks)
+  )
   const chartData = useProjectedYAxis
     ? data.map((row) => ({
       ...row,
-      [projectedDataKey]: projectValueToPeakAxis(row?.[dataKey], resolvedAutoYTicks),
+      [projectedDataKey]: projectNullable(row?.[dataKey]),
+      ...(comparisonDataKey
+        ? { [projectedComparisonKey]: projectNullable(row?.[comparisonDataKey]) }
+        : {}),
     }))
     : data
   const processingStartDate = String(processingWindow?.startDate || '').slice(0, 10)
@@ -751,6 +776,22 @@ export default function AreaLineChart({
               activeDot={chartActiveDot}
               dot={false}
             />
+            {comparisonDataKey ? (
+              <Area
+                type={curve}
+                dataKey={projectedComparisonKey}
+                name={comparisonName}
+                stroke={comparisonColor}
+                strokeWidth={2}
+                fill="transparent"
+                fillOpacity={0}
+                baseValue={chartBaseValue}
+                isAnimationActive={false}
+                animationDuration={0}
+                activeDot={{ ...chartActiveDot, stroke: comparisonColor, fill: comparisonColor }}
+                dot={false}
+              />
+            ) : null}
             {processingWindow ? (
               <ProcessingWindowOverlay
                 processingWindow={processingWindow}

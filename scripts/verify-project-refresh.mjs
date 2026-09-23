@@ -48,6 +48,9 @@ globalThis.fetch = async (url) => {
         date: '2026-07-29',
         views: fullLoads,
       }],
+      performanceSections: {
+        shorts: { variant: 'shorts', totalViews: 123_456, publishedAt: '2025-01-01' },
+      },
     }
 
   return {
@@ -75,6 +78,13 @@ try {
 
   assert.equal(store.getProjectSnapshot().revision, 'revision-1')
   assert.equal(store.getChannelSnapshot().videoDailyStats[0].views, 1)
+  assert.equal(store.getChannelSnapshot().performanceSections.shorts.totalViews, 123_456)
+  assert.equal(store.getChannelSnapshot().performanceSections.shorts.publishedAt, '2025-01-01')
+  assert.equal(
+    store.getChannelSnapshot().performanceSections.video.totalViews,
+    5_942_494,
+    'отсутствующий вариант берётся из дефолтов',
+  )
   assert.equal(typeof intervalCallback, 'function')
 
   eventListeners.get('window:focus')()

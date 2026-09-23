@@ -1,3 +1,5 @@
+import { DEFAULT_PERFORMANCE_SECTIONS } from '../lib/videoPerformanceSection.js'
+
 const DEFAULT_DASHBOARD_COMMENTS = [
   {
     id: 'comment-risk-plan',
@@ -39,4 +41,5 @@ export const CHANNEL_DEFAULTS = {
   dashboardComments: DEFAULT_DASHBOARD_COMMENTS,
   recentSubscribers: DEFAULT_RECENT_SUBSCRIBERS,
   subscriberDailyStats: [],
+  performanceSections: DEFAULT_PERFORMANCE_SECTIONS,
 }

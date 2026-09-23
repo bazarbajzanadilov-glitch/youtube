@@ -4,6 +4,10 @@ import {
   randomTitle,
 } from '../storage/videoStore.js'
 import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
+import {
+  normalizePerformanceSection,
+  normalizePerformanceSections,
+} from '../lib/videoPerformanceSection.js'
 import * as adminRepository from './adminRepository.js'
 
 const listeners = new Set()
@@ -150,6 +154,9 @@ export async function loadRemoteProject({ force = false, silent = false } = {}) 
             videoDailyStats: Array.isArray(project.channel.videoDailyStats)
               ? project.channel.videoDailyStats
               : (Array.isArray(project.videoDailyStats) ? project.videoDailyStats : []),
+            performanceSections: normalizePerformanceSections(
+              project.channel.performanceSections || project.performanceSections,
+            ),
           }
           : CHANNEL_DEFAULTS
         updateSnapshot({
@@ -290,6 +297,12 @@ export async function saveRemoteChannel(next) {
 
 export async function saveRemoteSubscriberDailyStats(stats) {
   await mutate(() => adminRepository.replaceSubscriberDailyStats(stats))
+}
+
+export async function saveRemotePerformanceSection(variant, values) {
+  const section = normalizePerformanceSection(variant, { ...values, variant })
+  await mutate(() => adminRepository.savePerformanceSection(section))
+  return section
 }
 
 export async function replaceRemoteProject(channel, videos) {

@@ -64,6 +64,24 @@ function isMissingRelation(error) {
     || /relation .* does not exist/i.test(error?.message || '')
 }
 
+const PERFORMANCE_SECTIONS_TABLE = 'video_performance_sections'
+
+function isMissingPerformanceSections(error) {
+  return isMissingRelation(error)
+    && new RegExp(PERFORMANCE_SECTIONS_TABLE, 'i').test(error?.message || '')
+}
+
+/* Раздел «С момента публикации» появился позже остальной схемы: пока миграция
+   не применена, сайт работает на дефолтах, а не падает целиком. */
+async function tolerantPerformanceSections(load) {
+  try {
+    return await load()
+  } catch (error) {
+    if (isMissingPerformanceSections(error)) return []
+    throw error
+  }
+}
+
 function isMissingVideoDailyStats(error) {
   return isMissingRelation(error)
     && /video_daily_stats/i.test(error?.message || '')
@@ -123,6 +141,8 @@ async function loadRevision(supabase) {
     latestRows(supabase, 'recent_subscribers'),
     latestRows(supabase, 'subscriber_daily_stats'),
     latestRows(supabase, 'video_daily_stats'),
+    tolerantPerformanceSections(() => latestRows(supabase, PERFORMANCE_SECTIONS_TABLE))
+      .then((entry) => (Array.isArray(entry) ? { rows: [], count: 0 } : entry)),
   ])
   const names = [
     'channel',
@@ -131,6 +151,7 @@ async function loadRevision(supabase) {
     'recentSubscribers',
     'subscriberDailyStats',
     'videoDailyStats',
+    'performanceSections',
   ]
   let latest = ''
   const counts = []
@@ -168,6 +189,7 @@ export default async function handler(request, response) {
       subscriberRows,
       subscriberDailyRows,
       videoDailyRows,
+      performanceSectionRows,
     ] = await Promise.all([
       supabase.from('channels').select('*').eq('id', STUDIO_CHANNEL_ID).single(),
       fetchAllPages(
@@ -214,6 +236,14 @@ export default async function handler(request, response) {
           .order('video_id', { ascending: true }),
         'video_daily_stats',
       ),
+      tolerantPerformanceSections(() => fetchAllPages(
+        () => supabase
+          .from(PERFORMANCE_SECTIONS_TABLE)
+          .select('variant, published_at, total_views, typical_views, watch_hours, typical_watch_hours, subscribers_gained, revenue_tenge, curve_shape, updated_at')
+          .eq('channel_id', STUDIO_CHANNEL_ID)
+          .order('variant', { ascending: true }),
+        PERFORMANCE_SECTIONS_TABLE,
+      )),
     ])
 
     const channelRow = requireData(channelResult, 'Канал')
@@ -246,6 +276,21 @@ export default async function handler(request, response) {
       comments: Math.max(0, Number(item.comments) || 0),
       revenue: Math.max(0, Number(item.revenue) || 0),
     }))
+
+    const performanceSections = Object.fromEntries(performanceSectionRows.map((item) => [
+      String(item.variant),
+      {
+        variant: String(item.variant),
+        publishedAt: item.published_at,
+        totalViews: Math.max(0, Number(item.total_views) || 0),
+        typicalViews: Math.max(0, Number(item.typical_views) || 0),
+        watchHours: Math.max(0, Number(item.watch_hours) || 0),
+        typicalWatchHours: Math.max(0, Number(item.typical_watch_hours) || 0),
+        subscribersGained: Math.max(0, Number(item.subscribers_gained) || 0),
+        revenueTenge: Math.max(0, Number(item.revenue_tenge) || 0),
+        curveShape: item.curve_shape,
+      },
+    ]))
 
     const [avatar, videos] = await Promise.all([
       mediaUrl(supabase, channelRow.avatar_path),
@@ -290,6 +335,7 @@ export default async function handler(request, response) {
       recentSubscribers,
       subscriberDailyStats,
       videoDailyStats,
+      performanceSections,
     }
     const revision = buildRevision([
       ['channel', [channelRow]],
@@ -298,6 +344,7 @@ export default async function handler(request, response) {
       ['recentSubscribers', subscriberRows],
       ['subscriberDailyStats', subscriberDailyRows],
       ['videoDailyStats', videoDailyRows],
+      ['performanceSections', performanceSectionRows],
     ])
 
     response.setHeader('Cache-Control', 'private, no-store')
@@ -309,6 +356,7 @@ export default async function handler(request, response) {
       recentSubscribers,
       subscriberDailyStats,
       videoDailyStats,
+      performanceSections,
     })
   } catch (error) {
     console.error('site-data', error?.message || error)

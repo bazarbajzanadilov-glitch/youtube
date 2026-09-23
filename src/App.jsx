@@ -13,6 +13,7 @@ import Screen8bHomeTab from './screens/Screen8bHomeTab.jsx'
 import Screen9AudioLibrary from './screens/Screen9AudioLibrary.jsx'
 import Screen10Settings from './screens/Screen10Settings.jsx'
 import Screen11Admin from './screens/Screen11Admin.jsx'
+import Screen12VideoAnalytics from './screens/Screen12VideoAnalytics.jsx'
 import { loadRemoteProject } from './data/projectStore.js'
 import { continueDoubleHardResetIfNeeded } from './lib/hardResetSite.js'
 import { useVideos } from './storage/useVideos.js'
@@ -46,6 +47,20 @@ const SCREENS = [
     name: 'Аналитика',
     documentTitle: 'Аналитика по каналу - YouTube Studio',
     Component: Screen3Analytics,
+  },
+  {
+    key: 'video-analytics-shorts',
+    route: 'video-analytics/shorts',
+    name: 'Аналитика видео Shorts',
+    documentTitle: 'Аналитика видео - YouTube Studio',
+    Component: Screen12VideoAnalytics,
+  },
+  {
+    key: 'video-analytics-video',
+    route: 'video-analytics/video',
+    name: 'Аналитика видео',
+    documentTitle: 'Аналитика видео - YouTube Studio',
+    Component: Screen12VideoAnalytics,
   },
   {
     key: 'community',
