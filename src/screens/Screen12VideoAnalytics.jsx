@@ -29,7 +29,6 @@ import {
   formatNumberRu,
   formatSignedCompactNumber,
 } from '../lib/analyticsFormat.js'
-import { formatChartDateLabel } from '../lib/chartDateFormat.js'
 import {
   buildPerformanceSectionView,
   buildSincePublicationXAxis,
@@ -87,6 +86,27 @@ function buildPeriodGroups(publishedAt, lastDate) {
     })
   }
   return [first, years, months].filter((group) => group.length > 0)
+}
+
+const TOOLTIP_DATE = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })
+
+/** Время публикации ролика (Алматы) — из момента добавления, иначе стабильное по id. */
+function publicationTime(video, publishedAt) {
+  const created = Number(video?.createdAt)
+  if (Number.isFinite(created) && created > 0) {
+    const parts = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Asia/Almaty', hour: 'numeric', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(created))
+    const hour = parts.find((part) => part.type === 'hour')?.value
+    const minute = parts.find((part) => part.type === 'minute')?.value
+    if (hour && minute) return `${Number(hour)}:${minute}`
+  }
+  const seed = [...String(video?.id || publishedAt || '')].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) % 100000, 7)
+  return `${6 + (seed % 16)}:${pad2(seed % 60)}`
+}
+
+function formatTooltipDate(iso, time) {
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
+  const text = TOOLTIP_DATE.format(new Date(y, m - 1, d)).replace(/\.(?=,)/, '')
+  return `${text.slice(0, 1).toUpperCase()}${text.slice(1)}, ${time}`
 }
 
 function zeroRow(row) {
@@ -157,6 +177,7 @@ export default function Screen12VideoAnalytics() {
   )
   const { chartData, days: totalDays, realtime } = view
   const publishedAt = view.section.publishedAt
+  const publishTime = publicationTime(video, publishedAt)
   const lastDate = chartData[totalDays]?.date || publishedAt
   const periodGroups = buildPeriodGroups(publishedAt, lastDate)
   const periodOptions = periodGroups.flat()
@@ -235,10 +256,16 @@ export default function Screen12VideoAnalytics() {
     const day = (Number(value) || 0) + base
     return day === lastLabeledTick + base ? declineDaysLabel(day) : String(day)
   }
+  // Подсказка как в YouTube Studio: «Чт, 5 февр., 6:18» / «(Первые 64 дня)» / число.
   const tooltipLabel = (label) => {
-    const day = Number(label) || 0
-    const row = chartData[base + day]
-    return row?.date ? formatChartDateLabel(row.date) : `День ${day}`
+    const day = (Number(label) || 0) + base
+    const row = chartData[day]
+    return (
+      <>
+        <span className={s.tipDate}>{row?.date ? formatTooltipDate(row.date, publishTime) : `День ${day}`}</span>
+        <span className={s.tipPeriod}>{day >= 1 ? `(Первые ${declineDaysLabel(day)})` : '(День публикации)'}</span>
+      </>
+    )
   }
   const metric = !showWatch && requestedMetric === 'watch' ? 'views' : requestedMetric
   const metricChart = METRIC_CHARTS[metric]
@@ -258,13 +285,6 @@ export default function Screen12VideoAnalytics() {
     setPeriodKey('custom')
     setPeriodOpen(false)
     setShowCustom(false)
-  }
-  const tooltipRows = (payload) => {
-    const typicalValue = payload?.[`${metric}Typical`]
-    return [
-      { label: VIDEO_SERIES_LABEL, value: metricChart.formatTooltip(payload?.[metric] ?? 0), emphasis: true },
-      ...(typicalValue == null ? [] : [{ label: CHANNEL_SERIES_LABEL, value: metricChart.formatTooltip(typicalValue) }]),
-    ]
   }
 
   const renderRealtimeCard = () => (
@@ -340,7 +360,10 @@ export default function Screen12VideoAnalytics() {
             xTickFormatter={xTickFormatter}
             xTicks={xTicks}
             formatTooltipLabel={tooltipLabel}
-            tooltipRows={tooltipRows}
+            formatTooltipValue={metricChart.formatTooltip}
+            tooltipClassName={s.tip}
+            tooltipLabelClassName={s.tipHead}
+            tooltipValueClassName={s.tipValue}
           />
         )}
       >
