@@ -197,9 +197,10 @@ function shapeFraction(shape, t) {
       return 0.86 * x + 0.14 * (1 - Math.exp(-x / 0.3)) / (1 - Math.exp(-1 / 0.3))
     case 'burst':
     default: {
-      const fast = (1 - Math.exp(-x / 0.02)) / (1 - Math.exp(-1 / 0.02))
-      const slow = (1 - Math.exp(-x / 0.28)) / (1 - Math.exp(-1 / 0.28))
-      return 0.62 * fast + 0.22 * slow + 0.16 * x
+      // Как в YouTube: скачок в первые дни, выпуклый рост и плато к ~30 % срока.
+      const launch = (1 - Math.exp(-x / 0.008)) / (1 - Math.exp(-1 / 0.008))
+      const growth = (1 - Math.exp(-x / 0.08)) / (1 - Math.exp(-1 / 0.08))
+      return 0.45 * launch + 0.53 * growth + 0.02 * x
     }
   }
 }
