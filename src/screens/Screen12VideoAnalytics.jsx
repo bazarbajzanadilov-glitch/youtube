@@ -91,12 +91,20 @@ export default function Screen12VideoAnalytics() {
   const isShorts = variant === 'shorts'
   const headline = `С момента публикации это видео${isShorts ? ' Shorts' : ''} посмотрели ${formatNumberRu(kpis.views)} ${declineTimes(kpis.views)}`
   const lastTick = xAxis.lastTick
+  // У конкретного видео ось — календарные даты с публикации до последнего
+  // полного дня, как в аналитике канала, и линия доходит до правого края.
+  // Разделы из админки сохраняют ось «дни с публикации» со скриншотов клиента.
+  const byDate = Boolean(video)
+  const plotData = byDate ? chartData.filter((row) => row.day >= 1 && row.day <= days) : chartData
 
-  const xTickFormatter = (value) => {
-    const day = Number(value) || 0
-    return day === lastTick ? declineDaysLabel(day) : String(day)
-  }
+  const xTickFormatter = byDate
+    ? (value) => formatDateLong(value)
+    : (value) => {
+      const day = Number(value) || 0
+      return day === lastTick ? declineDaysLabel(day) : String(day)
+    }
   const tooltipLabel = (label) => {
+    if (byDate) return formatChartDateLabel(label)
     const day = Number(label) || 0
     const row = chartData[day]
     return row?.date ? formatChartDateLabel(row.date) : `День ${day}`
@@ -161,14 +169,7 @@ export default function Screen12VideoAnalytics() {
   const renderOverview = () => view.pending ? renderPending() : (
     <div className={s.overviewLayout}>
     <div className={s.overviewStack}>
-      {video ? (
-        <div className={s.videoHeader} data-testid="video-analytics-header">
-          <div className={s.videoHeaderThumb}>
-            {video.cover ? <img src={video.cover} alt="" /> : null}
-          </div>
-          <div className={s.videoHeaderTitle} title={video.title}>{video.title}</div>
-        </div>
-      ) : (
+      {video ? null : (
       <div className={s.variantSwitch} role="tablist" aria-label="Тип контента">
         <button
           type="button"
@@ -201,12 +202,12 @@ export default function Screen12VideoAnalytics() {
               margin: { top: 12, bottom: 6 },
               height: 214,
             })}
-            data={chartData}
+            data={plotData}
             dataKey={metric}
             comparisonDataKey={`${metric}Typical`}
             comparisonColor={COMPARISON_COLOR}
             comparisonName={CHANNEL_SERIES_LABEL}
-            xKey="day"
+            xKey={byDate ? 'date' : 'day'}
             color={ANALYTICS_BLUE}
             name={VIDEO_SERIES_LABEL}
             yTicks={metricTicks}
