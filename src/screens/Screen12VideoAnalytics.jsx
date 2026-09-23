@@ -207,6 +207,7 @@ export default function Screen12VideoAnalytics() {
             xKey={byDate ? 'date' : 'day'}
             color={ANALYTICS_BLUE}
             name={VIDEO_SERIES_LABEL}
+            showAreaFill={false}
             yTicks={metricTicks}
             yDomain={[0, metricTicks[metricTicks.length - 1]]}
             formatY={metricChart.formatAxis}
