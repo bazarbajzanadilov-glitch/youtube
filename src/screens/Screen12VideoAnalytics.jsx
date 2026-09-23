@@ -95,16 +95,22 @@ export default function Screen12VideoAnalytics() {
   // полного дня, как в аналитике канала, и линия доходит до правого края.
   // Разделы из админки сохраняют ось «дни с публикации» со скриншотов клиента.
   const byDate = Boolean(video)
-  const plotData = byDate ? chartData.filter((row) => row.day >= 1 && row.day <= days) : chartData
+  // Линия начинается с нуля в день публикации, как в YouTube Studio.
+  const plotData = byDate
+    ? chartData
+      .filter((row) => row.day >= 0 && row.day <= days)
+      .map((row) => (row.day === 0
+        ? Object.fromEntries(Object.entries(row).map(([key, value]) => [key, typeof value === 'number' && key !== 'day' ? 0 : value]))
+        : row))
+    : chartData
 
   const xTickFormatter = byDate
-    ? (value) => formatDateLong(value)
+    ? (value) => formatDateLong(chartData[Number(value) || 0]?.date)
     : (value) => {
       const day = Number(value) || 0
       return day === lastTick ? declineDaysLabel(day) : String(day)
     }
   const tooltipLabel = (label) => {
-    if (byDate) return formatChartDateLabel(label)
     const day = Number(label) || 0
     const row = chartData[day]
     return row?.date ? formatChartDateLabel(row.date) : `День ${day}`
@@ -204,7 +210,7 @@ export default function Screen12VideoAnalytics() {
             })}
             data={plotData}
             dataKey={metric}
-            xKey={byDate ? 'date' : 'day'}
+            xKey="day"
             color={ANALYTICS_BLUE}
             name={VIDEO_SERIES_LABEL}
             showAreaFill={false}
