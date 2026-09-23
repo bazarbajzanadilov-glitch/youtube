@@ -128,14 +128,19 @@ function compareTrend(value, typical) {
   return 'usual'
 }
 
+// Число в подсказке графика — с запятыми между разрядами, как в YouTube Studio: 26,315,130.
+function formatTooltipNumber(value, maxDigits = 0, minDigits = 0) {
+  return (Number(value) || 0).toLocaleString('en-US', { minimumFractionDigits: minDigits, maximumFractionDigits: maxDigits })
+}
+
 const METRIC_CHARTS = {
-  views: { formatAxis: formatAxisCompact, formatTooltip: formatNumberRu },
+  views: { formatAxis: formatAxisCompact, formatTooltip: formatTooltipNumber },
   watch: {
     formatAxis: formatAxisCompact,
-    formatTooltip: (value) => (Number(value) || 0).toLocaleString('ru-RU', { maximumFractionDigits: 1 }),
+    formatTooltip: (value) => formatTooltipNumber(value, 1),
   },
-  subscribers: { formatAxis: formatAxisCompact, formatTooltip: formatNumberRu },
-  revenue: { formatAxis: (value) => `${formatAxisCompact(value)}\u00a0₸`, formatTooltip: formatTengeAmount },
+  subscribers: { formatAxis: formatAxisCompact, formatTooltip: formatTooltipNumber },
+  revenue: { formatAxis: (value) => `${formatAxisCompact(value)}\u00a0₸`, formatTooltip: (value) => `${formatTooltipNumber(value, 2, 2)}\u00a0₸` },
 }
 
 export default function Screen12VideoAnalytics() {
