@@ -204,9 +204,6 @@ export default function Screen12VideoAnalytics() {
             })}
             data={plotData}
             dataKey={metric}
-            comparisonDataKey={`${metric}Typical`}
-            comparisonColor={COMPARISON_COLOR}
-            comparisonName={CHANNEL_SERIES_LABEL}
             xKey={byDate ? 'date' : 'day'}
             color={ANALYTICS_BLUE}
             name={VIDEO_SERIES_LABEL}
