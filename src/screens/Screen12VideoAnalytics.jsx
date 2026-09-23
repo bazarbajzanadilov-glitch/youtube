@@ -134,12 +134,12 @@ function formatTooltipNumber(value, maxDigits = 0, minDigits = 0) {
 }
 
 const METRIC_CHARTS = {
-  views: { formatAxis: formatAxisCompact, formatTooltip: formatTooltipNumber },
+  views: { formatAxis: formatAxisCompact, formatTooltip: (value) => formatTooltipNumber(value) },
   watch: {
     formatAxis: formatAxisCompact,
     formatTooltip: (value) => formatTooltipNumber(value, 1),
   },
-  subscribers: { formatAxis: formatAxisCompact, formatTooltip: formatTooltipNumber },
+  subscribers: { formatAxis: formatAxisCompact, formatTooltip: (value) => formatTooltipNumber(value) },
   revenue: { formatAxis: (value) => `${formatAxisCompact(value)}\u00a0₸`, formatTooltip: (value) => `${formatTooltipNumber(value, 2, 2)}\u00a0₸` },
 }
 
