@@ -91,25 +91,18 @@ export default function Screen12VideoAnalytics() {
   const isShorts = variant === 'shorts'
   const headline = `С момента публикации это видео${isShorts ? ' Shorts' : ''} посмотрели ${formatNumberRu(kpis.views)} ${declineTimes(kpis.views)}`
   const lastTick = xAxis.lastTick
-  // У конкретного видео ось — календарные даты с публикации до последнего
-  // полного дня, как в аналитике канала, и линия доходит до правого края.
-  // Разделы из админки сохраняют ось «дни с публикации» со скриншотов клиента.
-  const byDate = Boolean(video)
-  // Линия начинается с нуля в день публикации, как в YouTube Studio.
-  const plotData = byDate
-    ? chartData
-      .filter((row) => row.day >= 0 && row.day <= days)
-      .map((row) => (row.day === 0
-        ? Object.fromEntries(Object.entries(row).map(([key, value]) => [key, typeof value === 'number' && key !== 'day' ? 0 : value]))
-        : row))
+  // Ось X — дни с публикации (0 … N дней), как в YouTube Studio; линия
+  // начинается с нуля в день публикации и идёт до последнего полного дня.
+  const plotData = video
+    ? chartData.map((row) => (row.day === 0
+      ? Object.fromEntries(Object.entries(row).map(([key, value]) => [key, typeof value === 'number' && key !== 'day' ? 0 : value]))
+      : row))
     : chartData
 
-  const xTickFormatter = byDate
-    ? (value) => formatDateLong(chartData[Number(value) || 0]?.date)
-    : (value) => {
-      const day = Number(value) || 0
-      return day === lastTick ? declineDaysLabel(day) : String(day)
-    }
+  const xTickFormatter = (value) => {
+    const day = Number(value) || 0
+    return day === lastTick ? declineDaysLabel(day) : String(day)
+  }
   const tooltipLabel = (label) => {
     const day = Number(label) || 0
     const row = chartData[day]
