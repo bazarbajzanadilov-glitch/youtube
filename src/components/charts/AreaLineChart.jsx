@@ -437,6 +437,7 @@ export default function AreaLineChart({
   xTickFontSize = ANALYTICS_AREA_CHART_DEFAULT_PROPS.xTickFontSize,
   yTickFontSize = ANALYTICS_AREA_CHART_DEFAULT_PROPS.yTickFontSize,
   xTickFormatter = defaultXTickFormatter,
+  xTicks: xTicksOverride = null,
   xAxisPadding = { left: 0, right: 0 },
   tooltipClassName = '',
   tooltipLabelClassName = '',
@@ -550,7 +551,7 @@ export default function AreaLineChart({
   const gridLineCount = Array.isArray(chartYTicks) && chartYTicks.length >= 2
     ? chartYTicks.length
     : Math.max(2, Number(yTickCount) || ANALYTICS_AREA_CHART_DEFAULT_PROPS.yTickCount)
-  const xTicks = buildEvenTicks(data, xKey)
+  const xTicks = Array.isArray(xTicksOverride) && xTicksOverride.length > 1 ? xTicksOverride : buildEvenTicks(data, xKey)
   const timelineMarkers = mergeTimelineMarkers(markerIndexes, processingMarkerIndexes)
   const clearMarkerHideTimer = () => {
     if (markerHideTimer.current != null) {

@@ -222,10 +222,18 @@ export default function Screen12VideoAnalytics() {
     return shifted
   })
 
+  // Ровный шаг подписей оси: 0, 2, 4 … или 0, 5, 10 … (не больше 7 отметок).
+  const xTickStep = [1, 2, 3, 5, 7, 10, 14, 15, 20, 25, 30, 50, 60, 100, 150, 200, 250, 300, 500]
+    .find((step) => Math.floor(lastTick / step) <= 6) || Math.ceil(lastTick / 6)
+  // Разделы из админки держат ось YouTube: 7 отметок с шагом ceil(дней / 6).
+  const xTicks = video || byDate
+    ? Array.from({ length: Math.floor(lastTick / xTickStep) + 1 }, (_, index) => index * xTickStep)
+    : xAxis.ticks
+  const lastLabeledTick = xTicks[xTicks.length - 1]
   const xTickFormatter = (value) => {
     // Всегда дни с момента публикации, как в YouTube Studio.
     const day = (Number(value) || 0) + base
-    return day === lastTick + base ? declineDaysLabel(day) : String(day)
+    return day === lastLabeledTick + base ? declineDaysLabel(day) : String(day)
   }
   const tooltipLabel = (label) => {
     const day = Number(label) || 0
@@ -308,28 +316,6 @@ export default function Screen12VideoAnalytics() {
   const renderOverview = () => view.pending ? renderPending() : (
     <div className={s.overviewLayout}>
     <div className={s.overviewStack}>
-      {video ? null : (
-      <div className={s.variantSwitch} role="tablist" aria-label="Тип контента">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!isShorts}
-          className={`${s.variantChip} ${!isShorts ? s.variantChipActive : ''}`}
-          onClick={() => go('video-analytics/video')}
-        >
-          Видео
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={isShorts}
-          className={`${s.variantChip} ${isShorts ? s.variantChipActive : ''}`}
-          onClick={() => go('video-analytics/shorts')}
-        >
-          Shorts
-        </button>
-      </div>
-      )}
       <h2 className={s.sinceTitle} data-testid="since-publication-title">{headline}</h2>
       <AnalyticsHeroCard
         className={`${tabStyles.overviewHeroCard} ${tabStyles.overviewInset}`}
@@ -352,6 +338,7 @@ export default function Screen12VideoAnalytics() {
             yDomain={[0, metricTicks[metricTicks.length - 1]]}
             formatY={metricChart.formatAxis}
             xTickFormatter={xTickFormatter}
+            xTicks={xTicks}
             formatTooltipLabel={tooltipLabel}
             tooltipRows={tooltipRows}
           />

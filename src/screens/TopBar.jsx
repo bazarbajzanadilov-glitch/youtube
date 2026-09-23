@@ -68,8 +68,8 @@ export default function TopBar() {
       </div>
       <div className={s.topRight}>
         <button type="button" className={s.iconBtn} onClick={() => showToast('Чат с командой поддержки авторов')} aria-label="Чат с командой поддержки авторов"><SupportChatIcon size={24}/></button>
-        <button type="button" className={s.iconBtn} onClick={() => showToast('Справка')} aria-label="Справка"><HelpIcon size={24}/></button>
-        <button type="button" className={`${s.iconBtn} ${s.sparkleBtn}`} onClick={() => showToast('Спросить у Студии')} aria-label="Спросить у Студии"><SparkleIcon size={24}/></button>
+        <button type="button" className={s.iconBtn} onClick={() => go('video-analytics/shorts')} aria-label="Справка"><HelpIcon size={24}/></button>
+        <button type="button" className={`${s.iconBtn} ${s.sparkleBtn}`} onClick={() => go('video-analytics/video')} aria-label="Спросить у Студии"><SparkleIcon size={24}/></button>
         <button type="button" className={s.iconBtn} onClick={handleHardReset} aria-label="Уведомления"><BellIcon size={24}/></button>
         <button type="button" className={s.createBtn} onClick={() => go('admin')}><PlusBoxIcon size={24}/>Создать</button>
         <div className={s.profileWrap} ref={profileWrapRef}>
