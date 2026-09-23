@@ -137,3 +137,18 @@ assert.deepEqual(
 )
 
 console.log('video performance verification passed')
+
+// Карточка «Текущая статистика».
+import { buildRealtimeBars } from '../src/lib/videoPerformanceSection.js'
+const bars = buildRealtimeBars(59_355, 3)
+assert.equal(bars.length, 48)
+assert.equal(bars.reduce((a, b) => a + b, 0), 59_355)
+assert.deepEqual(bars, buildRealtimeBars(59_355, 3))
+const rt = buildPerformanceSectionView({ variant: 'video', realtimeViews48h: 1_000 }, today).realtime
+assert.equal(rt.total, 1_000)
+assert.equal(rt.sources.length, 5)
+assert.equal(rt.sources[0].label, 'Плейлисты')
+assert.equal(rt.sources[0].spark.length, 8)
+const custom = normalizePerformanceSection('shorts', { trafficSources: [{ label: ' Внешние ', percent: 150 }, { label: '', percent: 5 }] })
+assert.deepEqual(custom.trafficSources, [{ label: 'Внешние', percent: 100 }])
+console.log('realtime card verification passed')

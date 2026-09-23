@@ -9,6 +9,10 @@ import { NavContext } from './NavContext.js'
 import { ChevronDown, ChevronLeft } from './icons.jsx'
 import TabRow from '../components/ui/TabRow.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
+import Card from '../components/ui/Card.jsx'
+import RealtimeIndicator from '../components/ui/RealtimeIndicator.jsx'
+import RealtimeMiniChart from '../components/charts/RealtimeMiniChart.jsx'
+import { FAST_CHART_ANIMATION_SECONDS } from '../components/charts/chartAnimation.js'
 import AnalyticsHeroCard from './analytics/AnalyticsHeroCard.jsx'
 import MetricKpiCell from './analytics/MetricKpiCell.jsx'
 import AreaLineChart from '../components/charts/AreaLineChart.jsx'
@@ -17,6 +21,7 @@ import { useChannel } from '../storage/useChannel.js'
 import {
   declineDaysLabel,
   declineTimes,
+  formatDateLong,
   formatAxisCompact,
   formatCompactOneDecimal,
   formatNumberRu,
@@ -54,7 +59,7 @@ export default function Screen12VideoAnalytics() {
     () => buildPerformanceSectionView({ ...(section || {}), variant }),
     [section, variant],
   )
-  const { kpis, chartData, xAxis, yTicks, yDomain, days } = view
+  const { kpis, chartData, xAxis, yTicks, yDomain, days, realtime } = view
   const isShorts = variant === 'shorts'
   const headline = `С момента публикации это видео${isShorts ? ' Shorts' : ''} посмотрели ${formatNumberRu(kpis.views)} ${declineTimes(kpis.views)}`
   const lastTick = xAxis.lastTick
@@ -73,7 +78,45 @@ export default function Screen12VideoAnalytics() {
     { label: CHANNEL_SERIES_LABEL, value: formatNumberRu(payload?.typical ?? 0) },
   ]
 
+  const renderRealtimeCard = () => (
+    <Card padding="lg" depth="md" className={`${tabStyles.sideCard} ${tabStyles.overviewSideCard}`} data-testid="since-publication-realtime">
+      <div className={tabStyles.sideTitle}>Текущая статистика</div>
+      <RealtimeIndicator />
+      <div className={tabStyles.sideBig}>{formatNumberRu(realtime.total)}</div>
+      <div className={s.realtimeLabel}>
+        Просмотры · Последние 48 часов <ChevronDown size={18} />
+      </div>
+      <RealtimeMiniChart
+        bars={realtime.bars}
+        color={ANALYTICS_BLUE}
+        height={48}
+        animationDuration={FAST_CHART_ANIMATION_SECONDS}
+      />
+      {realtime.sources.length > 0 ? (
+        <>
+          <div className={s.sourcesHead}>
+            <span>Основные источники трафика</span>
+            <span>Просмотры</span>
+          </div>
+          {realtime.sources.map((source) => (
+            <div className={s.sourceRow} key={source.label}>
+              <span className={s.sourceLabel} title={source.label}>{source.label}</span>
+              <span className={s.sourceValue}>{source.percent.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}{' '}%</span>
+              <span className={s.sourceSpark} aria-hidden="true">
+                {source.spark.map((value, index) => (
+                  <i key={index} style={{ height: `${Math.max(8, value * 100)}%` }} />
+                ))}
+              </span>
+            </div>
+          ))}
+        </>
+      ) : null}
+      <button type="button" className={`${tabStyles.ytPillBtn} ${s.moreBtn}`} onClick={() => showToast('Подробнее')}>Подробнее</button>
+    </Card>
+  )
+
   const renderOverview = () => (
+    <div className={s.overviewLayout}>
     <div className={s.overviewStack}>
       <h2 className={s.sinceTitle} data-testid="since-publication-title">{headline}</h2>
       <AnalyticsHeroCard
@@ -145,6 +188,8 @@ export default function Screen12VideoAnalytics() {
       </AnalyticsHeroCard>
       <p className={s.footNote}>Интерес к контенту · С момента публикации · {declineDaysLabel(days)}</p>
     </div>
+    <aside className={s.overviewSide}>{renderRealtimeCard()}</aside>
+    </div>
   )
 
   return (
@@ -177,9 +222,9 @@ export default function Screen12VideoAnalytics() {
           <TabRow tabs={TABS} active={activeTab} onChange={setActiveTab} layoutId="video-analytics-tab" />
           <div className={pageStyles.dateWrap}>
             <div className={`${pickerStyles.trigger} ${s.periodPill}`} aria-label="Период: с момента публикации">
-              <span className={pickerStyles.sub}>С момента публикации</span>
+              <span className={pickerStyles.sub}>С {formatDateLong(view.section.publishedAt)} по сегодняшний день</span>
               <span className={pickerStyles.main}>
-                {declineDaysLabel(days)} <ChevronDown size={16} />
+                С момента публикации <ChevronDown size={16} />
               </span>
             </div>
           </div>

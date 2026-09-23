@@ -16,7 +16,9 @@
     "verify:site-session": "node scripts/verify-site-session.mjs",
     "verify:performance": "node scripts/verify-video-performance.mjs",
     "seed:supabase-media": "node scripts/seed-supabase-media.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:push": "node --env-file-if-exists=.env.local scripts/db-push.mjs",
+    "db:migrations": "node --env-file-if-exists=.env.local scripts/db-push.mjs list"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.110.8",

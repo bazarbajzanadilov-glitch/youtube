@@ -17,6 +17,16 @@ export const CURVE_SHAPES = [
   { value: 'even', label: 'Равномерный рост' },
 ]
 
+export const DEFAULT_TRAFFIC_SOURCES = [
+  { label: 'Плейлисты', percent: 48.1 },
+  { label: 'Функции выбора контента', percent: 17.3 },
+  { label: 'Рекомендованные видео', percent: 9.7 },
+  { label: 'Поиск на YouTube', percent: 6.4 },
+  { label: 'Адресная строка, закладки и т. п.', percent: 2.1 },
+]
+const MAX_TRAFFIC_SOURCES = 5
+const REALTIME_HOURS = 48
+
 const CURVE_SHAPE_VALUES = CURVE_SHAPES.map((shape) => shape.value)
 const X_TICK_COUNT = 7
 const Y_TICK_COUNT = 4
@@ -38,6 +48,8 @@ export function buildDefaultPerformanceSections(now = new Date()) {
       subscribersGained: 204_300,
       revenueTenge: 1_253_155.42,
       curveShape: 'burst',
+      realtimeViews48h: 59_355,
+      trafficSources: DEFAULT_TRAFFIC_SOURCES,
     },
     video: {
       variant: 'video',
@@ -49,6 +61,8 @@ export function buildDefaultPerformanceSections(now = new Date()) {
       subscribersGained: 14_900,
       revenueTenge: 7_365.63,
       curveShape: 'burst',
+      realtimeViews48h: 59_355,
+      trafficSources: DEFAULT_TRAFFIC_SOURCES,
     },
   }
 }
@@ -67,6 +81,17 @@ function isoDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null
 }
 
+function normalizeTrafficSources(value, fallback) {
+  if (!Array.isArray(value)) return fallback
+  return value
+    .filter((item) => item && typeof item === 'object' && String(item.label || '').trim())
+    .slice(0, MAX_TRAFFIC_SOURCES)
+    .map((item) => ({
+      label: String(item.label).trim(),
+      percent: Math.min(100, Math.round(nonNegativeNumber(item.percent, 0) * 10) / 10),
+    }))
+}
+
 export function normalizePerformanceSection(variant, raw = {}) {
   const key = PERFORMANCE_VARIANTS.includes(variant) ? variant : 'video'
   const fallback = DEFAULT_PERFORMANCE_SECTIONS[key]
@@ -82,6 +107,8 @@ export function normalizePerformanceSection(variant, raw = {}) {
     subscribersGained: Math.round(nonNegativeNumber(source.subscribersGained, fallback.subscribersGained)),
     revenueTenge: Math.round(nonNegativeNumber(source.revenueTenge, fallback.revenueTenge) * 100) / 100,
     curveShape,
+    realtimeViews48h: Math.round(nonNegativeNumber(source.realtimeViews48h, fallback.realtimeViews48h)),
+    trafficSources: normalizeTrafficSources(source.trafficSources, fallback.trafficSources),
   }
 }
 
@@ -188,6 +215,31 @@ export function buildCumulativeCurve({ days, total, shape = 'burst', seed = 1 })
   return curve
 }
 
+/** 48 часовых столбиков с двумя «дневными» волнами; сумма ровно total. */
+export function buildRealtimeBars(total, seed = 1) {
+  const safeTotal = Math.max(0, Math.round(Number(total) || 0))
+  const rand = seededRng(Number(seed) || 1)
+  const weights = Array.from({ length: REALTIME_HOURS }, (_, hour) => {
+    const wave = 0.62 + 0.38 * Math.cos(((hour - 12) / 24) * Math.PI * 2)
+    return Math.max(0.05, wave * (0.9 + rand() * 0.2))
+  })
+  const sum = weights.reduce((acc, value) => acc + value, 0)
+  const bars = weights.map((value) => Math.floor((value / sum) * safeTotal))
+  let rest = safeTotal - bars.reduce((acc, value) => acc + value, 0)
+  for (let index = bars.length - 1; rest > 0; index = (index - 1 + bars.length) % bars.length) {
+    bars[index] += 1
+    rest -= 1
+  }
+  return bars
+}
+
+/** Мини-гистограмма источника трафика: 8 столбиков, высота пропорциональна доле. */
+export function buildSourceSparkline(percent, seed = 1) {
+  const rand = seededRng(Number(seed) || 1)
+  const level = Math.max(0, Math.min(100, Number(percent) || 0)) / 50
+  return Array.from({ length: 8 }, () => Math.min(1, level * (0.55 + rand() * 0.45)))
+}
+
 export function buildPerformanceSectionView(sectionInput, now = new Date()) {
   const section = normalizePerformanceSection(sectionInput?.variant, sectionInput)
   const days = daysSincePublication(section.publishedAt, now)
@@ -224,6 +276,14 @@ export function buildPerformanceSectionView(sectionInput, now = new Date()) {
     yTicks,
     yDomain: [0, yTicks[yTicks.length - 1]],
     chartData,
+    realtime: {
+      total: section.realtimeViews48h,
+      bars: buildRealtimeBars(section.realtimeViews48h, hashSeed(seedBase, 'realtime', section.realtimeViews48h)),
+      sources: section.trafficSources.map((item, index) => ({
+        ...item,
+        spark: buildSourceSparkline(item.percent, hashSeed(seedBase, 'source', index, item.label)),
+      })),
+    },
     kpis: {
       views: section.totalViews,
       typicalViews: section.typicalViews,

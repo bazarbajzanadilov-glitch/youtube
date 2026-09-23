@@ -996,3 +996,28 @@ textarea.input,
     grid-column: auto;
   }
 }
+
+.performanceSubhead {
+  margin-top: 4px;
+  color: var(--studio-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sourceEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sourceEditorHead,
+.sourceEditorRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px;
+  gap: 8px;
+}
+
+.sourceEditorHead {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+}

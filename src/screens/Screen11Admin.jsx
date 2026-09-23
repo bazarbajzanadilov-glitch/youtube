@@ -52,6 +52,11 @@ function performanceDraftFrom(variant, section) {
     subscribersGained: String(normalized.subscribersGained),
     revenueTenge: String(normalized.revenueTenge),
     curveShape: normalized.curveShape,
+    realtimeViews48h: String(normalized.realtimeViews48h),
+    trafficSources: Array.from({ length: 5 }, (_, index) => ({
+      label: normalized.trafficSources[index]?.label || '',
+      percent: normalized.trafficSources[index] ? String(normalized.trafficSources[index].percent) : '',
+    })),
   }
 }
 
@@ -67,13 +72,20 @@ function PerformanceSectionEditor({ variant, section, onSave, onOpen }) {
   }
 
   const setField = (key, value) => setDraft((current) => ({ ...current, [key]: value }))
+  const setSource = (index, key, value) => setDraft((current) => ({
+    ...current,
+    trafficSources: current.trafficSources.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
+  }))
   const days = daysSincePublication(draft.publishedAt)
 
   async function onSubmit(event) {
     event.preventDefault()
     setSaving(true)
     try {
-      await onSave(variant, draft)
+      await onSave(variant, {
+        ...draft,
+        trafficSources: draft.trafficSources.filter((item) => item.label.trim()),
+      })
     } finally {
       setSaving(false)
     }
@@ -126,6 +138,22 @@ function PerformanceSectionEditor({ variant, section, onSave, onOpen }) {
             {CURVE_SHAPES.map((shape) => <option key={shape.value} value={shape.value}>{shape.label}</option>)}
           </select>
         </label>
+      </div>
+      <div className={s.performanceSubhead}>Справа: «Текущая статистика»</div>
+      <div className={s.performanceFields}>
+        <label className={s.field}>
+          <span>Просмотры за последние 48 часов</span>
+          <input className={s.input} type="number" min="0" step="1" value={draft.realtimeViews48h} onChange={(e) => setField('realtimeViews48h', e.target.value)} />
+        </label>
+      </div>
+      <div className={s.sourceEditor}>
+        <div className={s.sourceEditorHead}><span>Источник трафика</span><span>%</span></div>
+        {draft.trafficSources.map((item, index) => (
+          <div className={s.sourceEditorRow} key={index}>
+            <input className={s.input} type="text" placeholder="Пусто — строка скрыта" value={item.label} onChange={(e) => setSource(index, 'label', e.target.value)} />
+            <input className={s.input} type="number" min="0" max="100" step="0.1" value={item.percent} onChange={(e) => setSource(index, 'percent', e.target.value)} />
+          </div>
+        ))}
       </div>
       <button type="submit" className={s.submitBtn} disabled={saving}>
         {saving ? 'Сохранение…' : 'Сохранить раздел'}
