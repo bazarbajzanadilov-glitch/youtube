@@ -345,11 +345,8 @@ export function buildPerformanceSectionView(sectionInput, now = new Date(), curv
     chartData.push(row)
   }
   const yTicksByMetric = Object.fromEntries(SINCE_PUBLICATION_METRICS.map((key) => {
-    const max = Math.max(
-      ...series[key].own.filter((value) => value != null),
-      ...series[key].typical.filter((value) => value != null),
-      0,
-    )
+    // На графике рисуется только линия самого видео — шкала по ней.
+    const max = Math.max(...series[key].own.filter((value) => value != null), 0)
     return [key, buildSincePublicationYTicks(max)]
   }))
   const yTicks = yTicksByMetric.views

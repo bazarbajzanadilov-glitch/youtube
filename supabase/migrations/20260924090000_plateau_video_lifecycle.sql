@@ -34,7 +34,7 @@ as $$
       10.0 + (pg_catalog.get_byte(video_seed, 2)::double precision / 255.0) * 30.0 as second_wave,
       0.45 + (pg_catalog.get_byte(video_seed, 3)::double precision / 255.0) * 0.75 as wave_height,
       0.70 + (pg_catalog.get_byte(day_seed, 0)::double precision / 255.0) * 0.60 as ordinary_noise,
-      0.35 + (pg_catalog.get_byte(block_seed, 0)::double precision / 255.0) * 1.50 as regime,
+      0.50 + (pg_catalog.get_byte(block_seed, 0)::double precision / 255.0) * 0.90 as regime,
       pg_catalog.get_byte(day_seed, 1)::double precision / 255.0 as shock,
       case when extract(isodow from p_date) >= 6 then 1.09 else 1.0 end as weekend
     from seed
@@ -78,9 +78,10 @@ as $$
       * shaped.upload_day
       * shaped.weekend
       * shaped.ordinary_noise
-      * case when shaped.age < 2 then 1.0 else shaped.regime end
+      -- Первые дни — всегда самый сильный старт, колебания начинаются позже.
+      * case when shaped.age < 4 then 1.0 else shaped.regime end
       * case
-          when shaped.shock > 0.93 then 1.8 + ((shaped.shock - 0.93) / 0.07) * 1.7
+          when shaped.shock > 0.93 and shaped.age >= 5 then 1.5 + ((shaped.shock - 0.93) / 0.07) * 1.0
           when shaped.shock < 0.04 then 0.72
           else 1.0
         end
