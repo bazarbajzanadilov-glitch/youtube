@@ -208,6 +208,7 @@ export default function Screen12VideoAnalytics() {
             color={ANALYTICS_BLUE}
             name={VIDEO_SERIES_LABEL}
             showAreaFill={false}
+            curve="linear"
             yTicks={metricTicks}
             yDomain={[0, metricTicks[metricTicks.length - 1]]}
             formatY={metricChart.formatAxis}
