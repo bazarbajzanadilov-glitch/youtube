@@ -5,6 +5,7 @@ import {
   replaceRemoteProject,
   saveRemoteChannel,
   saveRemotePerformanceSection,
+  saveRemoteTypicalOverride,
   saveRemoteSubscriberDailyStats,
   subscribeProject,
 } from '../data/projectStore.js'
@@ -19,6 +20,7 @@ export function useChannel() {
     update: saveRemoteChannel,
     updateSubscriberDailyStats: saveRemoteSubscriberDailyStats,
     updatePerformanceSection: saveRemotePerformanceSection,
+    updateTypicalOverride: saveRemoteTypicalOverride,
     replace: replaceRemoteProject,
   }
 }

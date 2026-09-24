@@ -157,6 +157,9 @@ export async function loadRemoteProject({ force = false, silent = false } = {}) 
             performanceSections: normalizePerformanceSections(
               project.channel.performanceSections || project.performanceSections,
             ),
+            typicalOverrides: normalizeTypicalOverrides(
+              project.channel.typicalOverrides || project.typicalOverrides,
+            ),
           }
           : CHANNEL_DEFAULTS
         updateSnapshot({
@@ -303,6 +306,26 @@ export async function saveRemotePerformanceSection(variant, values) {
   const section = normalizePerformanceSection(variant, { ...values, variant })
   await mutate(() => adminRepository.savePerformanceSection(section))
   return section
+}
+
+function numberOrNull(value) {
+  if (value == null || value === '') return null
+  const number = Number(value)
+  return Number.isFinite(number) ? number : null
+}
+
+export function normalizeTypicalOverrides(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {}
+  return Object.fromEntries(Object.entries(source).map(([videoId, item]) => [String(videoId), {
+    viewsDiff: numberOrNull(item?.viewsDiff) == null ? null : Math.round(Number(item.viewsDiff)),
+    watchHoursDiff: numberOrNull(item?.watchHoursDiff) == null ? null : Math.round(Number(item.watchHoursDiff) * 10) / 10,
+  }]))
+}
+
+export async function saveRemoteTypicalOverride(videoId, values) {
+  const [, override] = Object.entries(normalizeTypicalOverrides({ [videoId]: values }))[0]
+  await mutate(() => adminRepository.saveTypicalOverride(String(videoId), override))
+  return override
 }
 
 export async function replaceRemoteProject(channel, videos) {

@@ -355,6 +355,29 @@ export async function savePerformanceSection(section) {
   )
 }
 
+/** Разница с «обычными показателями» ролика; оба поля пусты — строка удаляется (снова авто). */
+export async function saveTypicalOverride(videoId, { viewsDiff = null, watchHoursDiff = null } = {}) {
+  const supabase = getSupabaseClient()
+  if (viewsDiff == null && watchHoursDiff == null) {
+    requireNoError(
+      await supabase.from('video_typical_overrides').delete().eq('video_id', videoId),
+      'Не удалось сбросить обычные показатели',
+    )
+    return
+  }
+  requireNoError(
+    await supabase
+      .from('video_typical_overrides')
+      .upsert({
+        video_id: videoId,
+        channel_id: STUDIO_CHANNEL_ID,
+        views_diff: viewsDiff,
+        watch_hours_diff: watchHoursDiff,
+      }, { onConflict: 'video_id' }),
+    'Не удалось сохранить обычные показатели',
+  )
+}
+
 export async function replaceSubscriberDailyStats(stats) {
   const supabase = getSupabaseClient()
   requireNoError(

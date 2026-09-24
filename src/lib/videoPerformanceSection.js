@@ -404,7 +404,7 @@ export function buildVideoPerformanceView(video, videos = [], channel = {}, now 
     return { ...empty, pending: true }
   }
   const toTenge = (line) => line.map((value) => (value == null ? null : Math.round(value * TENGE_PER_DOLLAR * 100) / 100))
-  return buildPerformanceSectionView({
+  const view = buildPerformanceSectionView({
     variant: video?.type === 'short' ? 'shorts' : 'video',
     publishedAt: analytics.publishedAt,
     totalViews: analytics.kpis.views,
@@ -427,4 +427,19 @@ export function buildVideoPerformanceView(video, videos = [], channel = {}, now 
     },
     realtimeBars: analytics.realtime.bars,
   })
+  // «Обычные показатели», заданные в админке, заменяют автоматический расчёт
+  // для периода «С момента публикации» (подпись «На … больше, чем обычно»).
+  const override = channel?.typicalOverrides?.[String(video?.id)] || {}
+  const autoTypical = { views: view.kpis.typicalViews, watchHours: view.kpis.typicalWatchHours }
+  return {
+    ...view,
+    autoTypical,
+    kpis: {
+      ...view.kpis,
+      typicalViews: override.viewsDiff == null ? view.kpis.typicalViews : view.kpis.views - override.viewsDiff,
+      typicalWatchHours: override.watchHoursDiff == null
+        ? view.kpis.typicalWatchHours
+        : Math.round((view.kpis.watchHours - override.watchHoursDiff) * 10) / 10,
+    },
+  }
 }

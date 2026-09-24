@@ -66,20 +66,21 @@ function isMissingRelation(error) {
 
 const PERFORMANCE_SECTIONS_TABLE = 'video_performance_sections'
 
-function isMissingPerformanceSections(error) {
-  return isMissingRelation(error)
-    && new RegExp(PERFORMANCE_SECTIONS_TABLE, 'i').test(error?.message || '')
-}
+const TYPICAL_OVERRIDES_TABLE = 'video_typical_overrides'
 
-/* Раздел «С момента публикации» появился позже остальной схемы: пока миграция
-   не применена, сайт работает на дефолтах, а не падает целиком. */
-async function tolerantPerformanceSections(load) {
+/* Таблицы разделов «Аналитика видео» появились позже остальной схемы: пока
+   миграция не применена, сайт работает на дефолтах, а не падает целиком. */
+async function tolerantTable(table, load) {
   try {
     return await load()
   } catch (error) {
-    if (isMissingPerformanceSections(error)) return []
+    if (isMissingRelation(error) && new RegExp(table, 'i').test(error?.message || '')) return []
     throw error
   }
+}
+
+function tolerantPerformanceSections(load) {
+  return tolerantTable(PERFORMANCE_SECTIONS_TABLE, load)
 }
 
 function isMissingVideoDailyStats(error) {
@@ -143,6 +144,8 @@ async function loadRevision(supabase) {
     latestRows(supabase, 'video_daily_stats'),
     tolerantPerformanceSections(() => latestRows(supabase, PERFORMANCE_SECTIONS_TABLE))
       .then((entry) => (Array.isArray(entry) ? { rows: [], count: 0 } : entry)),
+    tolerantTable(TYPICAL_OVERRIDES_TABLE, () => latestRows(supabase, TYPICAL_OVERRIDES_TABLE))
+      .then((entry) => (Array.isArray(entry) ? { rows: [], count: 0 } : entry)),
   ])
   const names = [
     'channel',
@@ -152,6 +155,7 @@ async function loadRevision(supabase) {
     'subscriberDailyStats',
     'videoDailyStats',
     'performanceSections',
+    'typicalOverrides',
   ]
   let latest = ''
   const counts = []
@@ -190,6 +194,7 @@ export default async function handler(request, response) {
       subscriberDailyRows,
       videoDailyRows,
       performanceSectionRows,
+      typicalOverrideRows,
     ] = await Promise.all([
       supabase.from('channels').select('*').eq('id', STUDIO_CHANNEL_ID).single(),
       fetchAllPages(
@@ -244,6 +249,14 @@ export default async function handler(request, response) {
           .order('variant', { ascending: true }),
         PERFORMANCE_SECTIONS_TABLE,
       )),
+      tolerantTable(TYPICAL_OVERRIDES_TABLE, () => fetchAllPages(
+        () => supabase
+          .from(TYPICAL_OVERRIDES_TABLE)
+          .select('video_id, views_diff, watch_hours_diff, updated_at')
+          .eq('channel_id', STUDIO_CHANNEL_ID)
+          .order('video_id', { ascending: true }),
+        TYPICAL_OVERRIDES_TABLE,
+      )),
     ])
 
     const channelRow = requireData(channelResult, 'Канал')
@@ -294,6 +307,15 @@ export default async function handler(request, response) {
       },
     ]))
 
+    const nullableNumber = (value) => (value == null || !Number.isFinite(Number(value)) ? null : Number(value))
+    const typicalOverrides = Object.fromEntries(typicalOverrideRows.map((item) => [
+      String(item.video_id),
+      {
+        viewsDiff: nullableNumber(item.views_diff),
+        watchHoursDiff: nullableNumber(item.watch_hours_diff),
+      },
+    ]))
+
     const [avatar, videos] = await Promise.all([
       mediaUrl(supabase, channelRow.avatar_path),
       Promise.all(videoRows.map(async (item) => {
@@ -338,6 +360,7 @@ export default async function handler(request, response) {
       subscriberDailyStats,
       videoDailyStats,
       performanceSections,
+      typicalOverrides,
     }
     const revision = buildRevision([
       ['channel', [channelRow]],
@@ -347,6 +370,7 @@ export default async function handler(request, response) {
       ['subscriberDailyStats', subscriberDailyRows],
       ['videoDailyStats', videoDailyRows],
       ['performanceSections', performanceSectionRows],
+      ['typicalOverrides', typicalOverrideRows],
     ])
 
     response.setHeader('Cache-Control', 'private, no-store')
@@ -359,6 +383,7 @@ export default async function handler(request, response) {
       subscriberDailyStats,
       videoDailyStats,
       performanceSections,
+      typicalOverrides,
     })
   } catch (error) {
     console.error('site-data', error?.message || error)

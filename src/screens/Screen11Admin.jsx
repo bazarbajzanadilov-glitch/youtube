@@ -12,6 +12,7 @@ import { useVideos } from '../storage/useVideos.js'
 import { useChannel } from '../storage/useChannel.js'
 import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
 import AdminGate from '../components/auth/AdminGate.jsx'
+import TypicalDiffEditor from './admin/TypicalDiffEditor.jsx'
 import {
   signOutAdmin,
   updateSitePassword,
@@ -249,6 +250,7 @@ function Screen11AdminContent() {
     update: updateChannel,
     replace: replaceProject,
     updatePerformanceSection,
+    updateTypicalOverride,
   } = useChannel()
   const [form, setForm] = useState(blankForm())
   const [channelDraft, setChannelDraft] = useState(null)
@@ -700,6 +702,15 @@ function Screen11AdminContent() {
     }
   }
 
+  async function onSaveTypicalOverride(videoId, values) {
+    try {
+      await updateTypicalOverride(videoId, values)
+      showToast('Подписи «чем обычно» сохранены')
+    } catch (error) {
+      showToast(error.message || 'Не удалось сохранить подписи')
+    }
+  }
+
   async function onSitePasswordChange(event) {
     event.preventDefault()
     if (sitePassword.length < 4) {
@@ -805,6 +816,21 @@ function Screen11AdminContent() {
               />
             ))}
           </div>
+        </section>
+
+        <section className={s.securityPanel} data-testid="typical-diff-panel">
+          <div className={s.panelHead}>
+            <div>
+              <h2>Аналитика видео: «больше / меньше, чем обычно»</h2>
+              <span>Выберите видео, нажмите стрелку и напишите цифру — карточка покажет, как будет на странице.</span>
+            </div>
+          </div>
+          <TypicalDiffEditor
+            videos={videos}
+            channel={channel}
+            onSave={onSaveTypicalOverride}
+            onOpen={(route) => go(route)}
+          />
         </section>
 
         <div className={s.editorGrid}>

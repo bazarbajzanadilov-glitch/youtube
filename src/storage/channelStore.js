@@ -42,4 +42,5 @@ export const CHANNEL_DEFAULTS = {
   recentSubscribers: DEFAULT_RECENT_SUBSCRIBERS,
   subscriberDailyStats: [],
   performanceSections: DEFAULT_PERFORMANCE_SECTIONS,
+  typicalOverrides: {},
 }
