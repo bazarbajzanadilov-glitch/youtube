@@ -1,0 +1,120 @@
+.editable {
+  display: inline;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 1px dashed rgba(62, 166, 255, 0.7);
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: text;
+}
+
+.editable:hover {
+  background: rgba(62, 166, 255, 0.12);
+}
+
+.numberInput {
+  width: 9em;
+  max-width: 100%;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 2px solid #3ea6ff;
+  border-radius: 2px;
+  background: rgba(62, 166, 255, 0.1);
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.textInput {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  resize: none;
+}
+
+.textInput:hover {
+  background: var(--studio-hover-soft);
+}
+
+.textInput:focus {
+  background: rgba(62, 166, 255, 0.1);
+  outline: none;
+}
+
+.textArea {
+  line-height: 18px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2ba640;
+}
+
+.status_pending i,
+.status_saving i {
+  background: #f2b01e;
+}
+
+.status_error {
+  color: #ff4e45;
+}
+
+.status_error i {
+  background: #ff4e45;
+}
+
+.diff {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 18px;
+}
+
+.diffArrow {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.diffArrow:hover {
+  box-shadow: 0 0 0 3px rgba(62, 166, 255, 0.25);
+}
+
+.diffWord {
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 1px dashed rgba(62, 166, 255, 0.7);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.diffWord:hover {
+  background: rgba(62, 166, 255, 0.12);
+}

@@ -1,95 +1,92 @@
 import { useMemo, useState } from 'react'
 import s from './TypicalDiffEditor.module.css'
-import tabStyles from '../analytics/AnalyticsTabs.module.css'
-import MetricKpiCell from '../analytics/MetricKpiCell.jsx'
-import { KpiDownCircleIcon, KpiUpCircleIcon } from '../icons.jsx'
-import { formatCompactOneDecimal } from '../../lib/analyticsFormat.js'
+import v from './AdminVisual.module.css'
+import { DiffControl, SaveStatus } from './InlineEdit.jsx'
+import { useAutoSavedDraft } from './useAutoSavedDraft.js'
+import { declineTimes, formatCompactOneDecimal, formatNumberRu } from '../../lib/analyticsFormat.js'
 import { buildVideoPerformanceView, videoAnalyticsRoute } from '../../lib/videoPerformanceSection.js'
-import { absoluteUsualComparison } from '../analytics/studioAnalyticsHelpers.js'
-import { parseHumanAmount } from '../../lib/humanAmount.js'
 
 const METRICS = [
-  { key: 'views', label: 'Просмотры', diffKey: 'viewsDiff', valueKey: 'views', typicalKey: 'typicalViews', autoKey: 'views', step: 1 },
-  { key: 'watch', label: 'Время просмотра (часы)', diffKey: 'watchHoursDiff', valueKey: 'watchHours', typicalKey: 'typicalWatchHours', autoKey: 'watchHours', step: 0.1 },
+  { key: 'views', label: 'Просмотры', diffKey: 'viewsDiff', valueKey: 'views', autoKey: 'views', decimals: 0 },
+  { key: 'watch', label: 'Время просмотра (часы)', diffKey: 'watchHoursDiff', valueKey: 'watchHours', autoKey: 'watchHours', decimals: 1 },
 ]
 
-function plainNumber(value, step) {
-  const rounded = step < 1 ? Math.round(Math.abs(value) * 10) / 10 : Math.round(Math.abs(value))
-  return rounded.toLocaleString('ru-RU', { maximumFractionDigits: step < 1 ? 1 : 0 })
+function round(value, decimals) {
+  const factor = 10 ** decimals
+  return Math.round(value * factor) / factor
 }
 
-function draftFrom(view, override) {
-  return Object.fromEntries(METRICS.map((metric) => {
-    const stored = override?.[metric.diffKey]
-    if (stored != null) {
-      return [metric.key, { auto: false, up: stored >= 0, text: plainNumber(stored, metric.step) }]
-    }
+function VideoDiffEditor({ video, videos, channel, onSave, onOpen }) {
+  const view = useMemo(() => buildVideoPerformanceView(video, videos, channel), [video, videos, channel])
+  const override = channel?.typicalOverrides?.[String(video.id)]
+  const serverValue = useMemo(() => ({
+    viewsDiff: override?.viewsDiff ?? null,
+    watchHoursDiff: override?.watchHoursDiff ?? null,
+  }), [override])
+  const [draft, setDraft, status] = useAutoSavedDraft(serverValue, (value) => onSave(video.id, value))
+
+  const autoDiff = (metric) => {
     const auto = view.autoTypical?.[metric.autoKey]
-    const diff = auto == null ? 0 : view.kpis[metric.valueKey] - auto
-    return [metric.key, { auto: true, up: diff >= 0, text: plainNumber(diff, metric.step) }]
-  }))
-}
+    return auto == null ? 0 : round(view.kpis[metric.valueKey] - auto, metric.decimals)
+  }
 
-function trendOf(diff) {
-  if (diff > 0) return 'up'
-  if (diff < 0) return 'down'
-  return 'usual'
+  return (
+    <div className={s.workArea}>
+      <div className={v.bar}>
+        <span className={v.where}>На сайте: клик по видео → «Аналитика видео», карточки над графиком</span>
+        <div className={v.barRight}>
+          <SaveStatus status={status} />
+          <button type="button" className={v.openLink} onClick={() => onOpen(videoAnalyticsRoute(video))}>Открыть страницу →</button>
+        </div>
+      </div>
+      <h3 className={v.headline}>
+        С момента публикации это видео{video.type === 'short' ? ' Shorts' : ''} посмотрели {formatNumberRu(view.kpis.views)} {declineTimes(view.kpis.views)}
+      </h3>
+      <div className={`${v.card} ${s.cards}`}>
+        <div className={v.kpis}>
+          {METRICS.map((metric) => {
+            const manual = draft[metric.diffKey]
+            const diff = manual ?? autoDiff(metric)
+            return (
+              <div className={v.kpi} key={metric.key}>
+                <span className={v.kpiLabel}>{metric.label}</span>
+                <span className={v.kpiValue}>{formatCompactOneDecimal(view.kpis[metric.valueKey])}</span>
+                <DiffControl
+                  diff={diff}
+                  decimals={metric.decimals}
+                  format={formatCompactOneDecimal}
+                  label={metric.label}
+                  onChange={(next) => setDraft((current) => ({ ...current, [metric.diffKey]: next }))}
+                />
+                {manual == null ? (
+                  <span className={s.autoNote}>считается автоматически</span>
+                ) : (
+                  <button type="button" className={s.resetBtn} onClick={() => setDraft((current) => ({ ...current, [metric.diffKey]: null }))}>
+                    вернуть авто
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      <div className={v.tip}>Нажмите на стрелку или слово «больше/меньше», чтобы поменять; на цифру — чтобы написать свою (например 5,9 млн или 250000). Сохраняется автоматически.</div>
+    </div>
+  )
 }
 
 /**
- * Визуальный редактор подписи «На 5,9 млн больше, чем обычно» на странице
- * «Аналитика видео»: выбираешь ролик, жмёшь стрелку ↑/↓, пишешь цифру —
- * карточка сверху сразу показывает, как это будет выглядеть в студии.
+ * Подпись «На 5,9 млн больше, чем обычно» на странице «Аналитика видео»:
+ * слева выбираешь ролик, справа — сами карточки, которые меняются кликом.
  */
 export default function TypicalDiffEditor({ videos, channel, onSave, onOpen }) {
   const list = useMemo(() => [...videos].sort((a, b) => String(b.date).localeCompare(String(a.date))), [videos])
   const [selectedId, setSelectedId] = useState(() => list[0]?.id ?? null)
   const video = list.find((item) => item.id === selectedId) || list[0] || null
-  const view = useMemo(() => (video ? buildVideoPerformanceView(video, videos, channel) : null), [video, videos, channel])
-  const override = video ? channel?.typicalOverrides?.[String(video.id)] : null
-  const [draftState, setDraftState] = useState({ key: null, draft: null })
-  const [saving, setSaving] = useState(false)
 
-  const draftKey = video && view ? `${video.id}|${JSON.stringify(override || {})}|${view.kpis.views}` : null
-  if (draftKey !== draftState.key) {
-    setDraftState({ key: draftKey, draft: view ? draftFrom(view, override) : null })
-  }
-  const draft = draftKey === draftState.key ? draftState.draft : (view ? draftFrom(view, override) : null)
-
-  if (!video || !view) {
+  if (!video) {
     return <div className={s.empty}>Добавьте видео, чтобы настроить подписи.</div>
   }
-
-  const setMetric = (key, patch) => setDraftState((state) => ({
-    ...state,
-    draft: { ...state.draft, [key]: { ...state.draft[key], ...patch, auto: false } },
-  }))
-  const resetMetric = (key) => setDraftState((state) => ({
-    ...state,
-    draft: { ...state.draft, [key]: draftFrom(view, {})[key] },
-  }))
-
-  const signedDiff = (metric) => {
-    const item = draft[metric.key]
-    const amount = parseHumanAmount(item.text)
-    if (amount == null) return null
-    return item.up ? amount : -amount
-  }
-
-  async function save() {
-    setSaving(true)
-    try {
-      const values = Object.fromEntries(METRICS.map((metric) => [
-        metric.diffKey,
-        draft[metric.key].auto ? null : signedDiff(metric),
-      ]))
-      await onSave(video.id, values)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const invalid = METRICS.some((metric) => !draft[metric.key].auto && signedDiff(metric) == null)
 
   return (
     <div className={s.editor} data-testid="typical-diff-editor">
@@ -114,85 +111,7 @@ export default function TypicalDiffEditor({ videos, channel, onSave, onOpen }) {
           </button>
         ))}
       </div>
-
-      <div className={s.workArea}>
-        <div className={s.previewHead}>
-          <span>Так будет на странице «Аналитика видео»</span>
-          <button type="button" className={s.openLink} onClick={() => onOpen(videoAnalyticsRoute(video))}>Открыть страницу →</button>
-        </div>
-        <div className={`${tabStyles.ytKpiStrip} ${s.previewStrip}`}>
-          {METRICS.map((metric) => {
-            const diff = signedDiff(metric) ?? 0
-            return (
-              <MetricKpiCell
-                key={metric.key}
-                label={metric.label}
-                value={formatCompactOneDecimal(view.kpis[metric.valueKey])}
-                note={absoluteUsualComparison(diff, formatCompactOneDecimal)}
-                trend={trendOf(diff)}
-              />
-            )
-          })}
-        </div>
-
-        <div className={s.controls}>
-          {METRICS.map((metric) => {
-            const item = draft[metric.key]
-            const amount = parseHumanAmount(item.text)
-            return (
-              <div className={s.control} key={metric.key}>
-                <div className={s.controlLabel}>
-                  {metric.label}
-                  {item.auto ? <span className={s.autoBadge}>авто</span> : (
-                    <button type="button" className={s.resetBtn} onClick={() => resetMetric(metric.key)}>Вернуть авто</button>
-                  )}
-                </div>
-                <div className={s.controlRow}>
-                  <div className={s.arrows} role="group" aria-label="Направление">
-                    <button
-                      type="button"
-                      className={`${s.arrowBtn} ${item.up ? s.arrowUpActive : ''}`}
-                      aria-pressed={item.up}
-                      onClick={() => setMetric(metric.key, { up: true })}
-                    >
-                      <KpiUpCircleIcon size={20} color={item.up ? '#2ba640' : '#909090'} />
-                      Больше
-                    </button>
-                    <button
-                      type="button"
-                      className={`${s.arrowBtn} ${!item.up ? s.arrowDownActive : ''}`}
-                      aria-pressed={!item.up}
-                      onClick={() => setMetric(metric.key, { up: false })}
-                    >
-                      <KpiDownCircleIcon size={20} color="#909090" />
-                      Меньше
-                    </button>
-                  </div>
-                  <input
-                    className={`${s.amountInput} ${amount == null && !item.auto ? s.amountInvalid : ''}`}
-                    inputMode="decimal"
-                    value={item.text}
-                    placeholder="например 5,9 млн или 250000"
-                    onChange={(event) => setMetric(metric.key, { text: event.target.value })}
-                    aria-label={`${metric.label}: на сколько`}
-                  />
-                </div>
-                <div className={s.hint}>
-                  {amount == null
-                    ? 'Напишите число: 50000, 50 тыс, 5,9 млн'
-                    : `Будет написано: «${absoluteUsualComparison(item.up ? amount : -amount, formatCompactOneDecimal)}»`}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <div className={s.footer}>
-          <button type="button" className={s.saveBtn} disabled={saving || invalid} onClick={save}>
-            {saving ? 'Сохранение…' : 'Сохранить'}
-          </button>
-        </div>
-      </div>
+      <VideoDiffEditor key={video.id} video={video} videos={videos} channel={channel} onSave={onSave} onOpen={onOpen} />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useContext, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import s from './Screen11Admin.module.css'
 import TopBar from './TopBar.jsx'
 import Sidebar from './Sidebar.jsx'
@@ -13,6 +13,9 @@ import { useChannel } from '../storage/useChannel.js'
 import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
 import AdminGate from '../components/auth/AdminGate.jsx'
 import TypicalDiffEditor from './admin/TypicalDiffEditor.jsx'
+import PerformanceSectionVisual from './admin/PerformanceSectionVisual.jsx'
+import DashboardBlocksVisual from './admin/DashboardBlocksVisual.jsx'
+import { SaveStatus } from './admin/InlineEdit.jsx'
 import {
   signOutAdmin,
   updateSitePassword,
@@ -30,138 +33,6 @@ import {
   DEFAULT_AVERAGE_VIEW_PERCENTAGE,
   normalizeAverageViewPercentage,
 } from '../lib/videoMetrics.js'
-import {
-  CURVE_SHAPES,
-  PERFORMANCE_VARIANTS,
-  daysSincePublication,
-  normalizePerformanceSection,
-} from '../lib/videoPerformanceSection.js'
-
-const PERFORMANCE_VARIANT_LABELS = {
-  shorts: 'Shorts (со словом «Shorts» в заголовке)',
-  video: 'Видео (без слова «Shorts»)',
-}
-
-function performanceDraftFrom(variant, section) {
-  const normalized = normalizePerformanceSection(variant, section)
-  return {
-    publishedAt: normalized.publishedAt,
-    totalViews: String(normalized.totalViews),
-    typicalViews: String(normalized.typicalViews),
-    watchHours: String(normalized.watchHours),
-    typicalWatchHours: String(normalized.typicalWatchHours),
-    subscribersGained: String(normalized.subscribersGained),
-    revenueTenge: String(normalized.revenueTenge),
-    curveShape: normalized.curveShape,
-    realtimeViews48h: String(normalized.realtimeViews48h),
-    trafficSources: Array.from({ length: 5 }, (_, index) => ({
-      label: normalized.trafficSources[index]?.label || '',
-      percent: normalized.trafficSources[index] ? String(normalized.trafficSources[index].percent) : '',
-    })),
-  }
-}
-
-function PerformanceSectionEditor({ variant, section, onSave, onOpen }) {
-  const [draft, setDraft] = useState(() => performanceDraftFrom(variant, section))
-  const [savedFrom, setSavedFrom] = useState(section)
-  const [saving, setSaving] = useState(false)
-  const isShorts = variant === 'shorts'
-
-  if (savedFrom !== section) {
-    setSavedFrom(section)
-    setDraft(performanceDraftFrom(variant, section))
-  }
-
-  const setField = (key, value) => setDraft((current) => ({ ...current, [key]: value }))
-  const setSource = (index, key, value) => setDraft((current) => ({
-    ...current,
-    trafficSources: current.trafficSources.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
-  }))
-  const days = daysSincePublication(draft.publishedAt)
-
-  async function onSubmit(event) {
-    event.preventDefault()
-    setSaving(true)
-    try {
-      await onSave(variant, {
-        ...draft,
-        trafficSources: draft.trafficSources.filter((item) => item.label.trim()),
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <form className={s.performanceCard} onSubmit={onSubmit} data-testid={`performance-editor-${variant}`}>
-      <div className={s.performanceCardHead}>
-        <h3>{PERFORMANCE_VARIANT_LABELS[variant]}</h3>
-        <button type="button" className={s.linkBtn} onClick={() => onOpen(variant)}>Открыть раздел →</button>
-      </div>
-      <div className={s.performanceFields}>
-        <label className={s.field}>
-          <span>Дата публикации</span>
-          <input className={s.input} type="date" max={getAlmatyDateISO()} value={draft.publishedAt} onChange={(e) => setField('publishedAt', e.target.value)} />
-          <span className={s.fieldHint}>Дней с публикации: {days}. Подписи оси считаются от этого числа.</span>
-        </label>
-        <label className={s.field}>
-          <span>Просмотры</span>
-          <input className={s.input} type="number" min="0" step="1" value={draft.totalViews} onChange={(e) => setField('totalViews', e.target.value)} />
-        </label>
-        <label className={s.field}>
-          <span>Обычные просмотры на канале</span>
-          <input className={s.input} type="number" min="0" step="1" value={draft.typicalViews} onChange={(e) => setField('typicalViews', e.target.value)} />
-          <span className={s.fieldHint}>Серая линия и подпись «На … больше, чем обычно».</span>
-        </label>
-        {!isShorts ? (
-          <>
-            <label className={s.field}>
-              <span>Время просмотра (часы)</span>
-              <input className={s.input} type="number" min="0" step="0.1" value={draft.watchHours} onChange={(e) => setField('watchHours', e.target.value)} />
-            </label>
-            <label className={s.field}>
-              <span>Обычное время просмотра (часы)</span>
-              <input className={s.input} type="number" min="0" step="0.1" value={draft.typicalWatchHours} onChange={(e) => setField('typicalWatchHours', e.target.value)} />
-            </label>
-          </>
-        ) : null}
-        <label className={s.field}>
-          <span>Подписчики</span>
-          <input className={s.input} type="number" min="0" step="1" value={draft.subscribersGained} onChange={(e) => setField('subscribersGained', e.target.value)} />
-        </label>
-        <label className={s.field}>
-          <span>Расчетный доход (₸)</span>
-          <input className={s.input} type="number" min="0" step="0.01" value={draft.revenueTenge} onChange={(e) => setField('revenueTenge', e.target.value)} />
-        </label>
-        <label className={s.field}>
-          <span>Форма графика</span>
-          <select className={s.input} value={draft.curveShape} onChange={(e) => setField('curveShape', e.target.value)}>
-            {CURVE_SHAPES.map((shape) => <option key={shape.value} value={shape.value}>{shape.label}</option>)}
-          </select>
-        </label>
-      </div>
-      <div className={s.performanceSubhead}>Справа: «Текущая статистика»</div>
-      <div className={s.performanceFields}>
-        <label className={s.field}>
-          <span>Просмотры за последние 48 часов</span>
-          <input className={s.input} type="number" min="0" step="1" value={draft.realtimeViews48h} onChange={(e) => setField('realtimeViews48h', e.target.value)} />
-        </label>
-      </div>
-      <div className={s.sourceEditor}>
-        <div className={s.sourceEditorHead}><span>Источник трафика</span><span>%</span></div>
-        {draft.trafficSources.map((item, index) => (
-          <div className={s.sourceEditorRow} key={index}>
-            <input className={s.input} type="text" placeholder="Пусто — строка скрыта" value={item.label} onChange={(e) => setSource(index, 'label', e.target.value)} />
-            <input className={s.input} type="number" min="0" max="100" step="0.1" value={item.percent} onChange={(e) => setSource(index, 'percent', e.target.value)} />
-          </div>
-        ))}
-      </div>
-      <button type="submit" className={s.submitBtn} disabled={saving}>
-        {saving ? 'Сохранение…' : 'Сохранить раздел'}
-      </button>
-    </form>
-  )
-}
 
 const COUNTRIES = [
   { code: 'RU', label: 'Россия' },
@@ -208,10 +79,6 @@ const blankForm = () => ({
   autoRevenue: true,
 })
 
-function makeAdminId(prefix) {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-}
-
 function downloadJsonFile(filename, value) {
   const data = JSON.stringify(value, null, 2)
   const blob = new Blob([data], { type: 'application/json' })
@@ -233,6 +100,24 @@ function parseCount(value) {
 function parseRevenue(value) {
   if (value === '' || value == null) return undefined
   return Math.max(0, parseFloat(value) || 0)
+}
+
+/** Поля видео без обложки — их правки в режиме редактирования сохраняются сами. */
+function videoFieldsPayload(form) {
+  return {
+    title: form.title.trim() || 'Без названия',
+    date: form.date || todayISO(),
+    duration: form.duration || '0:10',
+    type: form.type || 'video',
+    profile: form.profile === 'auto' ? undefined : (form.profile || undefined),
+    views: form.autoViews ? undefined : parseCount(form.views),
+    revenue: form.autoRevenue ? undefined : parseRevenue(form.revenue),
+    likes: parseCount(form.likes),
+    dislikes: parseCount(form.dislikes),
+    averageViewPercentage: normalizeAverageViewPercentage(form.averageViewPercentage),
+    autoViews: form.autoViews,
+    autoRevenue: form.autoRevenue,
+  }
 }
 
 function revokeBlobUrl(value) {
@@ -274,17 +159,58 @@ function Screen11AdminContent() {
     if (!target || target.scrollLeft === source.scrollLeft) return
     target.scrollLeft = source.scrollLeft
   }
-  const dashboardComments = Array.isArray(editableChannel.dashboardComments)
-    ? editableChannel.dashboardComments
+  const dashboardComments = Array.isArray(channel.dashboardComments)
+    ? channel.dashboardComments
     : CHANNEL_DEFAULTS.dashboardComments
-  const recentSubscribers = Array.isArray(editableChannel.recentSubscribers)
-    ? editableChannel.recentSubscribers
+  const recentSubscribers = Array.isArray(channel.recentSubscribers)
+    ? channel.recentSubscribers
     : CHANNEL_DEFAULTS.recentSubscribers
   const subscriberDailyStats = Array.isArray(channel.subscriberDailyStats)
     ? channel.subscriberDailyStats
     : []
 
   const isEditing = form.id !== null
+  const editKey = isEditing ? JSON.stringify(videoFieldsPayload(form)) : null
+  const [savedEditKey, setSavedEditKey] = useState(null)
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState(false)
+  const editDirty = isEditing && editKey !== savedEditKey
+  const editStatus = editError ? 'error' : editSaving ? 'saving' : editDirty ? 'pending' : 'saved'
+  const pendingEditRef = useRef(null)
+
+  // Открытое видео сохраняется само через мгновение после правки.
+  useEffect(() => {
+    if (!editDirty) {
+      pendingEditRef.current = null
+      return undefined
+    }
+    const id = form.id
+    const key = editKey
+    pendingEditRef.current = { id, payload: JSON.parse(key) }
+    const timer = setTimeout(async () => {
+      pendingEditRef.current = null
+      setEditSaving(true)
+      try {
+        await update(id, JSON.parse(key))
+        setSavedEditKey(key)
+        setEditError(false)
+      } catch (error) {
+        setEditError(true)
+        showToast(error.message || 'Не удалось сохранить видео')
+      } finally {
+        setEditSaving(false)
+      }
+    }, 800)
+    return () => clearTimeout(timer)
+    // editKey описывает все сохраняемые поля
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editKey, editDirty])
+
+  useEffect(() => () => {
+    const pending = pendingEditRef.current
+    if (pending) update(pending.id, pending.payload).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const allSelected = videos.length > 0 && selected.size === videos.length
 
   const computed = useMemo(() => {
@@ -367,12 +293,16 @@ function Screen11AdminContent() {
     try {
       const prepared = await prepareStudioImage(file, 'cover')
       const previewUrl = URL.createObjectURL(prepared.file)
+      if (form.id !== null) {
+        // У открытого видео обложка сразу загружается и сохраняется.
+        await update(form.id, { coverFile: prepared.file, cover: previewUrl, coverPath: form.coverPath, removeCover: false })
+      }
       setForm((current) => {
         revokeBlobUrl(current.cover)
         return {
           ...current,
           cover: previewUrl,
-          coverFile: prepared.file,
+          coverFile: current.id !== null ? null : prepared.file,
           removeCover: false,
         }
       })
@@ -424,6 +354,10 @@ function Screen11AdminContent() {
   }
 
   function onCoverRemove() {
+    if (form.id !== null) {
+      update(form.id, { cover: null, coverPath: form.coverPath, coverFile: null, removeCover: true })
+        .catch((error) => showToast(error.message || 'Не удалось убрать обложку'))
+    }
     setForm((current) => {
       revokeBlobUrl(current.cover)
       return {
@@ -437,6 +371,7 @@ function Screen11AdminContent() {
 
   async function onSubmit(e) {
     e.preventDefault()
+    if (isEditing) return
     setSaving(true)
     const payload = {
       title: form.title.trim() || randomTitle(),
@@ -474,8 +409,9 @@ function Screen11AdminContent() {
   }
 
   function onEdit(video) {
+    flushEdit()
     revokeBlobUrl(form.cover)
-    setForm({
+    const nextForm = {
       id: video.id,
       title: video.title,
       cover: video.cover,
@@ -495,11 +431,22 @@ function Screen11AdminContent() {
       )),
       autoViews: video._autoStats?.views === true,
       autoRevenue: video._autoStats?.revenue === true,
-    })
+    }
+    setForm(nextForm)
+    setSavedEditKey(JSON.stringify(videoFieldsPayload(nextForm)))
+    setEditError(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  /** Несохранённая правка открытого видео уходит сразу, не дожидаясь паузы. */
+  function flushEdit() {
+    if (!editDirty) return
+    update(form.id, videoFieldsPayload(form))
+      .catch((error) => showToast(error.message || 'Не удалось сохранить видео'))
+  }
+
   function onCancelEdit() {
+    flushEdit()
     revokeBlobUrl(form.cover)
     setForm(blankForm())
   }
@@ -640,40 +587,18 @@ function Screen11AdminContent() {
     }
   }
 
-  function listSource(key, fallback) {
-    return Array.isArray(editableChannel[key]) ? editableChannel[key] : fallback
-  }
-
   function updateChannelDraft(patch) {
     setChannelDraft((current) => ({ ...(current || channel), ...patch }))
-  }
-
-  function updateListItem(key, fallback, index, patch) {
-    const source = listSource(key, fallback)
-    updateChannelDraft({ [key]: source.map((item, i) => (i === index ? { ...item, ...patch } : { ...item })) })
-  }
-
-  function addListItem(key, fallback, item) {
-    const source = listSource(key, fallback)
-    updateChannelDraft({ [key]: [...source.map((entry) => ({ ...entry })), item] })
-  }
-
-  function removeListItem(key, fallback, index) {
-    const source = listSource(key, fallback)
-    updateChannelDraft({ [key]: source.filter((_, i) => i !== index).map((item) => ({ ...item })) })
-  }
-
-  function onResetDashboardBlocks() {
-    updateChannelDraft({
-      dashboardComments: CHANNEL_DEFAULTS.dashboardComments.map((item) => ({ ...item })),
-      recentSubscribers: CHANNEL_DEFAULTS.recentSubscribers.map((item) => ({ ...item })),
-    })
   }
 
   async function onSaveChannel() {
     setSaving(true)
     try {
-      await updateChannel(editableChannel)
+      // Блоки главной сохраняются отдельно и автоматически — здесь только канал.
+      const channelFields = { ...editableChannel }
+      delete channelFields.dashboardComments
+      delete channelFields.recentSubscribers
+      await updateChannel(channelFields)
       revokeBlobUrl(editableChannel.avatar)
       setChannelDraft(null)
       showToast('Канал и блоки главной сохранены')
@@ -693,23 +618,20 @@ function Screen11AdminContent() {
     }
   }
 
-  async function onSavePerformanceSection(variant, draft) {
-    try {
-      await updatePerformanceSection(variant, draft)
-      showToast(variant === 'shorts' ? 'Раздел Shorts сохранён' : 'Раздел видео сохранён')
-    } catch (error) {
-      showToast(error.message || 'Не удалось сохранить раздел')
+  /* Автосохранение: успех видно по индикатору «Сохранено», ошибку — тостом. */
+  function autoSaved(action, failure) {
+    return async (...args) => {
+      try {
+        await action(...args)
+      } catch (error) {
+        showToast(error.message || failure)
+        throw error
+      }
     }
   }
-
-  async function onSaveTypicalOverride(videoId, values) {
-    try {
-      await updateTypicalOverride(videoId, values)
-      showToast('Подписи «чем обычно» сохранены')
-    } catch (error) {
-      showToast(error.message || 'Не удалось сохранить подписи')
-    }
-  }
+  const onSavePerformanceSection = autoSaved(updatePerformanceSection, 'Не удалось сохранить раздел')
+  const onSaveTypicalOverride = autoSaved(updateTypicalOverride, 'Не удалось сохранить подписи')
+  const onSaveDashboardBlocks = autoSaved(updateChannel, 'Не удалось сохранить блоки главной')
 
   async function onSitePasswordChange(event) {
     event.preventDefault()
@@ -801,28 +723,22 @@ function Screen11AdminContent() {
         <section className={s.securityPanel} data-testid="performance-sections-panel">
           <div className={s.panelHead}>
             <div>
-              <h2>Разделы «С момента публикации»</h2>
-              <span>Страница аналитики одного видео. Числа не зависят от периода 28/90 дней в аналитике канала; кривая графика строится из них.</span>
+              <h2>Разделы Shorts и Видео</h2>
+              <span>Так выглядит страница. Нажимайте на цифры, стрелки и формы графика — всё сохраняется само.</span>
             </div>
           </div>
-          <div className={s.performanceGrid}>
-            {PERFORMANCE_VARIANTS.map((variant) => (
-              <PerformanceSectionEditor
-                key={variant}
-                variant={variant}
-                section={channel?.performanceSections?.[variant]}
-                onSave={onSavePerformanceSection}
-                onOpen={(target) => go(`video-analytics/${target}`)}
-              />
-            ))}
-          </div>
+          <PerformanceSectionVisual
+            sections={channel?.performanceSections}
+            onSave={onSavePerformanceSection}
+            onOpen={(target) => go(`video-analytics/${target}`)}
+          />
         </section>
 
         <section className={s.securityPanel} data-testid="typical-diff-panel">
           <div className={s.panelHead}>
             <div>
               <h2>Аналитика видео: «больше / меньше, чем обычно»</h2>
-              <span>Выберите видео, нажмите стрелку и напишите цифру — карточка покажет, как будет на странице.</span>
+              <span>Выберите видео слева и меняйте подписи прямо на карточках.</span>
             </div>
           </div>
           <TypicalDiffEditor
@@ -838,11 +754,12 @@ function Screen11AdminContent() {
             <div className={s.panelHead}>
               <div>
                 <h2>{isEditing ? 'Редактировать видео' : 'Новое видео'}</h2>
-                <span>{isEditing ? 'Изменения сохранятся в текущей записи' : 'Главная форма добавления'}</span>
+                <span>{isEditing ? 'Изменения сохраняются автоматически' : 'Заполните и нажмите «Добавить видео»'}</span>
               </div>
               <div className={s.formActions}>
+                {isEditing ? <SaveStatus status={editStatus} /> : null}
                 <button type="button" className={s.ghostBtn} onClick={onRandomFill}>Автозаполнить</button>
-                {isEditing ? <button type="button" className={s.ghostBtn} onClick={onCancelEdit}>Отмена</button> : null}
+                {isEditing ? <button type="button" className={s.ghostBtn} onClick={onCancelEdit}>Готово</button> : null}
               </div>
             </div>
 
@@ -949,9 +866,11 @@ function Screen11AdminContent() {
                   </div>
                 ) : null}
 
-                <button type="submit" className={s.submitBtn} disabled={saving || processingImage !== null}>
-                  {isEditing ? 'Сохранить видео' : 'Добавить видео'}
-                </button>
+                {isEditing ? null : (
+                  <button type="submit" className={s.submitBtn} disabled={saving || processingImage !== null}>
+                    Добавить видео
+                  </button>
+                )}
               </div>
             </div>
           </form>
@@ -1139,56 +1058,21 @@ function Screen11AdminContent() {
           )}
         </section>
 
-        <details className={s.extraSection}>
-          <summary>Комментарии и новые подписчики — открыть настройки</summary>
-          <div className={s.extraGrid}>
-            <section className={s.inlineEditor}>
-              <div className={s.inlineEditorHead}>
-                <h3>Комментарии</h3>
-                <button type="button" className={s.ghostBtn} onClick={() => addListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, {
-                  id: makeAdminId('comment'),
-                  author: '@new.comment',
-                  age: 'только что',
-                  text: '',
-                  avatarColor: '#525252',
-                })}>Добавить</button>
-              </div>
-              {dashboardComments.map((comment, index) => (
-                <div className={s.extraRow} key={comment.id || index}>
-                  <input className={s.input} value={comment.author || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { author: e.target.value })} />
-                  <input className={s.input} value={comment.age || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { age: e.target.value })} />
-                  <input className={s.input} type="color" value={comment.avatarColor || '#525252'} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { avatarColor: e.target.value })} />
-                  <textarea className={s.input} value={comment.text || ''} onChange={(e) => updateListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index, { text: e.target.value })} />
-                  <button type="button" className={s.deleteBtn} onClick={() => removeListItem('dashboardComments', CHANNEL_DEFAULTS.dashboardComments, index)}>Удалить</button>
-                </div>
-              ))}
-            </section>
-
-            <section className={s.inlineEditor}>
-              <div className={s.inlineEditorHead}>
-                <h3>Новые подписчики</h3>
-                <button type="button" className={s.ghostBtn} onClick={() => addListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, {
-                  id: makeAdminId('subscriber'),
-                  name: 'Новый подписчик',
-                  count: '0 подписчиков',
-                  avatarColor: '#525252',
-                })}>Добавить</button>
-              </div>
-              {recentSubscribers.map((subscriber, index) => (
-                <div className={s.extraRowCompact} key={subscriber.id || index}>
-                  <input className={s.input} value={subscriber.name || ''} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { name: e.target.value })} />
-                  <input className={s.input} value={subscriber.count || ''} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { count: e.target.value })} />
-                  <input className={s.input} type="color" value={subscriber.avatarColor || '#525252'} onChange={(e) => updateListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index, { avatarColor: e.target.value })} />
-                  <button type="button" className={s.deleteBtn} onClick={() => removeListItem('recentSubscribers', CHANNEL_DEFAULTS.recentSubscribers, index)}>Удалить</button>
-                </div>
-              ))}
-            </section>
+        <section className={s.securityPanel} data-testid="dashboard-blocks-panel">
+          <div className={s.panelHead}>
+            <div>
+              <h2>Комментарии и новые подписчики</h2>
+              <span>Нажмите на текст, имя или кружок-аватар, чтобы изменить. Сохраняется автоматически.</span>
+            </div>
           </div>
-          <div className={s.dashboardActions}>
-            <button type="button" className={s.ghostBtn} onClick={onResetDashboardBlocks}>Заполнить блоки по умолчанию</button>
-            <button type="button" className={s.submitBtn} onClick={onSaveChannel} disabled={saving}>Сохранить блоки</button>
-          </div>
-        </details>
+          <DashboardBlocksVisual
+            comments={dashboardComments}
+            subscribers={recentSubscribers}
+            defaults={{ comments: CHANNEL_DEFAULTS.dashboardComments, subscribers: CHANNEL_DEFAULTS.recentSubscribers }}
+            onSave={onSaveDashboardBlocks}
+            onOpen={() => go('dashboard')}
+          />
+        </section>
 
         <input type="file" accept="application/json,.json" ref={fileInputRef} className={s.inlineFile} onChange={onImportFile} />
         <input type="file" accept="application/json,.json" ref={projectFileInputRef} className={s.inlineFile} onChange={onImportProjectFile} />
