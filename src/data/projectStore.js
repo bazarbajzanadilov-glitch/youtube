@@ -157,6 +157,7 @@ export async function loadRemoteProject({ force = false, silent = false } = {}) 
             performanceSections: normalizePerformanceSections(
               project.channel.performanceSections || project.performanceSections,
             ),
+            kpiOverrides: normalizeKpiOverrides(project.channel.kpiOverrides || project.kpiOverrides),
             typicalOverrides: normalizeTypicalOverrides(
               project.channel.typicalOverrides || project.typicalOverrides,
             ),
@@ -320,6 +321,20 @@ export function normalizeTypicalOverrides(raw) {
     viewsDiff: numberOrNull(item?.viewsDiff) == null ? null : Math.round(Number(item.viewsDiff)),
     watchHoursDiff: numberOrNull(item?.watchHoursDiff) == null ? null : Math.round(Number(item.watchHoursDiff) * 10) / 10,
   }]))
+}
+
+export function normalizeKpiOverrides(raw) {
+  const source = raw && typeof raw === 'object' ? raw : {}
+  return Object.fromEntries(['views', 'watch', 'subscribers'].map((metric) => {
+    const value = numberOrNull(source[metric])
+    return [metric, value == null ? null : Math.round(value * 10) / 10]
+  }))
+}
+
+export async function saveRemoteKpiOverrides(values) {
+  const normalized = normalizeKpiOverrides(values)
+  await mutate(() => adminRepository.saveKpiOverrides(normalized))
+  return normalized
 }
 
 export async function saveRemoteTypicalOverride(videoId, values) {

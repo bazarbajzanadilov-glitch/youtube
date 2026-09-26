@@ -67,6 +67,7 @@ function isMissingRelation(error) {
 const PERFORMANCE_SECTIONS_TABLE = 'video_performance_sections'
 
 const TYPICAL_OVERRIDES_TABLE = 'video_typical_overrides'
+const KPI_OVERRIDES_TABLE = 'channel_kpi_overrides'
 
 /* Таблицы разделов «Аналитика видео» появились позже остальной схемы: пока
    миграция не применена, сайт работает на дефолтах, а не падает целиком. */
@@ -146,6 +147,8 @@ async function loadRevision(supabase) {
       .then((entry) => (Array.isArray(entry) ? { rows: [], count: 0 } : entry)),
     tolerantTable(TYPICAL_OVERRIDES_TABLE, () => latestRows(supabase, TYPICAL_OVERRIDES_TABLE))
       .then((entry) => (Array.isArray(entry) ? { rows: [], count: 0 } : entry)),
+    tolerantTable(KPI_OVERRIDES_TABLE, () => latestRows(supabase, KPI_OVERRIDES_TABLE))
+      .then((entry) => (Array.isArray(entry) ? { rows: [], count: 0 } : entry)),
   ])
   const names = [
     'channel',
@@ -156,6 +159,7 @@ async function loadRevision(supabase) {
     'videoDailyStats',
     'performanceSections',
     'typicalOverrides',
+    'kpiOverrides',
   ]
   let latest = ''
   const counts = []
@@ -195,6 +199,7 @@ export default async function handler(request, response) {
       videoDailyRows,
       performanceSectionRows,
       typicalOverrideRows,
+      kpiOverrideRows,
     ] = await Promise.all([
       supabase.from('channels').select('*').eq('id', STUDIO_CHANNEL_ID).single(),
       fetchAllPages(
@@ -257,6 +262,14 @@ export default async function handler(request, response) {
           .order('video_id', { ascending: true }),
         TYPICAL_OVERRIDES_TABLE,
       )),
+      tolerantTable(KPI_OVERRIDES_TABLE, () => fetchAllPages(
+        () => supabase
+          .from(KPI_OVERRIDES_TABLE)
+          .select('metric, delta_percent, updated_at')
+          .eq('channel_id', STUDIO_CHANNEL_ID)
+          .order('metric', { ascending: true }),
+        KPI_OVERRIDES_TABLE,
+      )),
     ])
 
     const channelRow = requireData(channelResult, 'Канал')
@@ -316,6 +329,10 @@ export default async function handler(request, response) {
       },
     ]))
 
+    const kpiOverrides = Object.fromEntries(kpiOverrideRows
+      .map((item) => [String(item.metric), nullableNumber(item.delta_percent)])
+      .filter(([, value]) => value != null))
+
     const [avatar, videos] = await Promise.all([
       mediaUrl(supabase, channelRow.avatar_path),
       Promise.all(videoRows.map(async (item) => {
@@ -361,6 +378,7 @@ export default async function handler(request, response) {
       videoDailyStats,
       performanceSections,
       typicalOverrides,
+      kpiOverrides,
     }
     const revision = buildRevision([
       ['channel', [channelRow]],
@@ -371,6 +389,7 @@ export default async function handler(request, response) {
       ['videoDailyStats', videoDailyRows],
       ['performanceSections', performanceSectionRows],
       ['typicalOverrides', typicalOverrideRows],
+      ['kpiOverrides', kpiOverrideRows],
     ])
 
     response.setHeader('Cache-Control', 'private, no-store')
@@ -384,6 +403,7 @@ export default async function handler(request, response) {
       videoDailyStats,
       performanceSections,
       typicalOverrides,
+      kpiOverrides,
     })
   } catch (error) {
     console.error('site-data', error?.message || error)

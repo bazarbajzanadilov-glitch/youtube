@@ -355,6 +355,29 @@ export async function savePerformanceSection(section) {
   )
 }
 
+/** Проценты аналитики канала: число — зафиксировать, null — снова авто. */
+export async function saveKpiOverrides(values = {}) {
+  const supabase = getSupabaseClient()
+  for (const metric of ['views', 'watch', 'subscribers']) {
+    const percent = values[metric]
+    if (percent == null) {
+      requireNoError(
+        await supabase.from('channel_kpi_overrides').delete().eq('metric', metric),
+        'Не удалось сбросить процент',
+      )
+    } else {
+      requireNoError(
+        await supabase.from('channel_kpi_overrides').upsert({
+          metric,
+          channel_id: STUDIO_CHANNEL_ID,
+          delta_percent: percent,
+        }, { onConflict: 'metric' }),
+        'Не удалось сохранить процент',
+      )
+    }
+  }
+}
+
 /** Разница с «обычными показателями» ролика; оба поля пусты — строка удаляется (снова авто). */
 export async function saveTypicalOverride(videoId, { viewsDiff = null, watchHoursDiff = null } = {}) {
   const supabase = getSupabaseClient()

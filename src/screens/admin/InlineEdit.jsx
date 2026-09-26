@@ -117,3 +117,32 @@ export function DiffControl({ diff, onChange, format, decimals = 0, maxUp, label
     </span>
   )
 }
+
+/**
+ * «На 999 % больше, чем за предыдущие 28 дней»: стрелка и слово переключают
+ * «больше/меньше», цифра процента меняется по клику. percent — со знаком.
+ */
+export function PercentControl({ percent, onChange, label, periodLabel = 'за предыдущие 28 дней' }) {
+  const up = percent >= 0
+  const amount = Math.abs(percent)
+  const toggle = () => onChange(up ? -Math.min(amount, 100) : amount)
+  return (
+    <span className={s.diff}>
+      <button type="button" className={s.diffArrow} onClick={toggle} aria-label={up ? 'Сделать «меньше»' : 'Сделать «больше»'}>
+        {up ? <KpiUpCircleIcon size={18} color="#2ba640" /> : <KpiDownCircleIcon size={18} color="#909090" />}
+      </button>
+      <span>
+        На{' '}
+        <InlineNumber
+          value={amount}
+          decimals={0}
+          label={label}
+          max={up ? undefined : 100}
+          format={(value) => `${Math.round(value).toLocaleString('ru-RU')} %`}
+          onChange={(next) => onChange(up ? next : -next)}
+        />{' '}
+        <button type="button" className={s.diffWord} onClick={toggle}>{up ? 'больше' : 'меньше'}</button>, чем {periodLabel}
+      </span>
+    </span>
+  )
+}

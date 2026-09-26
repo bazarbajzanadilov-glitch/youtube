@@ -198,7 +198,7 @@ export default function OverviewTab({ data, onOpenAdmin, onOpenVideoAnalytics })
             />
             <MetricKpiCell
               label="Время просмотра (часы)"
-              value={formatCompactOneDecimal(overview.kpis.watchTime.value)}
+              value={`${overview.kpis.watchTime.value > 0 ? '+' : ''}${formatCompactOneDecimal(overview.kpis.watchTime.value)}`}
               note={metricPerformanceComparison(overview.kpis.watchTime, range, formatHours)}
               description={KPI_DESCRIPTIONS.watchTime}
               trend={kpiTrend(overview.kpis.watchTime.delta)}

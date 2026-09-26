@@ -191,6 +191,8 @@ export function metricPerformanceComparison(kpi, range, format = formatCompactNu
   if (kpi?.delta == null || Number.isNaN(Number(kpi.delta))) return ''
 
   const delta = Number(kpi.delta)
+  // Процент, заданный в админке, всегда показывается как «На N % больше/меньше».
+  if (kpi.fixedPercent) return previousPeriodComparison(kpi, range)
   if (delta > 0.1) return previousPeriodComparison(kpi, range)
   if (delta < -0.1) {
     const previousValue = Number(kpi?.previousValue)

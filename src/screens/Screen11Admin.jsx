@@ -15,6 +15,7 @@ import AdminGate from '../components/auth/AdminGate.jsx'
 import TypicalDiffEditor from './admin/TypicalDiffEditor.jsx'
 import PerformanceSectionVisual from './admin/PerformanceSectionVisual.jsx'
 import DashboardBlocksVisual from './admin/DashboardBlocksVisual.jsx'
+import ChannelKpiVisual from './admin/ChannelKpiVisual.jsx'
 import { SaveStatus } from './admin/InlineEdit.jsx'
 import {
   signOutAdmin,
@@ -136,6 +137,7 @@ function Screen11AdminContent() {
     replace: replaceProject,
     updatePerformanceSection,
     updateTypicalOverride,
+    updateKpiOverrides,
   } = useChannel()
   const [form, setForm] = useState(blankForm())
   const [channelDraft, setChannelDraft] = useState(null)
@@ -632,6 +634,7 @@ function Screen11AdminContent() {
   const onSavePerformanceSection = autoSaved(updatePerformanceSection, 'Не удалось сохранить раздел')
   const onSaveTypicalOverride = autoSaved(updateTypicalOverride, 'Не удалось сохранить подписи')
   const onSaveDashboardBlocks = autoSaved(updateChannel, 'Не удалось сохранить блоки главной')
+  const onSaveKpiOverrides = autoSaved(updateKpiOverrides, 'Не удалось сохранить проценты')
 
   async function onSitePasswordChange(event) {
     event.preventDefault()
@@ -718,6 +721,21 @@ function Screen11AdminContent() {
               {savingSitePassword ? 'Сохранение…' : 'Сменить пароль сайта'}
             </button>
           </form>
+        </section>
+
+        <section className={s.securityPanel} data-testid="channel-kpi-panel">
+          <div className={s.panelHead}>
+            <div>
+              <h2>Аналитика канала: проценты</h2>
+              <span>«На 999 % больше, чем за предыдущие 28 дней» под карточками. Зафиксируйте любое число.</span>
+            </div>
+          </div>
+          <ChannelKpiVisual
+            videos={videos}
+            channel={channel}
+            onSave={onSaveKpiOverrides}
+            onOpen={() => go('analytics')}
+          />
         </section>
 
         <section className={s.securityPanel} data-testid="performance-sections-panel">

@@ -43,4 +43,5 @@ export const CHANNEL_DEFAULTS = {
   subscriberDailyStats: [],
   performanceSections: DEFAULT_PERFORMANCE_SECTIONS,
   typicalOverrides: {},
+  kpiOverrides: { views: null, watch: null, subscribers: null },
 }

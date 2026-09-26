@@ -1256,6 +1256,40 @@ function computeLifetime(videos, channel, asOf, cache) {
 
 /* === main builder === */
 
+export const KPI_OVERRIDE_METRICS = ['views', 'watch', 'subscribers']
+
+/* Проценты «На 999 % больше, чем за предыдущие 28 дней», заданные в админке,
+   заменяют расчёт во всех вкладках аналитики канала и не меняются со временем. */
+function withKpiOverride(kpi, percent) {
+  if (!kpi || percent == null || !Number.isFinite(Number(percent))) return kpi
+  const delta = Number(percent)
+  const denominator = 1 + delta / 100
+  return {
+    ...kpi,
+    delta,
+    fixedPercent: true,
+    previousValue: denominator > 0 ? (Number(kpi.value) || 0) / denominator : kpi.previousValue,
+  }
+}
+
+function applyKpiOverrides(result, overrides) {
+  if (!overrides || typeof overrides !== 'object') return result
+  const { views, watch, subscribers } = overrides
+  if (views == null && watch == null && subscribers == null) return result
+  const patch = (kpis, map) => (kpis ? {
+    ...kpis,
+    ...Object.fromEntries(Object.entries(map)
+      .filter(([key]) => kpis[key])
+      .map(([key, percent]) => [key, withKpiOverride(kpis[key], percent)])),
+  } : kpis)
+  return {
+    ...result,
+    overview: { ...result.overview, kpis: patch(result.overview.kpis, { views, watchTime: watch, subscribers }) },
+    content: { ...result.content, kpis: patch(result.content.kpis, { views, watchTime: watch, subscribers }) },
+    audience: { ...result.audience, kpis: patch(result.audience.kpis, { subscribers }) },
+  }
+}
+
 /* Без монетизации дохода нет ни в одном графике и карточке, как в YouTube. */
 function withoutRevenueWhenDisabled(videos, channel) {
   if (channel?.monetizationEnabled !== false) return { videos, channel }
@@ -1775,7 +1809,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     contributionCache,
   )
 
-  return {
+  return applyKpiOverrides({
     range,
     channel,
     lifetime,
@@ -1822,7 +1856,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     },
     realtime,
     monetization,
-  }
+  }, channel.kpiOverrides)
 }
 
 function buildFormatShares(videos) {
