@@ -26,7 +26,7 @@ import MetricKpiCell from './MetricKpiCell.jsx'
 const AUDIENCE_CHART_COLOR = ANALYTICS_PURPLE
 
 export default function AudienceTab({ data, onOpenAdmin }) {
-  const { audience, overview, content, range } = data
+  const { audience, overview, content, range, channel } = data
   const [metric, setMetric] = useState('viewers')
   const [audienceSegment, setAudienceSegment] = useState(0)
   const monthlyViewers = Math.max(0, Math.round(audience.monthlyViewers || 0))
@@ -70,9 +70,12 @@ export default function AudienceTab({ data, onOpenAdmin }) {
     { label: 'Постоянные', share: segments[2].share },
   ]
   const selectedAudienceShare = audienceTabs[audienceSegment]?.share || 0
+  // Доля подписчиков среди зрителей: подписчики канала против уникальных зрителей за период.
+  const viewersCount = Math.max(1, Number(audience.kpis?.uniqueViewers?.value) || 0)
+  const subscribedShare = Math.min(0.6, Math.max(0.001, (Number(channel?.subscriberCount) || 0) / (viewersCount + (Number(channel?.subscriberCount) || 0))))
   const subscriptionStats = [
-    { label: 'Без подписки', share: 0.999, color: AUDIENCE_CHART_COLOR },
-    { label: 'С подпиской', share: 0.001, color: AUDIENCE_CHART_COLOR },
+    { label: 'Без подписки', share: 1 - subscribedShare, color: AUDIENCE_CHART_COLOR },
+    { label: 'С подпиской', share: subscribedShare, color: AUDIENCE_CHART_COLOR },
   ]
   const ageRows = audience.ageGender.ages.map((row) => ({ label: row.label, share: row.share, color: AUDIENCE_CHART_COLOR }))
   const genderRows = audience.ageGender.genders.map((row) => ({ label: row.label, share: row.share, color: AUDIENCE_CHART_COLOR }))

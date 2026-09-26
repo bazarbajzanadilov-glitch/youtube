@@ -82,8 +82,8 @@ try {
   assert.equal(store.getChannelSnapshot().performanceSections.shorts.publishedAt, '2025-01-01')
   assert.equal(
     store.getChannelSnapshot().performanceSections.video.totalViews,
-    5_942_494,
-    'отсутствующий вариант берётся из дефолтов',
+    0,
+    'отсутствующий вариант — нули, без выдуманных чисел',
   )
   assert.equal(typeof intervalCallback, 'function')
 

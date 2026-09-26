@@ -17,6 +17,8 @@ import DashboardBlocksVisual from './admin/DashboardBlocksVisual.jsx'
 import ChannelKpiVisual from './admin/ChannelKpiVisual.jsx'
 import { SaveStatus } from './admin/InlineEdit.jsx'
 import { DownloadIcon, LogoutIcon, TrashIcon, UploadFileIcon } from './admin/AdminIcons.jsx'
+import ChannelCardVisual from './admin/ChannelCardVisual.jsx'
+import VideoLibraryVisual from './admin/VideoLibraryVisual.jsx'
 import {
   signOutAdmin,
   updateSitePassword,
@@ -29,20 +31,10 @@ import {
   STUDIO_IMAGE_ACCEPT,
 } from '../lib/studioImage.js'
 import { getAlmatyDateISO } from '../lib/almatyDate.js'
-import ChannelAvatar from '../components/ChannelAvatar.jsx'
 import {
   DEFAULT_AVERAGE_VIEW_PERCENTAGE,
   normalizeAverageViewPercentage,
 } from '../lib/videoMetrics.js'
-
-const COUNTRIES = [
-  { code: 'RU', label: 'Россия' },
-  { code: 'US', label: 'США' },
-  { code: 'DE', label: 'Германия' },
-  { code: 'BR', label: 'Бразилия' },
-  { code: 'IN', label: 'Индия' },
-  { code: 'KZ', label: 'Казахстан' },
-]
 
 const CONTENT_TYPES = [
   { value: 'video', label: 'Видео' },
@@ -152,15 +144,9 @@ function Screen11AdminContent() {
   const [confirmChecked, setConfirmChecked] = useState(false)
   const fileInputRef = useRef(null)
   const projectFileInputRef = useRef(null)
-  const videoTableScrollRef = useRef(null)
-  const videoTableTopScrollRef = useRef(null)
 
   const editableChannel = channelDraft || channel
 
-  function syncVideoTableScroll(source, target) {
-    if (!target || target.scrollLeft === source.scrollLeft) return
-    target.scrollLeft = source.scrollLeft
-  }
   const dashboardComments = Array.isArray(channel.dashboardComments)
     ? channel.dashboardComments
     : CHANNEL_DEFAULTS.dashboardComments
@@ -894,62 +880,19 @@ function Screen11AdminContent() {
             <div className={s.panelHead}>
               <div>
                 <h2>Канал</h2>
-                <span>Изменения применяются после сохранения</span>
-              </div>
-              <button type="button" className={s.ghostBtn} onClick={() => setChannelDraft({
-                ...CHANNEL_DEFAULTS,
-                dashboardComments: CHANNEL_DEFAULTS.dashboardComments.map((item) => ({ ...item })),
-                recentSubscribers: CHANNEL_DEFAULTS.recentSubscribers.map((item) => ({ ...item })),
-              })}>Заполнить по умолчанию</button>
-            </div>
-            <div className={s.avatarRow}>
-              <ChannelAvatar className={s.avatarPreview} src={editableChannel.avatar} />
-              <div className={s.avatarActions}>
-                <label className={s.uploadBtn}>
-                  {processingImage === 'avatar'
-                    ? 'Сжимаем…'
-                    : editableChannel.avatar
-                      ? 'Заменить'
-                      : 'Загрузить'}
-                  <input
-                    type="file"
-                    accept={STUDIO_IMAGE_ACCEPT}
-                    onChange={onAvatarChange}
-                    disabled={processingImage !== null}
-                  />
-                </label>
-                {editableChannel.avatar ? <button type="button" className={s.linkBtn} onClick={onAvatarRemove}>Удалить</button> : null}
-                <div className={s.mediaHint}>
-                  До {formatImageBytes(MAX_SOURCE_IMAGE_BYTES)}, хранится как WebP до {formatImageBytes(MAX_STORED_IMAGE_BYTES)}
-                </div>
+                <span>Нажмите на название, цифру или аватар</span>
               </div>
             </div>
-            <div className={s.channelFields}>
-              <label className={s.field}>
-                <span>Название канала</span>
-                <input className={s.input} value={editableChannel.channelName} onChange={(e) => updateChannelDraft({ channelName: e.target.value })} />
-              </label>
-              <label className={s.field}>
-                <span>Подписчики</span>
-                <input className={s.input} type="number" min="0" value={editableChannel.subscriberCount} onChange={(e) => updateChannelDraft({ subscriberCount: parseCount(e.target.value) || 0 })} />
-              </label>
-              <label className={s.field}>
-                <span>Страна</span>
-                <select className={s.input} value={editableChannel.country} onChange={(e) => updateChannelDraft({ country: e.target.value })}>
-                  {COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.label}</option>)}
-                </select>
-              </label>
-              <label className={s.field}>
-                <span>Дата создания</span>
-                <input className={s.input} type="date" max={todayISO()} value={editableChannel.joinDate} onChange={(e) => updateChannelDraft({ joinDate: e.target.value })} />
-              </label>
-              <label className={s.toggleRow}>
-                <input type="checkbox" checked={!!editableChannel.monetizationEnabled} onChange={(e) => updateChannelDraft({ monetizationEnabled: e.target.checked })} />
-                <span className={s.toggleSwitch}><span /></span>
-                <strong>Монетизация</strong>
-              </label>
-              <button type="button" className={s.submitBtn} onClick={onSaveChannel} disabled={saving || processingImage !== null}>Сохранить канал</button>
-            </div>
+            <ChannelCardVisual
+              channel={editableChannel}
+              dirty={channelDraft !== null}
+              saving={saving}
+              processing={processingImage !== null}
+              onChange={updateChannelDraft}
+              onAvatarChange={onAvatarChange}
+              onAvatarRemove={onAvatarRemove}
+              onSave={onSaveChannel}
+            />
           </aside>
         </div>
 
@@ -957,7 +900,7 @@ function Screen11AdminContent() {
           <div className={s.libraryHead}>
             <div>
               <h2>Видео ({videos.length})</h2>
-              <span className={s.sectionHint}>Укажите дату в строке видео — на этот день автоматически появится значок публикации на графиках аналитики.</span>
+              <span className={s.sectionHint}>Нажмите на название, дату, формат или цифру. Карандаш справа — все настройки и обложка.</span>
             </div>
             <div className={s.toolbar}>
               <button type="button" className={s.actionDangerBtn} onClick={onDeleteSelected} disabled={selected.size === 0}>
@@ -977,105 +920,16 @@ function Screen11AdminContent() {
           {videos.length === 0 ? (
             <div className={s.empty}>Видео пока нет.</div>
           ) : (
-            <>
-              <div
-                ref={videoTableTopScrollRef}
-                className={s.tableScrollTop}
-                aria-label="Прокрутка таблицы видео"
-                onScroll={(event) => syncVideoTableScroll(event.currentTarget, videoTableScrollRef.current)}
-              >
-                <div className={s.tableScrollTrack} />
-              </div>
-              <div
-                ref={videoTableScrollRef}
-                className={s.tableWrap}
-                onScroll={(event) => syncVideoTableScroll(event.currentTarget, videoTableTopScrollRef.current)}
-              >
-                <table className={s.table}>
-                <colgroup>
-                  <col className={s.colCheck} />
-                  <col className={s.colVideo} />
-                  <col className={s.colDate} />
-                  <col className={s.colType} />
-                  <col className={s.colDuration} />
-                  <col className={s.colAverage} />
-                  <col className={s.colViews} />
-                  <col className={s.colRevenue} />
-                  <col className={s.colLikes} />
-                  <col className={s.colActions} />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th className={s.checkCol}><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Выбрать все" /></th>
-                    <th>Видео</th>
-                    <th>Дата</th>
-                    <th>Тип</th>
-                    <th>Длительность</th>
-                    <th>Средний %</th>
-                    <th>Просмотры</th>
-                    <th>Доход</th>
-                    <th>Лайки</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {videos.map((video) => (
-                    <tr key={video.id}>
-                      <td><input type="checkbox" checked={selected.has(video.id)} onChange={() => toggleOne(video.id)} aria-label={`Выбрать ${video.title}`} /></td>
-                      <td>
-                        <div className={s.videoCell}>
-                          <div className={s.thumb}>
-                            {video.cover ? <img src={video.cover} alt="" /> : <div className={s.thumbBlank} />}
-                          </div>
-                          <div className={s.inlineTitle}>
-                            <input key={String(video.title)} defaultValue={video.title} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { title: e.target.value })} />
-                            <span>{video.id}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td><input className={s.tableInput} type="date" max={todayISO()} value={video.date} onChange={(e) => updateVideoField(video, { date: e.target.value })} /></td>
-                      <td>
-                        <select className={s.tableInput} value={video.type || 'video'} onChange={(e) => updateVideoField(video, { type: e.target.value })}>
-                          {CONTENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-                        </select>
-                      </td>
-                      <td><input className={s.tableInput} key={String(video.duration)} defaultValue={video.duration} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { duration: e.target.value })} /></td>
-                      <td>
-                        <input
-                          className={s.tableInput}
-                          aria-label="Средний процент просмотра"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          key={String(video.averageViewPercentage)}
-                          defaultValue={normalizeAverageViewPercentage(
-                            video.averageViewPercentage,
-                          )}
-                          onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, {
-                            averageViewPercentage: normalizeAverageViewPercentage(e.target.value),
-                          })}
-                        />
-                      </td>
-                      <td><input className={s.tableInput} type="number" min="0" key={String(video.views)} defaultValue={video.views} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { views: parseCount(e.target.value) ?? 0 })} /></td>
-                      <td><input className={s.tableInput} type="number" min="0" step="0.01" key={String(video.revenue)} defaultValue={video.revenue} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { revenue: parseRevenue(e.target.value) ?? 0 })} /></td>
-                      <td className={s.metricInputs}>
-                        <input className={s.tableInput} aria-label="Лайки" type="number" min="0" key={String(video.likes)} defaultValue={video.likes} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { likes: parseCount(e.target.value) ?? 0 })} />
-                        <input className={s.tableInput} aria-label="Дизлайки" type="number" min="0" key={String(video.dislikes)} defaultValue={video.dislikes} onBlur={(e) => e.target.value !== e.target.defaultValue && updateVideoField(video, { dislikes: parseCount(e.target.value) ?? 0 })} />
-                        <span>{formatLikePct(video.likePct)}</span>
-                      </td>
-                      <td className={s.actionCell}>
-                        <div className={s.actionButtons}>
-                          <button type="button" className={s.tableBtn} onClick={() => onEdit(video)}>Открыть</button>
-                          <button type="button" className={s.deleteBtn} onClick={() => onDelete(video.id)}>Удалить</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                </table>
-              </div>
-            </>
+            <VideoLibraryVisual
+              videos={videos}
+              selected={selected}
+              allSelected={allSelected}
+              onToggle={toggleOne}
+              onToggleAll={toggleAll}
+              onUpdate={updateVideoField}
+              onOpen={onEdit}
+              onDelete={onDelete}
+            />
           )}
         </section>
 
@@ -1089,7 +943,6 @@ function Screen11AdminContent() {
           <DashboardBlocksVisual
             comments={dashboardComments}
             subscribers={recentSubscribers}
-            defaults={{ comments: CHANNEL_DEFAULTS.dashboardComments, subscribers: CHANNEL_DEFAULTS.recentSubscribers }}
             onSave={onSaveDashboardBlocks}
             onOpen={() => go('dashboard')}
           />

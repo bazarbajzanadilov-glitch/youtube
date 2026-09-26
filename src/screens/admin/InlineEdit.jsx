@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import s from './InlineEdit.module.css'
 import { parseHumanAmount } from '../../lib/humanAmount.js'
-import { KpiDownCircleIcon, KpiUpCircleIcon } from '../icons.jsx'
+import { EditIcon, KpiDownCircleIcon, KpiUpCircleIcon } from '../icons.jsx'
 
 function plain(value, decimals) {
   return (Number(value) || 0).toLocaleString('ru-RU', {
@@ -53,21 +53,37 @@ export function InlineNumber({ value, onChange, format, decimals = 0, className 
   return (
     <button type="button" className={`${s.editable} ${className}`} onClick={start} aria-label={label ? `${label}: изменить` : 'Изменить'}>
       {format ? format(value) : plain(value, decimals)}
+      <span className={s.pencil} aria-hidden="true"><EditIcon size={12} /></span>
     </button>
   )
 }
 
-/** Текст, который редактируется прямо на месте, без рамки. */
-export function InlineText({ value, onChange, placeholder, className = '', multiline = false, label }) {
+/**
+ * Текст, который редактируется прямо на месте, без рамки.
+ * onChange — на каждое нажатие; onCommit — один раз, когда уходишь из поля.
+ */
+export function InlineText({ value, onChange, onCommit, placeholder, className = '', multiline = false, label }) {
   const Tag = multiline ? 'textarea' : 'input'
+  const [local, setLocal] = useState(null)
+  const shown = local ?? value
   return (
     <Tag
       className={`${s.textInput} ${multiline ? s.textArea : ''} ${className}`}
-      value={value}
+      value={shown}
       placeholder={placeholder}
       aria-label={label || placeholder}
       rows={multiline ? 2 : undefined}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) => {
+        if (onCommit) setLocal(event.target.value)
+        else onChange(event.target.value)
+      }}
+      onBlur={() => {
+        if (onCommit && local != null && local !== value) onCommit(local)
+        setLocal(null)
+      }}
+      onKeyDown={(event) => {
+        if (!multiline && event.key === 'Enter') event.currentTarget.blur()
+      }}
     />
   )
 }

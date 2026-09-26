@@ -14,6 +14,30 @@
   background: rgba(62, 166, 255, 0.12);
 }
 
+/* Карандаш рядом с цифрой: подсказывает, что на неё можно нажать. */
+.pencil {
+  display: inline-flex;
+  margin-left: 4px;
+  color: #3ea6ff;
+  vertical-align: middle;
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
+
+.editable:hover .pencil {
+  opacity: 1;
+}
+
+/* При открытии админки подчёркивание пару раз мигает — видно, что можно нажать. */
+@keyframes hintPulse {
+  0%, 100% { border-bottom-color: rgba(62, 166, 255, 0.7); }
+  50% { border-bottom-color: rgba(62, 166, 255, 0); background: rgba(62, 166, 255, 0.16); }
+}
+
+.editable {
+  animation: hintPulse 1.4s ease-in-out 2;
+}
+
 .numberInput {
   width: 9em;
   max-width: 100%;

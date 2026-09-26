@@ -59,6 +59,7 @@ export default function Screen7Monetization() {
               <OverviewTab
                 activeSection={TABS[activeTab]}
                 enabled={channel.monetizationEnabled !== false}
+                channel={channel}
                 onOpenAdmin={() => go('admin')}
               />
             ) : (

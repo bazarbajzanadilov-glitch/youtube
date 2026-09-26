@@ -1,5 +1,6 @@
 import Card from '../../components/ui/Card.jsx'
 import sx from './MonetizationExtras.module.css'
+import { formatDateLong } from '../../lib/analyticsFormat.js'
 
 const revenueSources = [
   { title: 'Реклама на странице просмотра', tone: 'orange', icon: 'watch' },
@@ -35,9 +36,17 @@ const resourceGroups = [
   },
 ]
 
+/** Идентификатор AdSense и дата подключения — из данных канала, а не константы. */
+function adsenseId(channel) {
+  let hash = 7
+  for (const char of String(channel?.channelName || 'channel')) hash = (hash * 31 + char.charCodeAt(0)) % 1e16
+  return `pub-${String(Math.abs(hash)).padStart(16, '0').slice(0, 16)}`
+}
+
 export default function MonetizationOverviewTab({
   activeSection = 'Обзор',
   enabled = true,
+  channel,
   onOpenAdmin,
 }) {
   if (!enabled) {
@@ -185,8 +194,8 @@ export default function MonetizationOverviewTab({
           <h3>Партнерская программа YouTube</h3>
           <div className={sx.sideBlock}>
             <h4>AdSense для YouTube</h4>
-            <p>Идентификатор: pub-8534663269125491</p>
-            <p>Связь установлена 3 мая 2026 г. в 03:17</p>
+            <p>Идентификатор: {adsenseId(channel)}</p>
+            {channel?.joinDate ? <p>Связь установлена {formatDateLong(channel.joinDate)}</p> : null}
             <button type="button" className={sx.darkButton} onClick={onOpenAdmin}>Изменить</button>
           </div>
           <div className={sx.sideBlock}>

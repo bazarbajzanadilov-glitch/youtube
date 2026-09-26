@@ -417,7 +417,7 @@ export function generateDeviceShares(seed) {
 export function generateGeoShares(seed, country = 'RU') {
   const rand = seededRng(seed)
   const homeCountry = {
-    RU: 'Россия', US: 'США', DE: 'Германия', BR: 'Бразилия', IN: 'Индия',
+    RU: 'Россия', US: 'США', DE: 'Германия', BR: 'Бразилия', IN: 'Индия', KZ: 'Казахстан',
   }[country] || 'Россия'
   const others = [
     'Украина', 'Беларусь', 'Казахстан', 'Германия', 'США', 'Узбекистан',

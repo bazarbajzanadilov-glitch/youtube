@@ -6,7 +6,7 @@ import { NavContext } from './NavContext.js'
 import { CopyIcon, PlusIcon, HelpIcon } from './icons.jsx'
 import { useChannel } from '../storage/useChannel.js'
 import ChannelAvatar from '../components/ChannelAvatar.jsx'
-import { buildChannelHandle } from '../lib/channelHandle.js'
+import { buildChannelHandle, buildChannelId } from '../lib/channelHandle.js'
 
 function channelInitials(name) {
   return String(name || '')
@@ -111,7 +111,7 @@ export default function Screen8aProfile() {
           <div className={s.sectionTitle}>URL канала</div>
           <div className={s.sectionDesc}>Это стандартный веб-адрес вашего канала. <HelpIcon size={14}/></div>
           <div className={s.inputWithIcon}>
-            <input defaultValue="https://www.youtube.com/channel/UCXD2tlKjAr6Ji7JY6Wk3iwA" readOnly/>
+            <input value={`https://www.youtube.com/channel/${buildChannelId(channel)}`} readOnly/>
             <button type="button" className={s.copyIcon} aria-label="Скопировать"><CopyIcon/></button>
           </div>
         </div>

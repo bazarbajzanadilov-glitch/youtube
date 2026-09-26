@@ -25,7 +25,7 @@ function Avatar({ color, name, onColor }) {
  * Карточки «Комментарии» и «Новые подписчики» с главной страницы:
  * правятся прямо на карточке и сохраняются сами.
  */
-export default function DashboardBlocksVisual({ comments, subscribers, defaults, onSave, onOpen }) {
+export default function DashboardBlocksVisual({ comments, subscribers, onSave, onOpen }) {
   const serverValue = useMemo(() => ({ comments, subscribers }), [comments, subscribers])
   const [draft, setDraft, status] = useAutoSavedDraft(serverValue, (value) => onSave({
     dashboardComments: value.comments,
@@ -47,13 +47,6 @@ export default function DashboardBlocksVisual({ comments, subscribers, defaults,
         <span className={v.where}>Главная · видны первые 3</span>
         <div className={v.barRight}>
           <SaveStatus status={status} />
-          <button
-            type="button"
-            className={b.textBtn}
-            onClick={() => setDraft({ comments: defaults.comments.map((item) => ({ ...item })), subscribers: defaults.subscribers.map((item) => ({ ...item })) })}
-          >
-            Вернуть по умолчанию
-          </button>
           <button type="button" className={v.openLink} onClick={onOpen}>Открыть главную →</button>
         </div>
       </div>

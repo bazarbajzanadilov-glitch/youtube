@@ -154,7 +154,7 @@ export default function Screen9AudioLibrary() {
                     30 <ChevronDown size={14}/>
                   </button>
                 </div>
-                <span>1-30 из примерно 877</span>
+                <span>1-{TRACKS.length} из {TRACKS.length}</span>
                 <div className={s.pageNav}>
                   <button type="button" className={s.pageBtn} onClick={() => showToast('Первая страница')} aria-label="Первая страница"><PageFirst/></button>
                   <button type="button" className={s.pageBtn} onClick={() => showToast('Назад')} aria-label="Назад"><ChevronLeft/></button>
