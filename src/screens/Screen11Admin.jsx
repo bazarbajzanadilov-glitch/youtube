@@ -16,6 +16,7 @@ import TypicalDiffEditor from './admin/TypicalDiffEditor.jsx'
 import DashboardBlocksVisual from './admin/DashboardBlocksVisual.jsx'
 import ChannelKpiVisual from './admin/ChannelKpiVisual.jsx'
 import { SaveStatus } from './admin/InlineEdit.jsx'
+import { DownloadIcon, LogoutIcon, TrashIcon, UploadFileIcon } from './admin/AdminIcons.jsx'
 import {
   signOutAdmin,
   updateSitePassword,
@@ -671,10 +672,18 @@ function Screen11AdminContent() {
             <div className={s.subtitle}>Видео, канал и данные аналитики</div>
           </div>
           <div className={s.headerActions}>
-            <button type="button" className={s.ghostBtn} onClick={onExportProject}>Экспорт проекта</button>
-            <button type="button" className={s.ghostBtn} onClick={() => projectFileInputRef.current?.click()}>Импорт проекта</button>
-            <button type="button" className={s.ghostBtn} onClick={onAdminSignOut}>Выйти из админки</button>
-            <button type="button" className={s.dangerBtn} onClick={onClearAll} disabled={videos.length === 0}>Удалить все</button>
+            <button type="button" className={s.actionBtn} onClick={onExportProject} title="Скачать файл со всеми видео и настройками канала">
+              <DownloadIcon /> Скачать копию
+            </button>
+            <button type="button" className={s.actionBtn} onClick={() => projectFileInputRef.current?.click()} title="Загрузить ранее скачанную копию">
+              <UploadFileIcon /> Загрузить копию
+            </button>
+            <button type="button" className={s.actionBtn} onClick={onAdminSignOut}>
+              <LogoutIcon /> Выйти
+            </button>
+            <button type="button" className={s.actionDangerBtn} onClick={onClearAll} disabled={videos.length === 0}>
+              <TrashIcon /> Удалить все видео
+            </button>
           </div>
         </div>
 
@@ -951,11 +960,17 @@ function Screen11AdminContent() {
               <span className={s.sectionHint}>Укажите дату в строке видео — на этот день автоматически появится значок публикации на графиках аналитики.</span>
             </div>
             <div className={s.toolbar}>
-              <button type="button" className={s.dangerGhostBtn} onClick={onDeleteSelected} disabled={selected.size === 0}>Удалить выбранные{selected.size ? ` (${selected.size})` : ''}</button>
-              <input className={s.bulkInput} type="number" min="1" max="500" value={bulkCount} onChange={(e) => setBulkCount(e.target.value)} />
-              <button type="button" className={s.ghostBtn} onClick={onBulkAdd}>Добавить случайные</button>
-              <button type="button" className={s.ghostBtn} onClick={onExport}>Экспорт JSON</button>
-              <button type="button" className={s.ghostBtn} onClick={() => fileInputRef.current?.click()}>Импорт JSON</button>
+              <button type="button" className={s.actionDangerBtn} onClick={onDeleteSelected} disabled={selected.size === 0}>
+                <TrashIcon /> Удалить выбранные{selected.size ? ` (${selected.size})` : ''}
+              </button>
+              <input className={s.bulkInput} type="number" min="1" max="500" value={bulkCount} onChange={(e) => setBulkCount(e.target.value)} aria-label="Сколько видео добавить" />
+              <button type="button" className={s.actionBtn} onClick={onBulkAdd}>+ Добавить случайные видео</button>
+              <button type="button" className={s.actionBtn} onClick={onExport} title="Скачать список видео файлом">
+                <DownloadIcon /> Скачать список
+              </button>
+              <button type="button" className={s.actionBtn} onClick={() => fileInputRef.current?.click()} title="Заменить список видео из файла">
+                <UploadFileIcon /> Загрузить список
+              </button>
             </div>
           </div>
 

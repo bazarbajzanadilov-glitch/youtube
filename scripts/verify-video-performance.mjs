@@ -77,13 +77,13 @@ assert.deepEqual(buildCumulativeCurve({ days: 5, total: 0, shape: 'burst', seed:
 // Нормализация и дефолты.
 const fallback = normalizePerformanceSection('shorts', { totalViews: 'мусор', publishedAt: 'нет', curveShape: 'zigzag' })
 assert.equal(fallback.variant, 'shorts')
-assert.equal(fallback.totalViews, 81_022_050)
+assert.equal(fallback.totalViews, 0, "без данных — ноль, а не выдуманное число")
 assert.equal(fallback.curveShape, 'burst')
 assert.match(fallback.publishedAt, /^\d{4}-\d{2}-\d{2}$/)
 const both = normalizePerformanceSections({ video: { totalViews: '10' } })
 assert.deepEqual(Object.keys(both).sort(), ['shorts', 'video'])
 assert.equal(both.video.totalViews, 10)
-assert.equal(both.shorts.totalViews, 81_022_050)
+assert.equal(both.shorts.totalViews, 0)
 assert.equal(normalizePerformanceSection('nope', {}).variant, 'video')
 assert.equal(videoAnalyticsRoute({ type: 'short' }), 'video-analytics/shorts')
 assert.equal(videoAnalyticsRoute({ type: 'video' }), 'video-analytics/video')
@@ -145,11 +145,16 @@ const bars = buildRealtimeBars(59_355, 3)
 assert.equal(bars.length, 48)
 assert.equal(bars.reduce((a, b) => a + b, 0), 59_355)
 assert.deepEqual(bars, buildRealtimeBars(59_355, 3))
-const rt = buildPerformanceSectionView({ variant: 'video', realtimeViews48h: 1_000 }, today).realtime
+const rt = buildPerformanceSectionView({
+  variant: 'video',
+  realtimeViews48h: 1_000,
+  trafficSources: [{ label: 'Поиск на YouTube', percent: 40 }],
+}, today).realtime
 assert.equal(rt.total, 1_000)
-assert.equal(rt.sources.length, 5)
-assert.equal(rt.sources[0].label, 'Плейлисты')
+assert.equal(rt.sources.length, 1)
+assert.equal(rt.sources[0].label, 'Поиск на YouTube')
 assert.equal(rt.sources[0].spark.length, 8)
+assert.equal(buildPerformanceSectionView({ variant: 'video' }, today).realtime.sources.length, 0, 'без данных — без выдуманных источников')
 const custom = normalizePerformanceSection('shorts', { trafficSources: [{ label: ' Внешние ', percent: 150 }, { label: '', percent: 5 }] })
 assert.deepEqual(custom.trafficSources, [{ label: 'Внешние', percent: 100 }])
 console.log('realtime card verification passed')

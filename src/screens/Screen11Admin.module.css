@@ -1021,3 +1021,40 @@ textarea.input,
   color: var(--studio-text-muted);
   font-size: 12px;
 }
+
+/* Кнопки шапки: заливка + иконка, чтобы было видно, что это кнопки. */
+.actionBtn,
+.actionDangerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px 0 12px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--studio-hover);
+  color: var(--studio-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.actionBtn:hover {
+  background: var(--studio-border);
+}
+
+.actionDangerBtn {
+  background: rgba(255, 78, 69, 0.14);
+  color: var(--studio-danger);
+}
+
+.actionDangerBtn:hover:not(:disabled) {
+  background: rgba(255, 78, 69, 0.24);
+}
+
+.actionDangerBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

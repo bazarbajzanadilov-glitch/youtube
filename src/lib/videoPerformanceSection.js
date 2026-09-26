@@ -20,13 +20,9 @@ export const CURVE_SHAPES = [
   { value: 'even', label: 'Равномерный рост' },
 ]
 
-export const DEFAULT_TRAFFIC_SOURCES = [
-  { label: 'Плейлисты', percent: 48.1 },
-  { label: 'Функции выбора контента', percent: 17.3 },
-  { label: 'Рекомендованные видео', percent: 9.7 },
-  { label: 'Поиск на YouTube', percent: 6.4 },
-  { label: 'Адресная строка, закладки и т. п.', percent: 2.1 },
-]
+// Никаких выдуманных значений: страницы «?» и «✦» показывают настоящее видео,
+// а пустой раздел — нули.
+export const DEFAULT_TRAFFIC_SOURCES = []
 const MAX_TRAFFIC_SOURCES = 5
 const REALTIME_HOURS = 48
 
@@ -40,34 +36,20 @@ export function defaultPublishedAt(daysAgo, now = new Date()) {
 }
 
 export function buildDefaultPerformanceSections(now = new Date()) {
-  return {
-    shorts: {
-      variant: 'shorts',
-      publishedAt: defaultPublishedAt(630, now),
-      totalViews: 81_022_050,
-      typicalViews: 0,
-      watchHours: 0,
-      typicalWatchHours: 0,
-      subscribersGained: 204_300,
-      revenueTenge: 1_253_155.42,
-      curveShape: 'burst',
-      realtimeViews48h: 59_355,
-      trafficSources: DEFAULT_TRAFFIC_SOURCES,
-    },
-    video: {
-      variant: 'video',
-      publishedAt: defaultPublishedAt(1386, now),
-      totalViews: 5_942_494,
-      typicalViews: 0,
-      watchHours: 254_100,
-      typicalWatchHours: 1_400,
-      subscribersGained: 14_900,
-      revenueTenge: 7_365.63,
-      curveShape: 'burst',
-      realtimeViews48h: 59_355,
-      trafficSources: DEFAULT_TRAFFIC_SOURCES,
-    },
-  }
+  const empty = (variant) => ({
+    variant,
+    publishedAt: getAlmatyDateISO(now),
+    totalViews: 0,
+    typicalViews: 0,
+    watchHours: 0,
+    typicalWatchHours: 0,
+    subscribersGained: 0,
+    revenueTenge: 0,
+    curveShape: 'burst',
+    realtimeViews48h: 0,
+    trafficSources: DEFAULT_TRAFFIC_SOURCES,
+  })
+  return { shorts: empty('shorts'), video: empty('video') }
 }
 
 export const DEFAULT_PERFORMANCE_SECTIONS = buildDefaultPerformanceSections()
