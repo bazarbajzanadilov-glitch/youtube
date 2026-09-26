@@ -195,11 +195,12 @@ async function mutate(action) {
     try {
       await action()
     } catch (error) {
-      await loadRemoteProject({ force: true }).catch(() => {})
+      await loadRemoteProject({ force: true, silent: true }).catch(() => {})
       throw error
     }
     try {
-      await loadRemoteProject({ force: true })
+      // Тихо: экран не переходит в «Загружаем данные…» и не перерисовывается целиком.
+      await loadRemoteProject({ force: true, silent: true })
     } catch (error) {
       throw new Error(
         'Изменения сохранены, но экран не удалось обновить. Обновите страницу перед следующей правкой.',
