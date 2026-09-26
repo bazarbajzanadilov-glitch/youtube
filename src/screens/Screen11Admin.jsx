@@ -741,8 +741,8 @@ function Screen11AdminContent() {
         <section className={s.securityPanel} data-testid="performance-sections-panel">
           <div className={s.panelHead}>
             <div>
-              <h2>Разделы Shorts и Видео</h2>
-              <span>Так выглядит страница. Нажимайте на цифры, стрелки и формы графика — всё сохраняется само.</span>
+              <h2>Отдельные страницы «?» (Shorts) и «✦» (Видео)</h2>
+              <span>Не привязаны ни к одному видео канала: это две отдельные страницы, все цифры на них задаются здесь вручную. Открываются кнопками «?» и «✦» в верхней панели.</span>
             </div>
           </div>
           <PerformanceSectionVisual
