@@ -28,7 +28,7 @@ export function useAnalytics(range, { enabled = true } = {}) {
       if (nextDay === currentDay) return
       currentDay = nextDay
       setAnalyticsDay(nextDay)
-      loadRemoteProject({ force: true }).catch(() => {})
+      loadRemoteProject({ force: true, silent: true }).catch(() => {})
     }, 60_000)
     return () => clearInterval(interval)
   }, [enabled])

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import l from './VideoLibraryVisual.module.css'
 import { InlineNumber, InlineText } from './InlineEdit.jsx'
 import { TrashIcon } from './AdminIcons.jsx'
@@ -9,7 +10,6 @@ import { normalizeAverageViewPercentage } from '../../lib/videoMetrics.js'
 const TYPES = [
   { value: 'video', label: 'Видео' },
   { value: 'short', label: 'Shorts' },
-  { value: 'live', label: 'Эфир' },
 ]
 
 const EyeIcon = () => (
@@ -24,7 +24,22 @@ const count = (value) => (Number(value) || 0).toLocaleString('ru-RU')
  * Список видео как в «Контенте»: название, дата, формат и цифры меняются
  * кликом и сразу сохраняются в видео.
  */
-export default function VideoLibraryVisual({ videos, selected, allSelected, onToggle, onToggleAll, onUpdate, onOpen, onDelete }) {
+export default function VideoLibraryVisual({ videos, selected, allSelected, onToggle, onToggleAll, onUpdate: saveVideo, onOpen, onDelete }) {
+  // Правка видна сразу, не дожидаясь ответа сервера (сохранение идёт в фоне).
+  const [pending, setPending] = useState({})
+  const onUpdate = (video, patch) => {
+    setPending((current) => ({ ...current, [video.id]: { ...current[video.id], ...patch } }))
+    Promise.resolve(saveVideo(video, patch)).finally(() => {
+      setPending((current) => {
+        const rest = { ...current[video.id] }
+        Object.keys(patch).forEach((key) => { if (rest[key] === patch[key]) delete rest[key] })
+        const next = { ...current }
+        if (Object.keys(rest).length) next[video.id] = rest
+        else delete next[video.id]
+        return next
+      })
+    })
+  }
   return (
     <div className={l.list}>
       <div className={`${l.row} ${l.head}`}>
@@ -37,7 +52,7 @@ export default function VideoLibraryVisual({ videos, selected, allSelected, onTo
         <span>Досмотр</span>
         <span />
       </div>
-      {videos.map((video) => (
+      {videos.map((stored) => ({ ...stored, ...pending[stored.id] })).map((video) => (
         <div className={l.row} key={video.id}>
           <input type="checkbox" checked={selected.has(video.id)} onChange={() => onToggle(video.id)} aria-label={`Выбрать ${video.title}`} />
 

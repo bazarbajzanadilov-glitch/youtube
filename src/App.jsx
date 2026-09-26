@@ -164,7 +164,7 @@ function shouldStartExpanded() {
 }
 
 export default function App() {
-  const { loading: projectLoading, error: projectError, refetch } = useVideos()
+  const { loading: projectLoading, error: projectError, refetch, revision: projectRevision } = useVideos()
   const [route, setRoute] = useState(() => normalizeHashRoute())
   const [toast, setToast] = useState(null)
   const [sidebarExpanded, setSidebarExpanded] = useState(() => shouldStartExpanded())
@@ -281,7 +281,9 @@ export default function App() {
 
   const sidebarWidth = sidebarExpanded ? 'var(--studio-sidebar-expanded-width)' : 'var(--studio-sidebar-compact-width)'
 
-  if (!directAdminEntry && (projectLoading || projectError)) {
+  // Экран загрузки — только пока данных ещё нет. Повторные загрузки идут
+  // в фоне и не прячут открытую страницу.
+  if (!directAdminEntry && !projectRevision && (projectLoading || projectError)) {
     return (
       <div className={styles.dataState}>
         <div className={styles.dataStateCard}>

@@ -175,11 +175,7 @@
 }
 
 .sidePanel {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  column-gap: 20px;
-  row-gap: 12px;
-  align-items: start;
+  display: block;
 }
 
 .panelHead {

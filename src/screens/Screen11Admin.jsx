@@ -39,7 +39,6 @@ import {
 const CONTENT_TYPES = [
   { value: 'video', label: 'Видео' },
   { value: 'short', label: 'Shorts' },
-  { value: 'live', label: 'Трансляция' },
 ]
 
 const ANALYTICS_PROFILES = [

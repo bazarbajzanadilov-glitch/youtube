@@ -190,7 +190,7 @@ export async function loadRemoteProject({ force = false, silent = false } = {}) 
 async function mutate(action) {
   const run = mutationQueue.then(async () => {
     if (snapshot.error) {
-      await loadRemoteProject({ force: true })
+      await loadRemoteProject({ force: true, silent: true })
     }
     try {
       await action()

@@ -20,6 +20,7 @@ export function useVideos() {
     totals: project.totals,
     loading: project.loading,
     error: project.error,
+    revision: project.revision,
     refetch: () => loadRemoteProject({ force: true }),
     add: addRemoteVideo,
     update: updateRemoteVideo,

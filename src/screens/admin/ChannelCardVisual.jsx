@@ -67,20 +67,9 @@ export default function ChannelCardVisual({
 
       <div className={c.row}>
         <span className={c.rowLabel}>Страна</span>
-        <div className={c.chips}>
-          {COUNTRIES.map((country) => (
-            <button
-              key={country.code}
-              type="button"
-              className={`${c.chip} ${channel.country === country.code ? c.chipActive : ''}`}
-              aria-pressed={channel.country === country.code}
-              onClick={() => onChange({ country: country.code })}
-              title={country.label}
-            >
-              {country.label}
-            </button>
-          ))}
-        </div>
+        <select className={c.select} value={channel.country || 'KZ'} onChange={(event) => onChange({ country: event.target.value })} aria-label="Страна">
+          {COUNTRIES.map((country) => <option key={country.code} value={country.code}>{country.label}</option>)}
+        </select>
       </div>
 
       <div className={c.row}>
@@ -96,20 +85,6 @@ export default function ChannelCardVisual({
             aria-label="Дата создания канала"
           />
         </label>
-      </div>
-
-      <div className={c.row}>
-        <span className={c.rowLabel}>Монетизация</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={!!channel.monetizationEnabled}
-          className={`${c.switch} ${channel.monetizationEnabled ? c.switchOn : ''}`}
-          onClick={() => onChange({ monetizationEnabled: !channel.monetizationEnabled })}
-        >
-          <span className={c.knob} />
-          {channel.monetizationEnabled ? 'Включена $' : 'Выключена'}
-        </button>
       </div>
 
       <button type="button" className={`${c.save} ${dirty ? c.saveDirty : ''}`} onClick={onSave} disabled={!dirty || saving || processing}>

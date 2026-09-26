@@ -225,3 +225,25 @@
   color: #0f0f0f;
   cursor: pointer;
 }
+
+.select {
+  align-self: flex-start;
+  min-width: 180px;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--studio-hover-soft);
+  color: var(--studio-text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.info {
+  flex: 1 1 auto;
+}
+
+.name {
+  width: 100%;
+}
