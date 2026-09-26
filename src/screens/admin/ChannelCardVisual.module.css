@@ -1,7 +1,17 @@
+/* Всё в одну строку на всю ширину: канал слева, страна, дата и кнопка — справа. */
 .card {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 32px;
+}
+
+.card > .top {
+  flex: 1 1 320px;
+}
+
+.card > .row {
+  flex: 0 0 auto;
 }
 
 .top {
@@ -208,7 +218,8 @@
 }
 
 .save {
-  align-self: flex-start;
+  align-self: center;
+  margin-left: auto;
   height: 36px;
   padding: 0 18px;
   border: 0;
