@@ -37,7 +37,7 @@ export default function ChannelKpiVisual({ videos, channel, onSave, onOpen }) {
   return (
     <div data-testid="channel-kpi-visual">
       <div className={v.bar}>
-        <span className={v.where}>На сайте: «Аналитика» → вкладка «Обзор», карточки над графиком (так же во вкладках «Контент» и «Аудитория»)</span>
+        <span className={v.where}>Аналитика → Обзор</span>
         <div className={v.barRight}>
           <SaveStatus status={status} />
           <button type="button" className={v.openLink} onClick={onOpen}>Открыть аналитику →</button>
@@ -58,10 +58,10 @@ export default function ChannelKpiVisual({ videos, channel, onSave, onOpen }) {
                   onChange={(next) => setDraft((current) => ({ ...current, [metric.key]: next }))}
                 />
                 {manual == null ? (
-                  <span className={t.autoNote}>сейчас считается автоматически</span>
+                  <span className={t.autoNote}>считается автоматически</span>
                 ) : (
                   <button type="button" className={t.resetBtn} onClick={() => setDraft((current) => ({ ...current, [metric.key]: null }))}>
-                    вернуть авто
+                    Вернуть автоматический расчёт
                   </button>
                 )}
               </div>
@@ -69,7 +69,6 @@ export default function ChannelKpiVisual({ videos, channel, onSave, onOpen }) {
           })}
         </div>
       </div>
-      <div className={v.tip}>Нажмите на цифру процента, чтобы написать свою (например 999 или 900); на стрелку или слово — чтобы поменять «больше/меньше». Заданный процент не меняется со временем и одинаков для любого периода. Сохраняется автоматически.</div>
     </div>
   )
 }

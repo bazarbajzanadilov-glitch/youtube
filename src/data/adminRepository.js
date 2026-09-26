@@ -350,6 +350,7 @@ export async function savePerformanceSection(section) {
         curve_shape: section.curveShape,
         realtime_views_48h: section.realtimeViews48h,
         traffic_sources: section.trafficSources,
+        video_id: section.videoId || null,
       }, { onConflict: 'variant' }),
     'Не удалось сохранить раздел «С момента публикации»',
   )

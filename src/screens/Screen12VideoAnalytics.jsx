@@ -34,6 +34,7 @@ import {
   buildSincePublicationXAxis,
   buildSincePublicationYTicks,
   buildVideoPerformanceView,
+  resolveSectionVideo,
   videoIdFromAnalyticsRoute,
 } from '../lib/videoPerformanceSection.js'
 import {
@@ -148,7 +149,10 @@ export default function Screen12VideoAnalytics() {
   const { channel } = useChannel()
   const { videos } = useVideos()
   const videoId = videoIdFromAnalyticsRoute(route)
-  const video = videoId ? videos.find((item) => String(item.id) === videoId) : null
+  // Страницы «?» и «✦» показывают настоящее видео, выбранное в админке.
+  const video = videoId
+    ? videos.find((item) => String(item.id) === videoId)
+    : resolveSectionVideo(variantFromRoute(route), channel?.performanceSections, videos)
   const variant = video ? (video.type === 'short' ? 'shorts' : 'video') : variantFromRoute(route)
   const [activeTab, setActiveTab] = useState(0)
   const [requestedMetric, setRequestedMetric] = useState('views')
@@ -338,7 +342,14 @@ export default function Screen12VideoAnalytics() {
     </div>
   )
 
-  const renderOverview = () => view.pending ? renderPending() : (
+  const renderOverview = () => !video ? (
+    <div className={s.emptyWrap}>
+      <EmptyState
+        title={variant === 'shorts' ? 'На канале пока нет Shorts' : 'На канале пока нет видео'}
+        description="Добавьте видео в админке — здесь появится его аналитика."
+      />
+    </div>
+  ) : view.pending ? renderPending() : (
     <div className={s.overviewLayout}>
     <div className={s.overviewStack}>
       <h2 className={s.sinceTitle} data-testid="since-publication-title">{headline}</h2>

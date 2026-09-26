@@ -44,7 +44,7 @@ export default function DashboardBlocksVisual({ comments, subscribers, defaults,
   return (
     <div>
       <div className={v.bar}>
-        <span className={v.where}>На сайте: «Главная», правая часть страницы. Видны первые 3 записи.</span>
+        <span className={v.where}>Главная · видны первые 3</span>
         <div className={v.barRight}>
           <SaveStatus status={status} />
           <button

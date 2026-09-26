@@ -112,6 +112,7 @@ export function normalizePerformanceSection(variant, raw = {}) {
     curveShape,
     realtimeViews48h: Math.round(nonNegativeNumber(source.realtimeViews48h, fallback.realtimeViews48h)),
     trafficSources: normalizeTrafficSources(source.trafficSources, fallback.trafficSources),
+    videoId: source.videoId ? String(source.videoId) : null,
   }
 }
 
@@ -129,6 +130,20 @@ export function videoAnalyticsRoute(video) {
     return `${VIDEO_ANALYTICS_ITEM_PREFIX}${encodeURIComponent(String(video.id))}`
   }
   return video?.type === 'short' ? 'video-analytics/shorts' : 'video-analytics/video'
+}
+
+/**
+ * Какое настоящее видео показывают страницы «?» (Shorts) и «✦» (Видео):
+ * выбранное в админке, а если его нет — самое новое видео этого формата.
+ */
+export function resolveSectionVideo(variant, sections, videos = []) {
+  const matchesType = (video) => (variant === 'shorts' ? video?.type === 'short' : video?.type !== 'short')
+  const chosenId = sections?.[variant]?.videoId
+  const chosen = chosenId ? videos.find((video) => String(video.id) === String(chosenId)) : null
+  if (chosen && matchesType(chosen)) return chosen
+  return [...videos]
+    .filter(matchesType)
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)))[0] || null
 }
 
 export function videoIdFromAnalyticsRoute(route) {

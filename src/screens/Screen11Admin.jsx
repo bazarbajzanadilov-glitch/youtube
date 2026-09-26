@@ -13,7 +13,6 @@ import { useChannel } from '../storage/useChannel.js'
 import { CHANNEL_DEFAULTS } from '../storage/channelStore.js'
 import AdminGate from '../components/auth/AdminGate.jsx'
 import TypicalDiffEditor from './admin/TypicalDiffEditor.jsx'
-import PerformanceSectionVisual from './admin/PerformanceSectionVisual.jsx'
 import DashboardBlocksVisual from './admin/DashboardBlocksVisual.jsx'
 import ChannelKpiVisual from './admin/ChannelKpiVisual.jsx'
 import { SaveStatus } from './admin/InlineEdit.jsx'
@@ -635,6 +634,7 @@ function Screen11AdminContent() {
   const onSaveTypicalOverride = autoSaved(updateTypicalOverride, 'Не удалось сохранить подписи')
   const onSaveDashboardBlocks = autoSaved(updateChannel, 'Не удалось сохранить блоки главной')
   const onSaveKpiOverrides = autoSaved(updateKpiOverrides, 'Не удалось сохранить проценты')
+  const onUpdateVideoNumbers = autoSaved(update, 'Не удалось сохранить видео')
 
   async function onSitePasswordChange(event) {
     event.preventDefault()
@@ -726,8 +726,8 @@ function Screen11AdminContent() {
         <section className={s.securityPanel} data-testid="channel-kpi-panel">
           <div className={s.panelHead}>
             <div>
-              <h2>Аналитика канала: проценты</h2>
-              <span>«На 999 % больше, чем за предыдущие 28 дней» под карточками. Зафиксируйте любое число.</span>
+              <h2>Аналитика канала</h2>
+              <span>Нажмите на процент, чтобы зафиксировать своё число.</span>
             </div>
           </div>
           <ChannelKpiVisual
@@ -738,25 +738,11 @@ function Screen11AdminContent() {
           />
         </section>
 
-        <section className={s.securityPanel} data-testid="performance-sections-panel">
-          <div className={s.panelHead}>
-            <div>
-              <h2>Отдельные страницы «?» (Shorts) и «✦» (Видео)</h2>
-              <span>Не привязаны ни к одному видео канала: это две отдельные страницы, все цифры на них задаются здесь вручную. Открываются кнопками «?» и «✦» в верхней панели.</span>
-            </div>
-          </div>
-          <PerformanceSectionVisual
-            sections={channel?.performanceSections}
-            onSave={onSavePerformanceSection}
-            onOpen={(target) => go(`video-analytics/${target}`)}
-          />
-        </section>
-
         <section className={s.securityPanel} data-testid="typical-diff-panel">
           <div className={s.panelHead}>
             <div>
-              <h2>Аналитика видео: «больше / меньше, чем обычно»</h2>
-              <span>Выберите видео слева и меняйте подписи прямо на карточках.</span>
+              <h2>Видео</h2>
+              <span>Выберите видео и нажмите на любую цифру, чтобы изменить.</span>
             </div>
           </div>
           <TypicalDiffEditor
@@ -764,6 +750,8 @@ function Screen11AdminContent() {
             channel={channel}
             onSave={onSaveTypicalOverride}
             onOpen={(route) => go(route)}
+            onUpdateVideo={onUpdateVideoNumbers}
+            onPin={(variant, videoId) => onSavePerformanceSection(variant, { ...channel?.performanceSections?.[variant], videoId })}
           />
         </section>
 
@@ -1080,7 +1068,7 @@ function Screen11AdminContent() {
           <div className={s.panelHead}>
             <div>
               <h2>Комментарии и новые подписчики</h2>
-              <span>Нажмите на текст, имя или кружок-аватар, чтобы изменить. Сохраняется автоматически.</span>
+              <span>Нажмите на текст или кружок, чтобы изменить.</span>
             </div>
           </div>
           <DashboardBlocksVisual

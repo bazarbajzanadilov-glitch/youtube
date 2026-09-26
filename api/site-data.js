@@ -249,7 +249,7 @@ export default async function handler(request, response) {
       tolerantPerformanceSections(() => fetchAllPages(
         () => supabase
           .from(PERFORMANCE_SECTIONS_TABLE)
-          .select('variant, published_at, total_views, typical_views, watch_hours, typical_watch_hours, subscribers_gained, revenue_tenge, curve_shape, realtime_views_48h, traffic_sources, updated_at')
+          .select('variant, published_at, total_views, typical_views, watch_hours, typical_watch_hours, subscribers_gained, revenue_tenge, curve_shape, realtime_views_48h, traffic_sources, video_id, updated_at')
           .eq('channel_id', STUDIO_CHANNEL_ID)
           .order('variant', { ascending: true }),
         PERFORMANCE_SECTIONS_TABLE,
@@ -317,6 +317,7 @@ export default async function handler(request, response) {
         curveShape: item.curve_shape,
         realtimeViews48h: Math.max(0, Number(item.realtime_views_48h) || 0),
         trafficSources: Array.isArray(item.traffic_sources) ? item.traffic_sources : undefined,
+        videoId: item.video_id ? String(item.video_id) : null,
       },
     ]))
 

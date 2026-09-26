@@ -88,16 +88,63 @@
 }
 
 .resetBtn {
-  padding: 0;
+  height: 28px;
+  margin-top: 4px;
+  padding: 0 12px;
   border: 0;
-  background: none;
-  color: #3ea6ff;
-  font-size: 11px;
+  border-radius: 14px;
+  background: var(--studio-hover);
+  color: var(--studio-text);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
+}
+
+.resetBtn:hover {
+  background: var(--studio-border);
 }
 
 @media (max-width: 900px) {
   .editor {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.numbersHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px 0;
+}
+
+.numberValue {
+  color: var(--studio-text);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+}
+
+.pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--studio-border);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--studio-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pin:hover {
+  background: var(--studio-hover-soft);
+}
+
+.pinOn {
+  border-color: #3ea6ff;
+  background: rgba(62, 166, 255, 0.14);
+  cursor: default;
 }
