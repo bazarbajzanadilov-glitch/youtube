@@ -19,6 +19,7 @@ import MetricKpiCell from './analytics/MetricKpiCell.jsx'
 import AreaLineChart from '../components/charts/AreaLineChart.jsx'
 import { analyticsHeroChartProps } from '../components/charts/analyticsChartDefaults.js'
 import { useChannel } from '../storage/useChannel.js'
+import { hashSeed } from '../lib/analyticsEngine.js'
 import { useVideos } from '../storage/useVideos.js'
 import {
   declineDaysLabel,
@@ -32,6 +33,7 @@ import {
 import {
   buildPerformanceSectionView,
   buildSincePublicationXAxis,
+  buildCumulativeCurve,
   buildSincePublicationYTicks,
   buildVideoPerformanceView,
   resolveSectionVideo,
@@ -238,7 +240,7 @@ export default function Screen12VideoAnalytics() {
       : `${formatDateLong(publishedAt)} – ${formatDateLong(endRow.date || lastDate)}`
   // Ось X — дни с публикации (0 … N дней), как в YouTube Studio; линия
   // начинается с нуля и идёт до последнего полного дня окна.
-  const plotData = Array.from({ length: lastTick + 1 }, (_, day) => {
+  const dailyPlotData = Array.from({ length: lastTick + 1 }, (_, day) => {
     const index = base + day
     const row = { ...(chartData[index] || {}), day }
     if (day > days) {
@@ -253,6 +255,25 @@ export default function Screen12VideoAnalytics() {
     }
     return shifted
   })
+
+  // Страницы «?» и «✦» с формой из админки: линия рисуется плавно и подробно
+  // (как на длинном графике YouTube), даже если видео вышло всего пару недель
+  // назад. Итоги в конце линии — настоящие цифры видео.
+  const sectionShape = !videoId && video && period.kind === 'all'
+    ? channel?.performanceSections?.[variant]?.curveShape
+    : null
+  const plotData = sectionShape && days >= 1
+    ? (() => {
+      const perDay = Math.max(1, Math.ceil(480 / days))
+      const steps = days * perDay
+      const unit = buildCumulativeCurve({ days: steps, total: 1_000_000, shape: sectionShape, seed: hashSeed(video.id, 'section-plot') })
+      const totals = Object.fromEntries(['views', 'watch', 'subscribers', 'revenue'].map((key) => [key, valueAt(days, key)]))
+      return unit.map((share, index) => ({
+        day: index / perDay,
+        ...Object.fromEntries(Object.entries(totals).map(([key, total]) => [key, (total * share) / 1_000_000])),
+      }))
+    })()
+    : dailyPlotData
 
   // Ровный шаг подписей оси: 0, 2, 4 … или 0, 5, 10 … (не больше 7 отметок).
   const xTickStep = [1, 2, 3, 5, 7, 10, 14, 15, 20, 25, 30, 50, 60, 100, 150, 200, 250, 300, 500]
@@ -269,7 +290,7 @@ export default function Screen12VideoAnalytics() {
   }
   // Подсказка как в YouTube Studio: «Чт, 5 февр., 6:18» / «(Первые 64 дня)» / число.
   const tooltipLabel = (label) => {
-    const day = (Number(label) || 0) + base
+    const day = Math.round(Number(label) || 0) + base
     const row = chartData[day]
     return (
       <>
