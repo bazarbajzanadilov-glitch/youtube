@@ -15,6 +15,7 @@ import AdminGate from '../components/auth/AdminGate.jsx'
 import TypicalDiffEditor from './admin/TypicalDiffEditor.jsx'
 import DashboardBlocksVisual from './admin/DashboardBlocksVisual.jsx'
 import ChannelKpiVisual from './admin/ChannelKpiVisual.jsx'
+import PerformanceSectionVisual from './admin/PerformanceSectionVisual.jsx'
 import { SaveStatus } from './admin/InlineEdit.jsx'
 import { DownloadIcon, LogoutIcon, TrashIcon, UploadFileIcon } from './admin/AdminIcons.jsx'
 import ChannelCardVisual from './admin/ChannelCardVisual.jsx'
@@ -732,6 +733,20 @@ function Screen11AdminContent() {
           />
         </section>
 
+        <section className={s.securityPanel} data-testid="performance-sections-panel">
+          <div className={s.panelHead}>
+            <div>
+              <h2>Отдельные страницы «?» и «✦»</h2>
+              <span>Свои цифры — видео и аналитику канала не меняют</span>
+            </div>
+          </div>
+          <PerformanceSectionVisual
+            sections={channel?.performanceSections}
+            onSave={onSavePerformanceSection}
+            onOpen={(target) => go(`video-analytics/${target}`)}
+          />
+        </section>
+
         <section className={s.securityPanel} data-testid="typical-diff-panel">
           <div className={s.panelHead}>
             <div>
@@ -745,8 +760,6 @@ function Screen11AdminContent() {
             onSave={onSaveTypicalOverride}
             onOpen={(route) => go(route)}
             onUpdateVideo={onUpdateVideoNumbers}
-            onPin={(variant, videoId) => onSavePerformanceSection(variant, { ...channel?.performanceSections?.[variant], videoId })}
-            onShape={(variant, curveShape) => onSavePerformanceSection(variant, { ...channel?.performanceSections?.[variant], curveShape })}
           />
         </section>
 

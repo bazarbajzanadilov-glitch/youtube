@@ -19,7 +19,6 @@ import MetricKpiCell from './analytics/MetricKpiCell.jsx'
 import AreaLineChart from '../components/charts/AreaLineChart.jsx'
 import { analyticsHeroChartProps } from '../components/charts/analyticsChartDefaults.js'
 import { useChannel } from '../storage/useChannel.js'
-import { hashSeed } from '../lib/analyticsEngine.js'
 import { useVideos } from '../storage/useVideos.js'
 import {
   declineDaysLabel,
@@ -33,10 +32,8 @@ import {
 import {
   buildPerformanceSectionView,
   buildSincePublicationXAxis,
-  buildCumulativeCurve,
   buildSincePublicationYTicks,
   buildVideoPerformanceView,
-  resolveSectionVideo,
   videoIdFromAnalyticsRoute,
 } from '../lib/videoPerformanceSection.js'
 import {
@@ -151,10 +148,9 @@ export default function Screen12VideoAnalytics() {
   const { channel } = useChannel()
   const { videos } = useVideos()
   const videoId = videoIdFromAnalyticsRoute(route)
-  // Страницы «?» и «✦» показывают настоящее видео, выбранное в админке.
-  const video = videoId
-    ? videos.find((item) => String(item.id) === videoId)
-    : resolveSectionVideo(variantFromRoute(route), channel?.performanceSections, videos)
+  // Страницы «?» и «✦» — отдельные разделы клиента: свои цифры из админки,
+  // не связанные с видео и аналитикой канала.
+  const video = videoId ? videos.find((item) => String(item.id) === videoId) : null
   const variant = video ? (video.type === 'short' ? 'shorts' : 'video') : variantFromRoute(route)
   const [activeTab, setActiveTab] = useState(0)
   const [requestedMetric, setRequestedMetric] = useState('views')
@@ -182,12 +178,9 @@ export default function Screen12VideoAnalytics() {
   const section = channel?.performanceSections?.[variant]
   const view = useMemo(
     () => (video
-      ? buildVideoPerformanceView(video, videos, channel, undefined, {
-        // Страницы «?» и «✦»: форма графика из админки; обычная страница видео — как есть.
-        curveShape: videoId ? null : channel?.performanceSections?.[variantFromRoute(route)]?.curveShape,
-      })
+      ? buildVideoPerformanceView(video, videos, channel)
       : buildPerformanceSectionView({ ...(section || {}), variant })),
-    [video, videos, channel, section, variant, videoId, route],
+    [video, videos, channel, section, variant],
   )
   const { chartData, days: totalDays, realtime } = view
   const publishedAt = view.section.publishedAt
@@ -256,24 +249,7 @@ export default function Screen12VideoAnalytics() {
     return shifted
   })
 
-  // Страницы «?» и «✦» с формой из админки: линия рисуется плавно и подробно
-  // (как на длинном графике YouTube), даже если видео вышло всего пару недель
-  // назад. Итоги в конце линии — настоящие цифры видео.
-  const sectionShape = !videoId && video && period.kind === 'all'
-    ? channel?.performanceSections?.[variant]?.curveShape
-    : null
-  const plotData = sectionShape && days >= 1
-    ? (() => {
-      const perDay = Math.max(1, Math.ceil(480 / days))
-      const steps = days * perDay
-      const unit = buildCumulativeCurve({ days: steps, total: 1_000_000, shape: sectionShape, seed: hashSeed(video.id, 'section-plot') })
-      const totals = Object.fromEntries(['views', 'watch', 'subscribers', 'revenue'].map((key) => [key, valueAt(days, key)]))
-      return unit.map((share, index) => ({
-        day: index / perDay,
-        ...Object.fromEntries(Object.entries(totals).map(([key, total]) => [key, (total * share) / 1_000_000])),
-      }))
-    })()
-    : dailyPlotData
+  const plotData = dailyPlotData
 
   // Ровный шаг подписей оси: 0, 2, 4 … или 0, 5, 10 … (не больше 7 отметок).
   const xTickStep = [1, 2, 3, 5, 7, 10, 14, 15, 20, 25, 30, 50, 60, 100, 150, 200, 250, 300, 500]
@@ -365,14 +341,7 @@ export default function Screen12VideoAnalytics() {
     </div>
   )
 
-  const renderOverview = () => !video ? (
-    <div className={s.emptyWrap}>
-      <EmptyState
-        title={variant === 'shorts' ? 'На канале пока нет Shorts' : 'На канале пока нет видео'}
-        description="Добавьте видео в админке — здесь появится его аналитика."
-      />
-    </div>
-  ) : view.pending ? renderPending() : (
+  const renderOverview = () => view.pending ? renderPending() : (
     <div className={s.overviewLayout}>
     <div className={s.overviewStack}>
       <h2 className={s.sinceTitle} data-testid="since-publication-title">{headline}</h2>
