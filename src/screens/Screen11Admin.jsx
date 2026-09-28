@@ -746,6 +746,7 @@ function Screen11AdminContent() {
             onOpen={(route) => go(route)}
             onUpdateVideo={onUpdateVideoNumbers}
             onPin={(variant, videoId) => onSavePerformanceSection(variant, { ...channel?.performanceSections?.[variant], videoId })}
+            onShape={(variant, curveShape) => onSavePerformanceSection(variant, { ...channel?.performanceSections?.[variant], curveShape })}
           />
         </section>
 

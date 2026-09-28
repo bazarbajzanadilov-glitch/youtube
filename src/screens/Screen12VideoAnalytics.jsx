@@ -180,9 +180,12 @@ export default function Screen12VideoAnalytics() {
   const section = channel?.performanceSections?.[variant]
   const view = useMemo(
     () => (video
-      ? buildVideoPerformanceView(video, videos, channel)
+      ? buildVideoPerformanceView(video, videos, channel, undefined, {
+        // Страницы «?» и «✦»: форма графика из админки; обычная страница видео — как есть.
+        curveShape: videoId ? null : channel?.performanceSections?.[variantFromRoute(route)]?.curveShape,
+      })
       : buildPerformanceSectionView({ ...(section || {}), variant })),
-    [video, videos, channel, section, variant],
+    [video, videos, channel, section, variant, videoId, route],
   )
   const { chartData, days: totalDays, realtime } = view
   const publishedAt = view.section.publishedAt
@@ -220,9 +223,8 @@ export default function Screen12VideoAnalytics() {
   const byDate = period.kind === 'range'
   const xAxis = period.kind === 'all' ? view.xAxis : buildSincePublicationXAxis(Math.max(1, days))
   const isShorts = variant === 'shorts'
-  // У каждого реального ролика (и Shorts тоже) есть время просмотра — 4 карточки.
-  // Раздел Shorts из админки — 3 карточки, как на скриншоте клиента.
-  const showWatch = Boolean(video) || !isShorts
+  // Как на скриншоте клиента: у Shorts три карточки, без времени просмотра.
+  const showWatch = !isShorts
   const headline = `${period.headline} это видео${isShorts ? ' Shorts' : ''} посмотрели ${formatNumberRu(kpis.views)} ${declineTimes(kpis.views)}`
   // У конкретного видео ось заканчивается на последнем полном дне — линия
   // доходит до правого края. Разделы из админки держат ось 6 × шаг.

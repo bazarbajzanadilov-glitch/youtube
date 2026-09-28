@@ -382,8 +382,25 @@ export function buildPerformanceSectionView(sectionInput, now = new Date(), curv
  * движка аналитики канала (buildVideoLifetimeAnalytics), поэтому совпадают
  * с остальными экранами студии.
  */
-export function buildVideoPerformanceView(video, videos = [], channel = {}, now = new Date()) {
+/**
+ * Та же накопленная кривая с теми же итогами, но с формой, выбранной в админке
+ * для страниц «?» и «✦» (итоговые цифры видео не меняются).
+ */
+function reshapeCurve(curve, shape, seed) {
+  const days = curve.length - 1
+  if (days < 1) return curve
+  const total = Number(curve[days]) || 0
+  const unit = buildCumulativeCurve({ days, total: 1_000_000, shape, seed })
+  return unit.map((value, day) => (day === days ? total : (total * value) / 1_000_000))
+}
+
+export function buildVideoPerformanceView(video, videos = [], channel = {}, now = new Date(), { curveShape = null } = {}) {
   const analytics = buildVideoLifetimeAnalytics(video, videos, channel, { today: now })
+  if (curveShape && CURVE_SHAPE_VALUES.includes(curveShape) && analytics.days >= 1) {
+    const seed = hashSeed(video?.id || 'video', 'section-curve')
+    analytics.curves = Object.fromEntries(Object.entries(analytics.curves)
+      .map(([key, curve]) => [key, Array.isArray(curve) ? reshapeCurve(curve, curveShape, seed) : curve]))
+  }
   if (analytics.days < 1) {
     // Первые сутки ещё не закончились — в YouTube статистика ещё обрабатывается.
     const empty = buildPerformanceSectionView({

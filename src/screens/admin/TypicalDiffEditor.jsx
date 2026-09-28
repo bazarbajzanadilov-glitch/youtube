@@ -4,7 +4,13 @@ import v from './AdminVisual.module.css'
 import { DiffControl, InlineNumber, SaveStatus } from './InlineEdit.jsx'
 import { useAutoSavedDraft } from './useAutoSavedDraft.js'
 import { declineTimes, formatCompactOneDecimal, formatNumberRu } from '../../lib/analyticsFormat.js'
-import { buildVideoPerformanceView, resolveSectionVideo, videoAnalyticsRoute } from '../../lib/videoPerformanceSection.js'
+import {
+  CURVE_SHAPES,
+  buildCumulativeCurve,
+  buildVideoPerformanceView,
+  resolveSectionVideo,
+  videoAnalyticsRoute,
+} from '../../lib/videoPerformanceSection.js'
 import { HelpIcon, SparkleIcon } from '../icons.jsx'
 
 const METRICS = [
@@ -84,7 +90,46 @@ function PinButton({ video, videos, channel, onPin }) {
   )
 }
 
-function VideoDiffEditor({ video, videos, channel, onSave, onOpen, onUpdateVideo, onPin }) {
+function ShapeIcon({ shape }) {
+  const path = useMemo(() => buildCumulativeCurve({ days: 60, total: 100, shape, seed: 7 })
+    .map((value, index) => `${index === 0 ? 'M' : 'L'}${(index / 60) * 56 + 2},${30 - (value / 100) * 26}`)
+    .join(' '), [shape])
+  return (
+    <svg width="60" height="32" viewBox="0 0 60 32" aria-hidden="true">
+      <path d={path} />
+    </svg>
+  )
+}
+
+/** Форма графика на странице «?» / «✦» — три картинки, выбор одним нажатием. */
+function ShapePicker({ variant, channel, onShape }) {
+  const saved = channel?.performanceSections?.[variant]?.curveShape || 'burst'
+  const [picked, setPicked] = useState(null)
+  const current = picked ?? saved
+  return (
+    <div className={s.shapes} role="group" aria-label="Форма графика">
+      <span className={s.shapesLabel}>График</span>
+      {CURVE_SHAPES.map((shape) => (
+        <button
+          key={shape.value}
+          type="button"
+          title={shape.label}
+          aria-label={shape.label}
+          aria-pressed={current === shape.value}
+          className={`${s.shape} ${current === shape.value ? s.shapeActive : ''}`}
+          onClick={() => {
+            setPicked(shape.value)
+            Promise.resolve(onShape(variant, shape.value)).catch(() => setPicked(null))
+          }}
+        >
+          <ShapeIcon shape={shape.value} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function VideoDiffEditor({ video, videos, channel, onSave, onOpen, onUpdateVideo, onPin, onShape }) {
   const view = useMemo(() => buildVideoPerformanceView(video, videos, channel), [video, videos, channel])
   const override = channel?.typicalOverrides?.[String(video.id)]
   const serverValue = useMemo(() => ({
@@ -101,19 +146,24 @@ function VideoDiffEditor({ video, videos, channel, onSave, onOpen, onUpdateVideo
   return (
     <div className={s.workArea}>
       <div className={v.bar}>
-        <PinButton video={video} videos={videos} channel={channel} onPin={onPin} />
+        <div className={v.barLeft}>
+          <PinButton video={video} videos={videos} channel={channel} onPin={onPin} />
+          {resolveSectionVideo(video.type === 'short' ? 'shorts' : 'video', channel?.performanceSections, videos)?.id === video.id
+            ? <ShapePicker variant={video.type === 'short' ? 'shorts' : 'video'} channel={channel} onShape={onShape} />
+            : null}
+        </div>
         <div className={v.barRight}>
           <SaveStatus status={status} />
           <button type="button" className={v.openLink} onClick={() => onOpen(videoAnalyticsRoute(video))}>Открыть страницу →</button>
         </div>
       </div>
-      <VideoNumbers video={video} onUpdateVideo={onUpdateVideo} onPin={onPin} />
+      <VideoNumbers video={video} onUpdateVideo={onUpdateVideo} onPin={onPin} onShape={onShape} />
       <h3 className={v.headline}>
         С момента публикации это видео{video.type === 'short' ? ' Shorts' : ''} посмотрели {formatNumberRu(view.kpis.views)} {declineTimes(view.kpis.views)}
       </h3>
       <div className={`${v.card} ${s.cards}`}>
         <div className={v.kpis}>
-          {METRICS.map((metric) => {
+          {METRICS.filter((metric) => metric.key !== 'watch' || video.type !== 'short').map((metric) => {
             const manual = draft[metric.diffKey]
             const diff = manual ?? autoDiff(metric)
             return (
@@ -147,7 +197,7 @@ function VideoDiffEditor({ video, videos, channel, onSave, onOpen, onUpdateVideo
  * Подпись «На 5,9 млн больше, чем обычно» на странице «Аналитика видео»:
  * слева выбираешь ролик, справа — сами карточки, которые меняются кликом.
  */
-export default function TypicalDiffEditor({ videos, channel, onSave, onOpen, onUpdateVideo, onPin }) {
+export default function TypicalDiffEditor({ videos, channel, onSave, onOpen, onUpdateVideo, onPin, onShape }) {
   const list = useMemo(() => [...videos].sort((a, b) => String(b.date).localeCompare(String(a.date))), [videos])
   const [selectedId, setSelectedId] = useState(() => list[0]?.id ?? null)
   const video = list.find((item) => item.id === selectedId) || list[0] || null
@@ -181,7 +231,7 @@ export default function TypicalDiffEditor({ videos, channel, onSave, onOpen, onU
           </button>
         ))}
       </div>
-      <VideoDiffEditor key={video.id} video={video} videos={videos} channel={channel} onSave={onSave} onOpen={onOpen} onUpdateVideo={onUpdateVideo} onPin={onPin} />
+      <VideoDiffEditor key={video.id} video={video} videos={videos} channel={channel} onSave={onSave} onOpen={onOpen} onUpdateVideo={onUpdateVideo} onPin={onPin} onShape={onShape} />
     </div>
   )
 }
