@@ -171,38 +171,35 @@ function normalizePersistedDailyRow(item) {
    бывают одиночные всплески и провалы, общие для всех роликов (алгоритм,
    выходные, праздники). Зависит только от канала и даты — любой диапазон
    показывает один и тот же день одинаково. */
-const TEXTURE_SWELL_DAYS = 5
-
-function textureSwellKnot(textureKey, knot) {
-  return 0.8 + seededRevenue(hashSeed('day-swell', textureKey, knot))() * 0.4
+function dayNoise(textureKey, dayNumber) {
+  return seededRevenue(hashSeed('day-texture', textureKey, dayNumber))() - 0.5
 }
 
 function channelDayFactor(textureKey, date) {
-  const rand = seededRevenue(hashSeed('day-texture', textureKey, date))
-  // Медленная «зыбь» на несколько дней + рваный дневной шум сверху.
   const dayNumber = Math.round(Date.parse(`${date}T00:00:00Z`) / 86400000)
-  const knot = Math.floor(dayNumber / TEXTURE_SWELL_DAYS)
-  const t = (dayNumber - knot * TEXTURE_SWELL_DAYS) / TEXTURE_SWELL_DAYS
-  const swell = textureSwellKnot(textureKey, knot) * (1 - t) + textureSwellKnot(textureKey, knot + 1) * t
-  let factor = swell * (0.74 + rand() * 0.52)
-  if (rand() < 0.13) factor *= 1.22 + rand() * 0.36
-  if (rand() < 0.1) factor *= 0.66 + rand() * 0.14
-  return factor
+  // Разность соседних шумов даёт «пилу»: день вверх — следующий чаще вниз.
+  const own = dayNoise(textureKey, dayNumber)
+  const previous = dayNoise(textureKey, dayNumber - 1)
+  let factor = 1 + own * 0.9 - previous * 0.45
+  const rand = seededRevenue(hashSeed('day-spike', textureKey, dayNumber))
+  if (rand() < 0.12) factor *= 1.18 + rand() * 0.27
+  if (rand() < 0.1) factor *= 0.6 + rand() * 0.15
+  return Math.max(0.3, factor)
 }
 
 const TEXTURE_METRICS = [
-  ['views', 0], ['engagedViews', 0], ['watchTime', 3], ['impressions', 3],
+  ['views', 0], ['engagedViews', 0], ['watchTime', 3], ['impressions', 0],
   ['likes', 0], ['comments', 0], ['revenue', 2],
 ]
 
 /* Накладывает дневную неровность на серию периода и перераспределяет каждую
    метрику обратно к её сумме за этот же период — KPI и итоги не меняются,
    меняется только форма графика по дням. */
-function applyDailyTexture(dailySeries, textureKey) {
+function applyDailyTexture(dailySeries, textureKey, metrics = TEXTURE_METRICS) {
   if (dailySeries.length < 2) return dailySeries
   const weights = dailySeries.map((row) => channelDayFactor(textureKey, row.date))
   const out = dailySeries.map((row) => ({ ...row }))
-  for (const [key, precision] of TEXTURE_METRICS) {
+  for (const [key, precision] of metrics) {
     const total = dailySeries.reduce((sum, row) => sum + row[key], 0)
     if (total <= 0) continue
     const shaped = dailySeries.map((row, index) => row[key] * weights[index])
@@ -1500,11 +1497,11 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   const seriesByType = Object.fromEntries(
     Object.entries(dailySeriesByType).map(([key, rows]) => [
       key,
-      bucketSeries(rows, granularity),
+      bucketSeries(applyDailyTexture(rows, channelSeed), granularity),
     ]),
   )
   const contentMetricSeries = buildContentMetricSeries(
-    dailySeries,
+    applyDailyTexture(dailySeries, channelSeed),
     granularity,
     channelSeed,
   )
@@ -1512,7 +1509,7 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     Object.entries(dailySeriesByType).map(([key, rows]) => [
       key,
       buildContentMetricSeries(
-        rows,
+        applyDailyTexture(rows, channelSeed),
         granularity,
         hashSeed(channelSeed, key, 'ctr'),
       ),
@@ -1532,7 +1529,12 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
     ? (prev.views / prev.impressions) * 100
     : 0
   const subscribersDaily = buildSubscriberSeries(channel, dates)
-  const subscribers = aggregateSubscriberSeries(subscribersDaily, granularity)
+  const texturedSubscribers = applyDailyTexture(
+    subscribersDaily,
+    hashSeed(channelSeed, 'subscribers'),
+    [['gained', 0], ['lost', 0]],
+  ).map((row) => ({ ...row, subscribers: row.gained }))
+  const subscribers = aggregateSubscriberSeries(texturedSubscribers, granularity)
   const subscribersGained = subscribersDaily.reduce((sum, row) => sum + row.gained, 0)
   const subscribersLost = subscribersDaily.reduce((sum, row) => sum + row.lost, 0)
   const subscribersValue = subscribersDaily.reduce((sum, row) => sum + row.subscribers, 0)
