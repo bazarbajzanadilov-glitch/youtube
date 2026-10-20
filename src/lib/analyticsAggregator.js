@@ -171,11 +171,22 @@ function normalizePersistedDailyRow(item) {
    бывают одиночные всплески и провалы, общие для всех роликов (алгоритм,
    выходные, праздники). Зависит только от канала и даты — любой диапазон
    показывает один и тот же день одинаково. */
+const TEXTURE_SWELL_DAYS = 5
+
+function textureSwellKnot(textureKey, knot) {
+  return 0.8 + seededRevenue(hashSeed('day-swell', textureKey, knot))() * 0.4
+}
+
 function channelDayFactor(textureKey, date) {
   const rand = seededRevenue(hashSeed('day-texture', textureKey, date))
-  let factor = 0.84 + rand() * 0.32
-  if (rand() < 0.09) factor *= 1.16 + rand() * 0.24
-  if (rand() < 0.07) factor *= 0.76 + rand() * 0.1
+  // Медленная «зыбь» на несколько дней + рваный дневной шум сверху.
+  const dayNumber = Math.round(Date.parse(`${date}T00:00:00Z`) / 86400000)
+  const knot = Math.floor(dayNumber / TEXTURE_SWELL_DAYS)
+  const t = (dayNumber - knot * TEXTURE_SWELL_DAYS) / TEXTURE_SWELL_DAYS
+  const swell = textureSwellKnot(textureKey, knot) * (1 - t) + textureSwellKnot(textureKey, knot + 1) * t
+  let factor = swell * (0.74 + rand() * 0.52)
+  if (rand() < 0.13) factor *= 1.22 + rand() * 0.36
+  if (rand() < 0.1) factor *= 0.66 + rand() * 0.14
   return factor
 }
 
@@ -1418,12 +1429,12 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   )
   const monthlyViewers = monthlyViewersSeries[monthlyViewersSeries.length - 1]?.viewers || 0
 
-  const totalViewsRaw = series.reduce((s, x) => s + x.views, 0)
-  const totalEngagedViewsRaw = series.reduce((s, x) => s + x.engagedViews, 0)
-  const totalLikesRaw = series.reduce((s, x) => s + x.likes, 0)
-  const totalCommentsRaw = series.reduce((s, x) => s + x.comments, 0)
-  const totalWatchSec = series.reduce((s, x) => s + x.watchTime, 0)
-  const totalRevenueRaw = series.reduce((s, x) => s + x.revenue, 0)
+  const totalViewsRaw = dailySeries.reduce((s, x) => s + x.views, 0)
+  const totalEngagedViewsRaw = dailySeries.reduce((s, x) => s + x.engagedViews, 0)
+  const totalLikesRaw = dailySeries.reduce((s, x) => s + x.likes, 0)
+  const totalCommentsRaw = dailySeries.reduce((s, x) => s + x.comments, 0)
+  const totalWatchSec = dailySeries.reduce((s, x) => s + x.watchTime, 0)
+  const totalRevenueRaw = dailySeries.reduce((s, x) => s + x.revenue, 0)
 
   const totalViews = totalViewsRaw
   const totalEngagedViews = totalEngagedViewsRaw
