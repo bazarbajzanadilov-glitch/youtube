@@ -167,6 +167,49 @@ function normalizePersistedDailyRow(item) {
   }
 }
 
+/* Дневной «шум» канала: у реального канала соседние дни скачут на 10–20%,
+   бывают одиночные всплески и провалы, общие для всех роликов (алгоритм,
+   выходные, праздники). Зависит только от канала и даты — любой диапазон
+   показывает один и тот же день одинаково. */
+function channelDayFactor(textureKey, date) {
+  const rand = seededRevenue(hashSeed('day-texture', textureKey, date))
+  let factor = 0.84 + rand() * 0.32
+  if (rand() < 0.09) factor *= 1.16 + rand() * 0.24
+  if (rand() < 0.07) factor *= 0.76 + rand() * 0.1
+  return factor
+}
+
+const TEXTURE_METRICS = [
+  ['views', 0], ['engagedViews', 0], ['watchTime', 3], ['impressions', 3],
+  ['likes', 0], ['comments', 0], ['revenue', 2],
+]
+
+/* Накладывает дневную неровность на серию периода и перераспределяет каждую
+   метрику обратно к её сумме за этот же период — KPI и итоги не меняются,
+   меняется только форма графика по дням. */
+function applyDailyTexture(dailySeries, textureKey) {
+  if (dailySeries.length < 2) return dailySeries
+  const weights = dailySeries.map((row) => channelDayFactor(textureKey, row.date))
+  const out = dailySeries.map((row) => ({ ...row }))
+  for (const [key, precision] of TEXTURE_METRICS) {
+    const total = dailySeries.reduce((sum, row) => sum + row[key], 0)
+    if (total <= 0) continue
+    const shaped = dailySeries.map((row, index) => row[key] * weights[index])
+    const shapedSum = shaped.reduce((sum, value) => sum + value, 0)
+    if (shapedSum <= 0) continue
+    const next = distributeDiscreteTotal(
+      shaped.map((value) => (value / shapedSum) * total),
+      total,
+      precision,
+    )
+    out.forEach((row, index) => { row[key] = next[index] })
+  }
+  out.forEach((row) => {
+    if (row.engagedViews > row.views) row.engagedViews = row.views
+  })
+  return out
+}
+
 function getPersistedDailyIndex(channel, cache) {
   if (cache?.has(PERSISTED_DAILY_INDEX_KEY)) {
     return cache.get(PERSISTED_DAILY_INDEX_KEY)
@@ -1353,7 +1396,8 @@ export function build(videosInput, channelInput, rangeInput, options = {}) {
   /* Бакетинг: для длинных диапазонов аггрегируем по неделям/месяцам, чтобы чарт был
      читаемым (а не плоской линией с одним всплеском в конце). */
   const granularity = range.days <= 120 ? 'day' : range.days <= 400 ? 'week' : 'month'
-  const series = bucketSeries(dailySeries, granularity)
+  // На график — с дневной неровностью; итоги периода те же, что у dailySeries.
+  const series = bucketSeries(applyDailyTexture(dailySeries, channelSeed), granularity)
   const dailyNewReturning = buildDailyNewReturningSeries(dailySeries, channelSeed)
   const newReturning = bucketNewReturningSeries(dailyNewReturning, granularity)
   const returningViews = dailyNewReturning.reduce((sum, row) => sum + row.returning, 0)
