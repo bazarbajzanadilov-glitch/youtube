@@ -114,15 +114,6 @@
   white-space: nowrap;
 }
 
-.bottom {
-  flex: 0 0 auto;
-  margin-top: 8px;
-  padding-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
 @media (max-width: 720px) {
   .sidebar {
     top: var(--studio-topbar-height);

@@ -1310,8 +1310,6 @@ function computeLifetime(videos, channel, asOf, cache) {
 
 /* === main builder === */
 
-export const KPI_OVERRIDE_METRICS = ['views', 'watch', 'subscribers']
-
 /* Проценты «На 999 % больше, чем за предыдущие 28 дней», заданные в админке,
    заменяют расчёт во всех вкладках аналитики канала и не меняются со временем. */
 function withKpiOverride(kpi, percent) {

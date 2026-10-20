@@ -311,11 +311,3 @@
   border-radius: 4px;
 }
 .btnGhost:hover { background: var(--studio-chip-bg); }
-.btnDisabled {
-  background: transparent;
-  border: none;
-  color: var(--studio-text-subtle);
-  font-size: 14px;
-  padding: 8px 16px;
-  cursor: not-allowed;
-}

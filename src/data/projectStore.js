@@ -106,20 +106,8 @@ export function subscribeProject(listener) {
   return () => listeners.delete(listener)
 }
 
-export function getVideosSnapshot() {
-  return snapshot.videos
-}
-
 export function getChannelSnapshot() {
   return snapshot.channel
-}
-
-export function getTotalsSnapshot() {
-  return snapshot.totals
-}
-
-export function getRemoteStatusSnapshot() {
-  return { loading: snapshot.loading, error: snapshot.error }
 }
 
 export function getProjectSnapshot() {

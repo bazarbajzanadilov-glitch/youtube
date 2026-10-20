@@ -109,24 +109,6 @@ export function formatPercent(pct, digits = 1) {
   return v.toFixed(digits).replace('.', ',') + '%'
 }
 
-export function formatMoneyShort(amount) {
-  const v = Number(amount) || 0
-  const NBSP = ' '
-  const fmt = (s) => s.replace(/ /g, NBSP)
-  if (v >= 100_000) return fmt(`${Math.round(v).toLocaleString('ru-RU')} $`)
-  if (v >= 1_000) return fmt(`${v.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, NBSP)} $`)
-  return `${v.toFixed(2).replace('.', ',')}${NBSP}$`
-}
-
-export function formatMoneyFixed(amount) {
-  const v = Number(amount) || 0
-  const NBSP = '\u00a0'
-  return `${v.toLocaleString('ru-RU', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}${NBSP}$`
-}
-
 export function formatNumberRu(n) {
   return Math.round(Number(n) || 0).toLocaleString('ru-RU')
 }

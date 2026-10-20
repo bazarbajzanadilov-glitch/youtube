@@ -300,33 +300,6 @@ export function normalizeToTotal(arr, target) {
   return safe.map((x) => (x / sum) * safeTarget)
 }
 
-/**
- * Скользящее среднее по окну `window`. Сохраняет крайние точки (no shrinking).
- * Используем после агрегации канальной серии чтобы убрать резкие single-day спайки.
- * Защищено от NaN на входе.
- */
-export function movingAverage(arr, window = 3) {
-  if (arr.length === 0 || window <= 1) return arr
-  const out = new Array(arr.length)
-  const half = Math.floor(window / 2)
-  for (let i = 0; i < arr.length; i += 1) {
-    let sum = 0
-    let count = 0
-    for (let j = -half; j <= half; j += 1) {
-      const idx = i + j
-      if (idx >= 0 && idx < arr.length) {
-        const v = arr[idx]
-        if (Number.isFinite(v)) {
-          sum += v
-          count += 1
-        }
-      }
-    }
-    out[i] = count > 0 ? sum / count : 0
-  }
-  return out
-}
-
 /* === retention curve (per-video) === */
 /**
  * 30 точек удержания (% аудитории, ось X = % длительности видео).
@@ -372,18 +345,6 @@ export function generateHourlyHeatmap(seed) {
     }
   }
   return matrix
-}
-
-/* === realtime tick === */
-export function generateRealtimeMinute(seed, prev) {
-  const rand = seededRng(seed)
-  const base = prev > 0 ? prev : 35 + rand() * 25
-  const noise = (rand() - 0.5) * 0.32
-  const drift = (rand() - 0.48) * 0.08
-  let next = base * (1 + noise + drift)
-  if (rand() < 0.06) next *= 1 + (0.3 + rand() * 0.4)
-  if (rand() < 0.05) next *= 0.65 + rand() * 0.2
-  return Math.max(2, Math.round(next))
 }
 
 /* === segments / static-ish percentages with channel-level seed === */
@@ -463,17 +424,4 @@ export function generateLanguageShares(seed) {
   ]
   const sum = a.reduce((s, x) => s + x.share, 0)
   return a.map((x) => ({ ...x, share: x.share / sum }))
-}
-
-export function generateReturningSeries(seed, days, startWeekday = 0) {
-  const rand = seededRng(seed)
-  const out = []
-  for (let i = 0; i < days; i += 1) {
-    const newViewersRatio = 0.55 + (rand() - 0.5) * 0.18 + (i / days) * 0.12
-    out.push({
-      newRatio: Math.max(0.2, Math.min(0.92, newViewersRatio)),
-      weekday: (startWeekday + i) % 7,
-    })
-  }
-  return out
 }

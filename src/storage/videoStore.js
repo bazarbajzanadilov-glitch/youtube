@@ -184,11 +184,6 @@ export function generateVideoStats({
   }
 }
 
-export function randomViews(options = {}) {
-  if (options && typeof options === 'object') return generateVideoStats(options).views
-  return generateVideoStats({ date: todayISO(), seed: hashSeed(Date.now(), Math.random()) }).views
-}
-
 export function suggestRevenue(input) {
   if (input && typeof input === 'object') {
     const views = parseNonNegativeInteger(input.views) ?? 0

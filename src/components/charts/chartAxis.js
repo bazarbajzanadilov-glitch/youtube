@@ -2,7 +2,6 @@ const NICE_STEPS = [1, 2, 2.5, 3, 4, 5, 10]
 // Как в YouTube Studio: верх оси прижат к пику (0 / 125 тыс. / 250 тыс. / 375 тыс.),
 // чтобы график не сплющивался.
 const TIGHT_STEPS = [1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10]
-const NICE_AXIS_MAX_MULTIPLIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 const STEP_EPSILON = 1e-8
 
 function cleanTick(value) {
@@ -31,49 +30,6 @@ function niceStep(maxDisplayValue, targetTickCount) {
   const fraction = roughStep / magnitude
   const niceFraction = NICE_STEPS.find((step) => fraction <= step) || 10
   return niceFraction * magnitude
-}
-
-function ceilNiceAxisMax(maxDisplayValue) {
-  const safeMax = Math.max(0, Number(maxDisplayValue) || 0)
-  if (safeMax === 0) return 1
-
-  const magnitude = 10 ** Math.floor(Math.log10(safeMax))
-  const fraction = safeMax / magnitude
-  const multiplier = NICE_AXIS_MAX_MULTIPLIERS.find((item) => fraction < item - STEP_EPSILON)
-
-  if (multiplier) return multiplier * magnitude
-  return 10 * magnitude
-}
-
-function dividesEvenly(value, step) {
-  if (!(value > 0) || !(step > 0)) return false
-  const ratio = value / step
-  return Math.abs(ratio - Math.round(ratio)) <= STEP_EPSILON
-}
-
-function axisStep(axisMax, targetTickCount, maxTickCount) {
-  const maxCount = Math.max(3, Number(maxTickCount) || targetTickCount + 1)
-  const candidates = stepCandidates(axisMax)
-    .map((step) => {
-      const intervals = axisMax / step
-      return {
-        step,
-        tickCount: Math.round(intervals) + 1,
-      }
-    })
-    .filter((candidate) => (
-      dividesEvenly(axisMax, candidate.step) &&
-      candidate.tickCount >= 3 &&
-      candidate.tickCount <= maxCount
-    ))
-    .sort((a, b) => {
-      const aDistance = Math.abs(a.tickCount - targetTickCount)
-      const bDistance = Math.abs(b.tickCount - targetTickCount)
-      if (aDistance !== bDistance) return aDistance - bDistance
-      return b.tickCount - a.tickCount
-    })
-
-  return candidates[0]?.step || niceStep(axisMax, targetTickCount)
 }
 
 export function buildNiceAxisTicks(maxValue, { scale = 1, targetTickCount = 5 } = {}) {
@@ -109,26 +65,6 @@ export function buildSignedAxisTicks(minValue, maxValue, { targetTickCount = 5 }
   return ticks.length >= 2 ? ticks : [cleanTick(axisMin), cleanTick(axisMax || step)]
 }
 
-export function buildPeakAxisTicks(maxValue, { scale = 1, targetTickCount = 5, maxTickCount = 6 } = {}) {
-  const safeScale = Number(scale) > 0 ? Number(scale) : 1
-  const displayMax = Math.max(0, Number(maxValue) || 0) * safeScale
-  if (displayMax === 0) return [0, cleanTick(1 / safeScale)]
-
-  const axisMax = ceilNiceAxisMax(displayMax)
-  const step = axisStep(axisMax, targetTickCount, maxTickCount)
-
-  const displayTicks = []
-  for (let value = 0; value < axisMax - STEP_EPSILON; value += step) {
-    displayTicks.push(cleanTick(value))
-  }
-  const last = displayTicks[displayTicks.length - 1]
-  if (last == null || Math.abs(last - axisMax) > Math.max(STEP_EPSILON, axisMax * 1e-10)) {
-    displayTicks.push(cleanTick(axisMax))
-  }
-
-  return displayTicks.map((value) => cleanTick(value / safeScale))
-}
-
 export function projectValueToPeakAxis(value, ticks) {
   const numericValue = Number(value) || 0
   if (!Array.isArray(ticks) || ticks.length < 2) return numericValue
@@ -158,12 +94,4 @@ export function maxByDataKey(data, key) {
 export function minByDataKey(data, key) {
   if (!Array.isArray(data)) return 0
   return data.reduce((min, row) => Math.min(min, Number(row?.[key]) || 0), 0)
-}
-
-export function maxByStackedBars(data, bars) {
-  if (!Array.isArray(data) || !Array.isArray(bars)) return 0
-  return data.reduce((max, row) => {
-    const total = bars.reduce((sum, bar) => sum + (Number(row?.[bar.key]) || 0), 0)
-    return Math.max(max, total)
-  }, 0)
 }

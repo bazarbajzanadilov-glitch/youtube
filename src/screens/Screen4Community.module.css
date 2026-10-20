@@ -145,7 +145,6 @@
 .head { display: flex; gap: 8px; font-size: 12px; align-items: center; }
 .handle { color: var(--studio-text); font-weight: 500; }
 .time { color: var(--studio-text-subtle); }
-.published { background: var(--studio-border); color: var(--studio-text-muted); padding: 1px 8px; border-radius: 4px; font-size: 11px; }
 .text { font-size: 13px; color: var(--studio-text); line-height: 18px; margin-top: 4px; word-wrap: break-word; }
 
 .actions { display: flex; align-items: center; gap: 16px; margin-top: 8px; color: var(--studio-text-muted); font-size: 12px; }
@@ -164,25 +163,5 @@
 .actionIcon { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 
 .right { display: flex; align-items: flex-start; gap: 8px; }
-.rightThumb { width: 60px; height: 34px; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
-.rightThumb img,
-.rightThumbBlank {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-}
-.rightThumbBlank { background: linear-gradient(135deg, #444, #222); }
 .rightInfo { font-size: 11px; color: var(--studio-text-muted); }
-.rightTitle { color: var(--studio-text); font-size: 12px; line-height: 14px; }
 .rightOn { color: var(--studio-text-subtle); font-size: 11px; }
-
-.replyRow {
-  display: grid;
-  grid-template-columns: 32px 32px 1fr 240px;
-  gap: 16px;
-  padding: 8px 0 8px 32px;
-  border-bottom: 1px solid var(--studio-row-separator);
-  align-items: flex-start;
-}
-.replyAvatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; }

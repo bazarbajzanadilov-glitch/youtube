@@ -1,19 +1,39 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { lazy, Suspense, useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import styles from './App.module.css'
 import { NavContext } from './screens/NavContext.js'
 import Screen1Dashboard from './screens/Screen1Dashboard.jsx'
-import Screen2Content from './screens/Screen2Content.jsx'
-import Screen3Analytics from './screens/Screen3Analytics.jsx'
-import Screen4Community from './screens/Screen4Community.jsx'
-import Screen5Subtitles from './screens/Screen5Subtitles.jsx'
-import Screen6Copyright from './screens/Screen6Copyright.jsx'
-import Screen7Monetization from './screens/Screen7Monetization.jsx'
-import Screen8aProfile from './screens/Screen8aProfile.jsx'
-import Screen8bHomeTab from './screens/Screen8bHomeTab.jsx'
-import Screen9AudioLibrary from './screens/Screen9AudioLibrary.jsx'
-import Screen10Settings from './screens/Screen10Settings.jsx'
-import Screen11Admin from './screens/Screen11Admin.jsx'
-import Screen12VideoAnalytics from './screens/Screen12VideoAnalytics.jsx'
+// Тяжёлые экраны грузятся отдельными чанками; после старта догружаются в фоне,
+// чтобы переход между разделами был мгновенным.
+const SCREEN_LOADERS = {
+  Screen2Content: () => import('./screens/Screen2Content.jsx'),
+  Screen3Analytics: () => import('./screens/Screen3Analytics.jsx'),
+  Screen4Community: () => import('./screens/Screen4Community.jsx'),
+  Screen5Subtitles: () => import('./screens/Screen5Subtitles.jsx'),
+  Screen6Copyright: () => import('./screens/Screen6Copyright.jsx'),
+  Screen7Monetization: () => import('./screens/Screen7Monetization.jsx'),
+  Screen8aProfile: () => import('./screens/Screen8aProfile.jsx'),
+  Screen8bHomeTab: () => import('./screens/Screen8bHomeTab.jsx'),
+  Screen9AudioLibrary: () => import('./screens/Screen9AudioLibrary.jsx'),
+  Screen10Settings: () => import('./screens/Screen10Settings.jsx'),
+  Screen11Admin: () => import('./screens/Screen11Admin.jsx'),
+  Screen12VideoAnalytics: () => import('./screens/Screen12VideoAnalytics.jsx'),
+}
+const Screen2Content = lazy(SCREEN_LOADERS.Screen2Content)
+const Screen3Analytics = lazy(SCREEN_LOADERS.Screen3Analytics)
+const Screen4Community = lazy(SCREEN_LOADERS.Screen4Community)
+const Screen5Subtitles = lazy(SCREEN_LOADERS.Screen5Subtitles)
+const Screen6Copyright = lazy(SCREEN_LOADERS.Screen6Copyright)
+const Screen7Monetization = lazy(SCREEN_LOADERS.Screen7Monetization)
+const Screen8aProfile = lazy(SCREEN_LOADERS.Screen8aProfile)
+const Screen8bHomeTab = lazy(SCREEN_LOADERS.Screen8bHomeTab)
+const Screen9AudioLibrary = lazy(SCREEN_LOADERS.Screen9AudioLibrary)
+const Screen10Settings = lazy(SCREEN_LOADERS.Screen10Settings)
+const Screen11Admin = lazy(SCREEN_LOADERS.Screen11Admin)
+const Screen12VideoAnalytics = lazy(SCREEN_LOADERS.Screen12VideoAnalytics)
+
+function preloadScreens() {
+  Object.values(SCREEN_LOADERS).forEach((load) => load().catch(() => {}))
+}
 import { VIDEO_ANALYTICS_ITEM_PREFIX } from './lib/videoPerformanceSection.js'
 import { loadRemoteProject } from './data/projectStore.js'
 import { continueDoubleHardResetIfNeeded } from './lib/hardResetSite.js'
@@ -235,6 +255,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const idle = window.requestIdleCallback || ((cb) => window.setTimeout(cb, 1200))
+    idle(preloadScreens)
+  }, [])
+
+  useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [route])
 
@@ -304,7 +329,9 @@ export default function App() {
     <NavContext.Provider value={contextValue}>
       <div className={styles.app} style={{ '--studio-current-sidebar-width': sidebarWidth }}>
         {toast ? <div className={styles.toast} role="status">{toast}</div> : null}
-        <Current />
+        <Suspense fallback={null}>
+          <Current />
+        </Suspense>
       </div>
     </NavContext.Provider>
   )

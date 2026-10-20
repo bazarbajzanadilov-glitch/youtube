@@ -11,7 +11,6 @@ import { averageViewFraction } from '../../lib/videoMetrics.js'
 export const ANALYTICS_BLUE = '#41b4d9'
 export const ANALYTICS_PURPLE = '#bc69f3'
 export const ANALYTICS_TEAL = '#39cfc2'
-export const ANALYTICS_MUTED = 'var(--studio-text-muted)'
 
 const NBSP = '\u00a0'
 const USUAL_DELTA_THRESHOLD = 10
@@ -57,21 +56,8 @@ export function formatTengeChart(amount) {
   return formatTengeFull(amount)
 }
 
-export function formatTengeShort(amount) {
-  return formatTengeChart(amount)
-}
-
 export function formatTengeAxis(amount) {
   return formatTengeChart(amount)
-}
-
-export function rangePrefix(range) {
-  if (range?.kind === '7d') return 'За последние 7 дней'
-  if (range?.kind === '90d') return 'За последние 90 дней'
-  if (range?.kind === '365d') return 'За последние 365 дней'
-  if (range?.kind === 'lifetime') return 'За все время'
-  if (range?.kind === 'custom') return 'За выбранный период'
-  return 'За последние 28 дней'
 }
 
 export function declineViews(n) {
@@ -121,12 +107,6 @@ export function daysSinceLong(iso, now = new Date()) {
   if (last === 1) return `${days} день после публикации`
   if (last >= 2 && last <= 4) return `${days} дня после публикации`
   return `${days} дней после публикации`
-}
-
-export function belowUsual(value, format = formatCompactNumber, prefix = 'Значение ниже обычного') {
-  const safe = Math.max(1, Number(value) || 1)
-  const diff = safe * 6.8
-  return `${prefix} (на ${format(diff)})`
 }
 
 export function kpiTrend(delta) {

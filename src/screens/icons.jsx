@@ -87,20 +87,8 @@ export const KebabIcon = ({ size = 22 }) => (
 export const CheckCircle = ({ size = 16, color = '#2ba640' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M12 1C5.925 1 1 5.925 1 12s4.925 11 11 11 11-4.925 11-11S18.075 1 12 1Zm0 2a9 9 0 110 18.001A9 9 0 0112 3Zm4.293 5.293L10 14.586l-2.293-2.293a1 1 0 10-1.414 1.414L10 17.414l7.707-7.707a1 1 0 10-1.414-1.414Z"/></svg>
 )
-export const ArrowUpIcon = ({ size = 16, color = '#2ba640' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M12,4l-8,8h5v8h6v-8h5L12,4z"/></svg>
-)
-export const KpiArrowUpIcon = ({ size = 16 }) => (
-  <svg width={size} height={size} viewBox="0 0 21 21" fill="none" aria-hidden="true">
-    <rect width="21" height="21" rx="10.5" fill="#2BA640" />
-    <path d="M10.5 5V17.5M15 9.5L10.5 5L6 9.5" stroke="#1F1F1F" strokeWidth="2" />
-  </svg>
-)
 export const InfoIcon = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M11,17h2v-6h-2V17z M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10s10-4.48,10-10S17.52,2,12,2z M12,20c-4.41,0-8-3.59-8-8 s3.59-8,8-8s8,3.59,8,8S16.41,20,12,20z M11,9h2V7h-2V9z"/></svg>
-)
-export const LockIcon = ({ size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 18 18" fill="currentColor"><path d="M9 .75A3.75 3.75 0 005.25 4.5v2.25h-1.5a1.5 1.5 0 00-1.5 1.5v7.5l.008.153a1.5 1.5 0 001.339 1.34l.153.007h10.5l.153-.008a1.5 1.5 0 001.347-1.492v-7.5a1.5 1.5 0 00-1.5-1.5h-1.5V4.5A3.75 3.75 0 009 .75Zm0 1.5a2.25 2.25 0 012.25 2.25v2.25h-4.5V4.5A2.25 2.25 0 019 2.25Zm-5.25 13.5v-7.5h10.5v7.5H3.75Zm5.25-6a1.5 1.5 0 00-.75 2.798v1.327c0 .207.168.375.375.375h.75a.375.375 0 00.375-.375v-1.327A1.498 1.498 0 009 9.75Z"/></svg>
 )
 export const CopyIcon = ({ size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M16,1H4C2.9,1,2,1.9,2,3v14h2V3h12V1z M19,5H8C6.9,5,6,5.9,6,7v14c0,1.1,0.9,2,2,2h11c1.1,0,2-0.9,2-2V7C21,5.9,20.1,5,19,5z M19,21H8V7h11V21z"/></svg>
@@ -127,10 +115,6 @@ export const PageLast = ({ size = 22 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M5.59,7.41L10.18,12l-4.59,4.59L7,18l6-6l-6-6L5.59,7.41z M16,6h2v12h-2V6z"/></svg>
 )
 
-/* Sidebar icons */
-export const SideHome = ({ size = 24 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M9 2H4a2 2 0 00-2 2v7a2 2 0 002 2h5a2 2 0 002-2V4a2 2 0 00-2-2Zm11 0h-5a2 2 0 00-2 2v3a2 2 0 002 2h5a2 2 0 002-2V4a2 2 0 00-2-2Zm0 9h-5a2 2 0 00-2 2v7a2 2 0 002 2h5a2 2 0 002-2v-7a2 2 0 00-2-2ZM9 15H4a2 2 0 00-2 2v3a2 2 0 002 2h5a2 2 0 002-2v-3a2 2 0 00-2-2Z"/></svg>
-)
 export const SideContent = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H8a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2ZM8 16V4h12v12H8Zm-4 4V6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2H4Zm13-10-5-3v6l5-3Z"/></svg>
 )
@@ -169,24 +153,6 @@ export const SideMagic = ({ size = 24 }) => (
 export const SideAudio = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H8a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2ZM8 16V4h12v12H8Zm6-10.513v3.687a3 3 0 101.996 2.98L16 12V8.3l1.621.973A.25.25 0 0018 9.059V7.302a.5.5 0 00-.241-.428l-3-1.814a.5.5 0 00-.759.427ZM4 20V6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2H4Zm9-9a1 1 0 110 2 1 1 0 010-2Z"/></svg>
 )
-export const SideAdmin = ({ size = 24 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0-6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 8c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zm-6 4c.22-.72 3.31-2 6-2 2.7 0 5.8 1.29 6 2H6z"/></svg>
-)
 export const SideSettings = ({ size = 24 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M12.844 1h-1.687a2 2 0 00-1.962 1.616 3 3 0 01-3.92 2.263 2 2 0 00-2.38.891l-.842 1.46a2 2 0 00.417 2.507 3 3 0 010 4.525 2 2 0 00-.417 2.507l.843 1.46a2 2 0 002.38.892 3.001 3.001 0 013.918 2.263A2 2 0 0011.157 23h1.686a2 2 0 001.963-1.615 3.002 3.002 0 013.92-2.263 2 2 0 002.38-.892l.842-1.46a2 2 0 00-.418-2.507 3 3 0 010-4.526 2 2 0 00.418-2.508l-.843-1.46a2 2 0 00-2.38-.891 3 3 0 01-3.919-2.263A2 2 0 0012.844 1Zm-1.767 2.347a6 6 0 00.08-.347h1.687a4.98 4.98 0 002.407 3.37 4.98 4.98 0 004.122.4l.843 1.46A4.98 4.98 0 0018.5 12a4.98 4.98 0 001.716 3.77l-.843 1.46a4.98 4.98 0 00-4.123.4A4.979 4.979 0 0012.843 21h-1.686a4.98 4.98 0 00-2.408-3.371 4.999 4.999 0 00-4.12-.399l-.844-1.46A4.979 4.979 0 005.5 12a4.98 4.98 0 00-1.715-3.77l.842-1.459a4.98 4.98 0 004.123-.399 4.981 4.981 0 002.327-3.025ZM16 12a4 4 0 11-7.999 0 4 4 0 018 0Zm-4 2a2 2 0 100-4 2 2 0 000 4Z"/></svg>
-)
-export const SideFeedback = ({ size = 24 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M19 2H5a4 4 0 00-4 4v10a4 4 0 004 4h2v1.604a1.41 1.41 0 002.095 1.232L14.2 20H19a4 4 0 004-4V6a4 4 0 00-4-4ZM5 4h14a2 2 0 012 2v10a2 2 0 01-2 2h-5.318l-.453.252L9 20.6V18H5a2 2 0 01-2-2V6a2 2 0 012-2Zm7 2a1 1 0 00-1 1v4.5a1 1 0 002 0V7a1 1 0 00-1-1Zm0 7.75a1.25 1.25 0 100 2.5 1.25 1.25 0 000-2.5Z"/></svg>
-)
-export const CakeIcon = ({ size = 32 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="#F4B400"><path d="M12,6c1.11,0,2-0.9,2-2c0-0.38-0.1-0.73-0.29-1.03L12,0l-1.71,2.97C10.1,3.27,10,3.62,10,4C10,5.1,10.9,6,12,6z M18,9h-5V7h-2v2H6c-1.66,0-3,1.34-3,3v9h18v-9C21,10.34,19.66,9,18,9z M19,19H5v-3.46c0.59,0.35,1.31,0.46,2,0.46 c1.06,0,2.03-0.41,2.75-1.09c1.55,1.41,3.94,1.41,5.5,0c1.55,1.41,3.94,1.41,5.5,0c0.71,0.69,1.69,1.09,2.75,1.09v3z M19,15 c-0.97,0-1.71-0.74-1.71-1.71c0-0.93,0.41-1.79,1.13-2.37l0.58-0.46l0.58,0.46c0.71,0.58,1.13,1.44,1.13,2.37 C20.71,14.26,19.97,15,19,15z"/></svg>
-)
-
-/* Common Avatar */
-export const AvatarCircle = ({ size = 32, color = '#000000' }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill={color}/></svg>
-)
-
-export const TradingThumb = ({ width = '100%', height }) => (
-  <img src="/studio-assets/trading-thumb-1.svg" alt="" width={width} height={height} style={{ width, height, display: 'block', objectFit: 'cover' }} />
 )

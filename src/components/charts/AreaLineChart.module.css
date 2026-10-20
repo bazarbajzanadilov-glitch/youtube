@@ -89,15 +89,6 @@
   transform: rotate(120deg);
 }
 
-.markerRail {
-  position: absolute;
-  left: var(--chart-left, 56px);
-  right: var(--chart-right, 56px);
-  bottom: 22px;
-  height: 18px;
-  pointer-events: none;
-}
-
 .processingMarkerGroup {
   pointer-events: auto;
 }
@@ -251,31 +242,7 @@
   white-space: nowrap;
 }
 
-.eventMarker {
-  position: absolute;
-  top: 0;
-  width: 22px;
-  height: 18px;
-  border-radius: 4px;
-  background: var(--studio-chart-marker-bg);
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
-}
-
-.playGlyph {
-  width: 0;
-  height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 7px solid var(--studio-chart-marker-text);
-  margin-left: 2px;
-}
-
 @media (max-width: 720px) {
-  .markerRail { left: 44px; right: 44px; }
   .processingTooltip {
     min-width: 248px;
     padding: 14px 16px;
@@ -310,5 +277,4 @@
     width: 18px;
     height: 18px;
   }
-  .eventMarker:nth-child(n+4) { display: none; }
 }

@@ -4,13 +4,10 @@
  */
 
 const BLUE = '#39cfc2'
-const BLUE_DARK = '#2aa79b'
 const BLUE_LIGHT = '#7edfd7'
 const PURPLE = '#a970ff'
 const PURPLE_LIGHT = '#c4a7ff'
 const GREEN = '#39cfc2'
-const GREEN_DARK = '#2aa79b'
-const GREEN_LIGHT = '#7edfd7'
 const AMBER = '#f9ab00'
 const RED = '#ff6d6d'
 
@@ -39,40 +36,6 @@ export const CHART_COLORS = {
   text: 'var(--studio-text)',
   textMuted: 'var(--studio-text-muted)',
   textSubtle: 'var(--studio-text-subtle)',
-}
-
-export const PALETTE_5 = [
-  BLUE,
-  BLUE_DARK,
-  BLUE_LIGHT,
-  PURPLE,
-  GREEN,
-]
-
-export const PALETTE_6 = [
-  BLUE,
-  BLUE_DARK,
-  BLUE_LIGHT,
-  PURPLE,
-  GREEN,
-  AMBER,
-]
-
-export const TRAFFIC_PALETTE = {
-  search: BLUE,
-  playlists: BLUE_DARK,
-  suggested: BLUE_LIGHT,
-  external: PURPLE,
-  direct: PURPLE_LIGHT,
-  other: CHART_COLORS.textSubtle,
-}
-
-export const REVENUE_SOURCE_PALETTE = {
-  ads: GREEN,
-  premium: GREEN_DARK,
-  memberships: GREEN_LIGHT,
-  supers: AMBER,
-  shopping: BLUE_LIGHT,
 }
 
 export const HEATMAP_RAMP = [
