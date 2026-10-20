@@ -45,6 +45,61 @@
   letter-spacing: 0;
 }
 
+.advanced {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  height: var(--studio-control-height-md);
+  padding: var(--studio-control-padding-md);
+  border-radius: calc(var(--studio-control-height-md) / 2);
+  border: 0;
+  background: var(--studio-action-pill-bg);
+  color: var(--studio-text);
+  font-size: var(--studio-control-font-size-md);
+  font-weight: var(--studio-control-font-weight);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.advanced:hover { background: var(--studio-action-pill-bg-hover); }
+
+.suggestRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0 18px 24px;
+  flex-wrap: wrap;
+}
+.suggestion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--studio-control-height-md);
+  padding: var(--studio-control-padding-md);
+  border-radius: calc(var(--studio-control-height-md) / 2);
+  border: 0;
+  background: var(--studio-action-pill-bg);
+  color: var(--studio-text);
+  font-size: var(--studio-control-font-size-md);
+  font-weight: var(--studio-control-font-weight);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+}
+.suggestion:hover { background: var(--studio-action-pill-bg-hover); transform: none; }
+.suggestion svg { color: var(--studio-text-muted); }
+.kebab {
+  width: 36px; height: 36px;
+  border: none; border-radius: 50%;
+  background: transparent;
+  color: var(--studio-text-muted);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+.kebab:hover { background: var(--studio-hover-soft); color: var(--studio-text); }
+
 .controlRow {
   display: flex;
   align-items: center;
@@ -60,6 +115,7 @@
   scrollbar-width: none;
 }
 .controlRow::-webkit-scrollbar { display: none; }
+.dateWrap { margin-left: auto; padding-left: 16px; }
 
 .monetizeTabs {
   gap: 40px;
@@ -87,6 +143,9 @@
     gap: 12px;
     min-height: 0;
   }
+  .advanced { margin-left: 0; }
   .title { font-size: var(--studio-page-title-mobile-font-size); }
+  .suggestRow { gap: 8px; padding: 14px 0; overflow-x: auto; flex-wrap: nowrap; }
   .controlRow { flex-direction: column; align-items: flex-start; gap: 4px; padding-bottom: 8px; position: static; }
+  .dateWrap { margin-left: 0; padding-left: 0; }
 }

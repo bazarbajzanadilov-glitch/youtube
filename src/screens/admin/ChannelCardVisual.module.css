@@ -118,6 +118,32 @@
   font-size: 12px;
 }
 
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 15px;
+  background: var(--studio-hover-soft);
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--studio-hover);
+}
+
+.chipActive {
+  background: var(--studio-text);
+  color: var(--studio-bg, #0f0f0f);
+}
+
 .date {
   position: relative;
   align-self: flex-start;
@@ -138,6 +164,57 @@
 .pencil {
   margin-left: 4px;
   color: #3ea6ff;
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--studio-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.switch::before {
+  content: '';
+  order: 0;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--studio-hover);
+  transition: background 0.15s;
+}
+
+.knob {
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translateY(-50%);
+  transition: transform 0.15s;
+}
+
+.switch {
+  position: relative;
+}
+
+.switchOn {
+  color: var(--studio-text);
+}
+
+.switchOn::before {
+  background: #2ba640;
+}
+
+.switchOn .knob {
+  transform: translate(16px, -50%);
 }
 
 .save {

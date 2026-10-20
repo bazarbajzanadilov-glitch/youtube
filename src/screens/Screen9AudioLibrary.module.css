@@ -46,6 +46,8 @@
 .fixedScrollbarContent {
   height: 1px;
 }
+
+.headerRow { margin-bottom: 16px; }
 .title {
   font-size: var(--studio-page-title-font-size);
   line-height: var(--studio-page-title-line-height);

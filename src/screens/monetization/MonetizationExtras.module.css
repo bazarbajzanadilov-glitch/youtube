@@ -1,10 +1,485 @@
 /* Дополнительные стили только для табов монетизации */
 
+.layoutSingle {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 1264px;
+  max-width: 100%;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.twoCol,
+.contentGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.spacer16 {
+  height: 16px;
+}
+
+.overviewLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 314px;
+  gap: 16px;
+  align-items: start;
+  width: 1264px;
+  max-width: 100%;
+}
+
+.overviewMain,
+.overviewSide {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.overviewSide {
+  position: sticky;
+  top: calc(var(--studio-topbar-height) + 70px);
+}
+
+.heroCard {
+  border-radius: 16px;
+  border-color: var(--studio-border-strong);
+  background: var(--studio-surface-3);
+}
+
+.heroTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  padding: 2px 0 18px;
+  color: var(--studio-text);
+  font-family: var(--studio-font);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 26px;
+}
+
+.heroTitle strong {
+  color: var(--studio-text);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+}
+
+.inlineKpiRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--studio-border);
+  border-radius: 12px 12px 0 0;
+  background: var(--studio-kpi-bg);
+}
+
+.inlineKpi {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 86px;
+  padding: 12px 14px 10px;
+  border: 0;
+  border-right: 1px solid var(--studio-border);
+  background: var(--studio-kpi-bg);
+  color: var(--studio-text);
+  font-family: inherit;
+  text-align: left;
+}
+
+.inlineKpi:last-child {
+  border-right: 0;
+}
+
+.inlineKpiButton {
+  cursor: pointer;
+  transition: background-color 0.16s ease;
+}
+
+.inlineKpiButton:hover {
+  background: color-mix(in srgb, var(--studio-surface-2) 50%, var(--studio-surface-3));
+}
+
+.inlineKpiActive,
+.inlineKpiActive:hover {
+  background: var(--studio-kpi-active-bg);
+}
+
+.inlineKpiLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.inlineKpiLabelWithIcon {
+  gap: 5px;
+}
+
+.inlineKpiLabelIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.inlineKpiValue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--studio-text);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.inlineKpiTrendIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2ba640;
+}
+
+.inlineKpiHint,
+.inlineKpiHintText {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.heroChartWrap {
+  padding: 14px 8px 0;
+  border: 1px solid var(--studio-border);
+  border-top: 0;
+  border-radius: 0 0 16px 16px;
+}
+
+.heroFooter {
+  display: flex;
+  align-items: center;
+  min-height: 58px;
+  padding: 18px 0 0;
+}
+
+.sectionTitle {
+  margin: 6px 0 0;
+  color: var(--studio-text);
+  font-family: var(--studio-font);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.popularTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.popularTable th,
+.popularTable td {
+  padding: 0 16px;
+  border-top: 1px solid var(--studio-border);
+  color: var(--studio-text);
+  font-size: 13px;
+  line-height: 18px;
+  vertical-align: middle;
+}
+
+.popularTable th {
+  height: 40px;
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  text-align: left;
+}
+
+.popularTable td {
+  height: 72px;
+}
+
+.first {
+  width: 72%;
+}
+
+.popContent {
+  display: grid;
+  grid-template-columns: 24px 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.popThumb {
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1f1f1f;
+}
+
+.popThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.popName {
+  color: var(--studio-link);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popDate {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  line-height: 17px;
+  margin-top: 2px;
+}
+
+.sideCard {
+  padding: 16px !important;
+  border-radius: 16px;
+  border-color: var(--studio-border-strong);
+  background: var(--studio-surface-3);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sideTitle {
+  color: var(--studio-text);
+  font-family: var(--studio-font);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+}
+
+.sideBigStat {
+  color: var(--studio-text);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 36px;
+}
+
+.sideStatLabel {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.sideDivider {
+  height: 1px;
+  background: var(--studio-border);
+  margin: 8px 0;
+}
+
+.detailList {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.detailItem {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1.4fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--studio-text);
+  padding: 6px 0;
+}
+.dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.detailLabel {
+  color: var(--studio-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detailShare {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.detailValue {
+  color: var(--studio-text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 84px;
+}
+
 /* Transactions */
+.txTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.txTable th {
+  text-align: right;
+  font-weight: 400;
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--studio-border);
+}
+.txTable th:first-child { text-align: left; }
+.txTable td { padding: 12px 16px; vertical-align: middle; border-bottom: 1px solid var(--studio-row-separator); }
+.txTable tbody tr:last-child td { border-bottom: none; }
+.txTable tbody tr { transition: background 0.16s ease; }
+.txTable tbody tr:hover { background: var(--studio-hover-soft); }
+.txDate { color: var(--studio-text-muted); white-space: nowrap; }
+
+.statusOk {
+  display: inline-block;
+  background: var(--studio-positive-soft);
+  color: var(--studio-positive-text);
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+}
 
 /* === Side card extras for Monetization Overview === */
 
+.revenueKpiRow {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.programStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--studio-text-muted);
+  margin-top: 4px;
+}
+.programStatusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--studio-positive);
+  box-shadow: 0 0 0 3px rgba(43, 166, 64, 0.18);
+}
+
+.payoutBar {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--studio-hover-soft);
+  overflow: hidden;
+  margin: 10px 0 6px;
+}
+.payoutFill {
+  height: 100%;
+  background: linear-gradient(90deg, #2ba640, #67e08c);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-bottom: 1px solid var(--studio-row-separator);
+  background: transparent;
+  font: inherit;
+  color: var(--studio-text);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.16s ease;
+}
+.linkRow:last-child { border-bottom: none; }
+.linkRow:hover { color: var(--studio-link); }
+.linkArrow {
+  color: var(--studio-text-muted);
+  font-size: 16px;
+  transition: transform 0.16s ease, color 0.16s ease;
+}
+.linkRow:hover .linkArrow {
+  color: var(--studio-link);
+  transform: translateX(2px);
+}
+
 /* Programs panel (Overview side) */
+.programList {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.programRow {
+  display: grid;
+  grid-template-columns: 8px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--studio-row-separator);
+}
+.programRow:last-child { border-bottom: none; }
+.programDot { width: 8px; height: 8px; border-radius: 50%; }
+.programLabel {
+  color: var(--studio-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.programVal {
+  color: var(--studio-text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .layoutSingle,
+  .overviewLayout {
+    width: auto;
+  }
+
+  .kpiGrid,
+  .twoCol,
+  .contentGrid,
+  .overviewLayout,
+  .revenueKpiRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overviewSide {
+    position: static;
+  }
+}
 
 /* === YouTube Studio monetization overview reference === */
 

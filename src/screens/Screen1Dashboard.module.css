@@ -89,12 +89,14 @@
 .performanceTitle span {
   display: block;
 }
+.cardHead,
 .ideaTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
+.cardHead .cardTitle,
 .ideaTop .cardTitle {
   margin-bottom: 0;
 }

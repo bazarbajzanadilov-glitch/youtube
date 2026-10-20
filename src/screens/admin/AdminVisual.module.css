@@ -126,6 +126,11 @@
   line-height: 30px;
 }
 
+.kpiFull {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+}
+
 .shapes {
   display: flex;
   align-items: center;
@@ -241,6 +246,12 @@
   color: #3ea6ff;
   font-size: 12px;
   cursor: pointer;
+}
+
+.tip {
+  margin-top: 10px;
+  color: var(--studio-text-muted);
+  font-size: 12px;
 }
 
 @media (max-width: 900px) {
